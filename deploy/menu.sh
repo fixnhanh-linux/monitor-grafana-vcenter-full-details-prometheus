@@ -236,6 +236,8 @@ update_from_zip() {
     license_guard "$T/esxi-host-exporter/app" || { rm -rf "$T"; return; }
     rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle"
     install -m 644 "$T"/esxi-host-exporter/app/* "$APP/"
+    # thu muc cau hinh cu la 700: cho service (user esxi-exporter) doc duoc license.key; file .env van 600 root
+    getent group esxi-exporter >/dev/null && { chgrp esxi-exporter "$CONF"; chmod 750 "$CONF"; [ -f "$CONF/license.key" ] && { chgrp esxi-exporter "$CONF/license.key"; chmod 640 "$CONF/license.key"; }; }
     install -m 755 "$T/esxi-host-exporter/menu.sh" "$APP/menu.sh" 2>/dev/null
     install -m 755 "$T/esxi-host-exporter/uninstall.sh" "$APP/uninstall.sh" 2>/dev/null
     for n in $(instances); do systemctl restart "$SVC@$n"; done
