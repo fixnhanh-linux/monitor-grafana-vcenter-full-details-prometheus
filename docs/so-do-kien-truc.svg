@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker>
+  </defs>
+  <rect width="960" height="470" fill="#ffffff"/>
+  <text x="480" y="28" text-anchor="middle" font-size="17" font-weight="700" fill="#222">Monitor Resource Host ESXi + vSAN — luồng dữ liệu</text>
+
+  <!-- vCenter -->
+  <rect x="20" y="150" width="170" height="110" rx="10" fill="#e8f1fb" stroke="#2f6db5" stroke-width="1.5"/>
+  <text x="105" y="178" text-anchor="middle" font-weight="700" fill="#1d4f8a">vCenter</text>
+  <text x="105" y="200" text-anchor="middle" fill="#333">vSphere API</text>
+  <text x="105" y="218" text-anchor="middle" fill="#333">vSAN Health</text>
+  <text x="105" y="236" text-anchor="middle" fill="#333">vSAN Performance</text>
+
+  <!-- Server -->
+  <rect x="250" y="95" width="250" height="230" rx="12" fill="#f6f6f6" stroke="#888" stroke-dasharray="6 4"/>
+  <text x="375" y="117" text-anchor="middle" font-weight="700" fill="#555">Server Linux (systemd)</text>
+  <rect x="270" y="130" width="210" height="105" rx="10" fill="#eaf7ec" stroke="#2e8b47" stroke-width="1.5"/>
+  <text x="375" y="155" text-anchor="middle" font-weight="700" fill="#1f6b35">esxi_host_exporter</text>
+  <text x="375" y="175" text-anchor="middle" fill="#333">esxi-host-exporter@&lt;instance&gt;</text>
+  <text x="375" y="194" text-anchor="middle" fill="#333">port 9811, 9812 …</text>
+  <text x="375" y="213" text-anchor="middle" fill="#666" font-size="12">1 vCenter = 1 instance / 1 port</text>
+  <rect x="270" y="255" width="210" height="52" rx="10" fill="#fff8e1" stroke="#c99a00"/>
+  <text x="375" y="277" text-anchor="middle" font-weight="700" fill="#7a5d00">sudo esxi-menu</text>
+  <text x="375" y="295" text-anchor="middle" fill="#555" font-size="12">quản lý, không cần nhớ lệnh</text>
+
+  <!-- Prometheus -->
+  <rect x="580" y="150" width="160" height="70" rx="10" fill="#fdeee7" stroke="#d2541f" stroke-width="1.5"/>
+  <text x="660" y="180" text-anchor="middle" font-weight="700" fill="#a63c0e">Prometheus</text>
+  <text x="660" y="200" text-anchor="middle" fill="#555" font-size="12">prometheus/scrape-*.yml</text>
+
+  <!-- Grafana -->
+  <rect x="790" y="70" width="150" height="70" rx="10" fill="#fff2e0" stroke="#e08a00" stroke-width="1.5"/>
+  <text x="865" y="100" text-anchor="middle" font-weight="700" fill="#9a5e00">Grafana</text>
+  <text x="865" y="120" text-anchor="middle" fill="#555" font-size="12">grafana/*.json</text>
+
+  <!-- Alertmanager -> Element -->
+  <rect x="790" y="175" width="150" height="70" rx="10" fill="#fbe9ec" stroke="#c0334d" stroke-width="1.5"/>
+  <text x="865" y="205" text-anchor="middle" font-weight="700" fill="#8f1f34">Alertmanager</text>
+  <text x="865" y="225" text-anchor="middle" fill="#555" font-size="12">alert-rules-esxi.yml</text>
+  <rect x="790" y="280" width="150" height="50" rx="10" fill="#efe9fb" stroke="#6a4fc2" stroke-width="1.5"/>
+  <text x="865" y="310" text-anchor="middle" font-weight="700" fill="#4a3399">Element / Matrix</text>
+
+  <!-- Web + Influx -->
+  <rect x="270" y="380" width="210" height="60" rx="10" fill="#e8f1fb" stroke="#2f6db5"/>
+  <text x="375" y="405" text-anchor="middle" font-weight="700" fill="#1d4f8a">Dashboard web có sẵn</text>
+  <text x="375" y="425" text-anchor="middle" fill="#555" font-size="12">http://&lt;IP-server&gt;:9811/</text>
+  <rect x="580" y="380" width="160" height="60" rx="10" fill="#f2f2f2" stroke="#777" stroke-dasharray="5 4"/>
+  <text x="660" y="405" text-anchor="middle" font-weight="700" fill="#444">InfluxDB</text>
+  <text x="660" y="425" text-anchor="middle" fill="#555" font-size="12">tuỳ chọn (INFLUX_URL)</text>
+
+  <!-- arrows -->
+  <g stroke="#555" stroke-width="1.6" fill="none" marker-end="url(#a)">
+    <path d="M190,195 L268,185"/>
+    <path d="M480,185 L578,185"/>
+    <path d="M740,175 L788,110"/>
+    <path d="M740,195 L788,208"/>
+    <path d="M865,245 L865,278"/>
+    <path d="M375,235 L375,253" stroke="#c99a00" marker-end="none"/>
+    <path d="M330,325 L330,378"/>
+    <path d="M440,325 C470,360 560,380 578,405" stroke-dasharray="5 4"/>
+  </g>
+  <g font-size="11.5" fill="#333">
+    <text x="196" y="173">HTTPS 443</text>
+    <text x="196" y="218">read-only</text>
+    <text x="500" y="176">/metrics</text>
+    <text x="500" y="203" fill="#666">scrape 30s</text>
+    <text x="712" y="128">query</text>
+    <text x="748" y="222">alert</text>
+    <text x="338" y="355">/  (trình duyệt)</text>
+    <text x="490" y="358">line protocol</text>
+  </g>
+</svg>

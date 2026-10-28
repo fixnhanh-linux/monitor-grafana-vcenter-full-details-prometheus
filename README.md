@@ -5,41 +5,11 @@ cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **a
 
 ## Sơ đồ
 
-```mermaid
-flowchart LR
-    VC["vCenter<br/>vSphere API · vSAN Health · vSAN Performance"]
+![Sơ đồ kiến trúc](docs/so-do-kien-truc.svg)
 
-    subgraph SRV["Server Linux (systemd)"]
-        EXP["esxi_host_exporter<br/>esxi-host-exporter@&lt;instance&gt;<br/>port 9811, 9812 ... (1 vCenter / 1 port)"]
-        MENU["sudo esxi-menu<br/>quản lý không cần nhớ lệnh"]
-    end
-
-    PROM[("Prometheus<br/>scrape 30s")]
-    GRAF["Grafana<br/>grafana/esxi_host_resource_grafana.json"]
-    AM["Alertmanager<br/>prometheus/alert-rules-esxi.yml"]
-    EL["Element / Matrix"]
-    WEB["Trình duyệt<br/>http://&lt;IP-server&gt;:9811/"]
-    INF[("InfluxDB<br/>tuỳ chọn")]
-
-    VC -- "HTTPS 443 · tài khoản Read-only · 60s/lần" --> EXP
-    EXP -- "/metrics" --> PROM
-    EXP -- "dashboard web" --> WEB
-    EXP -. "line protocol (INFLUX_URL)" .-> INF
-    PROM --> GRAF
-    PROM -- "alert rule" --> AM --> EL
-    MENU --- EXP
-```
-
-```mermaid
-flowchart TD
-    A{"Server có internet?"} -- "có" --> B["git clone repo<br/>sudo bash deploy/install.sh"]
-    A -- "không" --> C["python deploy/build_zip.py (máy có internet)<br/>chép .zip + .sha256 lên server<br/>sha256sum -c → unzip → sudo bash install.sh"]
-    B --> D["Thêm target vào Prometheus<br/>prometheus/scrape-esxi-host-resource.yml"]
-    C --> D
-    D --> E["Chép alert rule<br/>prometheus/alert-rules-esxi.yml"]
-    E --> F["Import Grafana<br/>grafana/esxi_host_resource_grafana.json"]
-    F --> G["Cập nhật về sau: sudo esxi-menu<br/>13 = git pull · 6 = từ file zip"]
-```
+**Các bước triển khai:** cài exporter (`deploy/`) → thêm target Prometheus (`prometheus/scrape-esxi-host-resource.yml`)
+→ chép alert rule (`prometheus/alert-rules-esxi.yml`) → import Grafana (`grafana/esxi_host_resource_grafana.json`)
+→ về sau cập nhật bằng `sudo esxi-menu` (mục 13 = git pull, mục 6 = file zip).
 
 ## Cấu trúc thư mục — cần gì lấy nấy
 
@@ -49,7 +19,7 @@ flowchart TD
 | [`deploy/`](deploy/) | Cài / gỡ / quản lý trên Linux, đóng gói offline | `install.sh`, `uninstall.sh`, `menu.sh` (lệnh `esxi-menu`), `esxi-host-exporter@.service`, `build_zip.py` |
 | [`grafana/`](grafana/) | Import vào Grafana | `esxi_host_resource_grafana.json` |
 | [`prometheus/`](prometheus/) | Cấu hình Prometheus | `scrape-esxi-host-resource.yml` (mẫu scrape), `alert-rules-esxi.yml` (12 rule) |
-| [`docs/`](docs/) | Đọc / in / gửi | `Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx` (hướng dẫn A–Z) |
+| [`docs/`](docs/) | Đọc / in / gửi | `Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx` (hướng dẫn A–Z), `so-do-kien-truc.svg` (sơ đồ) |
 
 ## 1. Chuẩn bị
 
