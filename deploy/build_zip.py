@@ -55,11 +55,24 @@ def main():
         keyf = os.path.join(PROJ, ".license_key", "data.key")
         assert lc.PUBLIC_KEY_HEX and os.path.exists(keyf), "chua khoa ban quyen: chay make_license.py init / issue truoc"
         dk = bytes.fromhex(open(keyf).read().strip())
-        rd = lambda n: open(os.path.join(EXP, n), encoding="utf-8", newline=None).read()  # newline=None: CRLF -> LF
-        plain = json.dumps({"modules": {"esxi_host_exporter": rd("esxi_host_exporter.py"), "vsan_disk_health": rd("vsan_disk_health.py")},
-                            "assets": {"esxi_dashboard.html": rd("esxi_dashboard.html")}}, ensure_ascii=False).encode("utf-8")
+        rd = lambda base, n: open(os.path.join(base, n), encoding="utf-8", newline=None).read()  # newline=None: CRLF -> LF
+        DEP = os.path.join(PROJ, "deploy")
+        bundle_obj = {
+            "modules": {"esxi_host_exporter": rd(EXP, "esxi_host_exporter.py"), "vsan_disk_health": rd(EXP, "vsan_disk_health.py")},
+            "assets": {"esxi_dashboard.html": rd(EXP, "esxi_dashboard.html")},
+            "menu_sh": rd(DEP, "menu.sh"),
+        }
+        plain = json.dumps(bundle_obj, ensure_ascii=False).encode("utf-8")
         extra["app/app.bundle"] = lc.seal(zlib.compress(plain, 9), dk)
-        extra["app/esxi_host_exporter.py"] = rd("esxi_launcher.py").replace("@VERSION@", version).encode("utf-8")
+        extra["app/esxi_host_exporter.py"] = rd(EXP, "esxi_launcher.py").replace("@VERSION@", version).encode("utf-8")
+        # menu.sh cai tren server chi la stub goi launcher (menu that nam trong app.bundle, ma hoa)
+        files = [(s, d) for s, d in files if d != "menu.sh"]
+        extra["menu.sh"] = (
+            "#!/usr/bin/env bash\n"
+            "# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary.\n"
+            "# Menu quan ly - noi dung ma hoa trong app.bundle, giai ma khi license hop le.\n"
+            'exec python3 /opt/esxi-host-exporter/esxi_host_exporter.py --run-menu "$@"\n'
+        ).encode("utf-8")
     if not os.path.isdir(os.path.join(PY38_CACHE, "pyVmomi")):
         print("Tai %s cho Python 3.8/3.9 vao %s ..." % (PY38_PYVMOMI, PY38_CACHE))
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", PY38_CACHE, PY38_PYVMOMI])
