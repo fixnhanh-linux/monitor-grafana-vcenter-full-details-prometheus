@@ -2,6 +2,37 @@
 
 Làm theo yêu cầu trong `MONITOR RESOURCE HOST ESXi.docx`.
 
+## Cài từ GitHub (git clone)
+
+Repo: **https://github.com/fixnhanh-linux/monitor-grafana-vcenter-full-details-prometheus**
+
+```bash
+cd /root
+git clone https://github.com/fixnhanh-linux/monitor-grafana-vcenter-full-details-prometheus.git
+cd monitor-grafana-vcenter-full-details-prometheus
+sudo bash deploy/install.sh
+```
+
+- Cần internet trên server: `install.sh` tự tải thư viện `pyvmomi` bằng pip
+  (thiếu pip: `apt install python3-pip` hoặc `dnf install python3-pip`). Server không có internet → dùng gói zip bên dưới.
+- Script hỏi tên instance, IP vCenter, user, cluster, port, chu kỳ, mật khẩu (gõ ẩn) — giống cài từ zip.
+- Cài xong gõ `sudo esxi-menu` để quản lý.
+
+Cập nhật bản mới từ GitHub:
+
+```bash
+sudo esxi-menu        # chon 13) Cap nhat ban moi tu GitHub (git pull)
+```
+
+hoặc làm tay:
+
+```bash
+cd /root/monitor-grafana-vcenter-full-details-prometheus && git pull
+sudo bash deploy/install.sh           # cung ten instance, Enter de giu mat khau cu
+```
+
+Tạo gói zip cài offline (trên máy có Python + pyvmomi): `python deploy/build_zip.py`.
+
 ## Cài nhanh trên Linux từ `esxi-host-exporter-linux.zip`
 
 Yêu cầu: Linux có systemd + Python ≥ 3.8 (Ubuntu 20.04+, Debian 11+, RHEL/Rocky 8+). **Không cần internet** — thư viện `pyvmomi` đã kèm trong gói.

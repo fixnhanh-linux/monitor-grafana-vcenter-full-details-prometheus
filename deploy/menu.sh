@@ -62,6 +62,30 @@ update_from_zip() {
   rm -rf "$T"
 }
 
+REPO_NAME=monitor-grafana-vcenter-full-details-prometheus
+find_src() {  # thu muc chua install.sh: goi zip da giai nen hoac repo git clone
+  for c in /home/esxi-host-exporter /root/$REPO_NAME/deploy /home/*/$REPO_NAME/deploy /opt/$REPO_NAME/deploy; do
+    [ -f "$c/install.sh" ] && { echo "$c"; return; }
+  done
+}
+
+update_from_git() {
+  local RP; RP=$(find_src); RP=${RP%/deploy}
+  if [ -z "$RP" ] || [ ! -d "$RP/.git" ]; then
+    read -r -p "Thu muc repo da git clone [/root/$REPO_NAME]: " RP; RP=${RP:-/root/$REPO_NAME}
+  fi
+  [ -d "$RP/.git" ] || { echo "${R}Chua clone: git clone https://github.com/fixnhanh-linux/$REPO_NAME.git${N}"; return; }
+  echo "Ban dang cai : $(grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" | cut -d'"' -f2)"
+  git -C "$RP" pull --ff-only || { echo "${R}git pull loi${N}"; return; }
+  echo "Ban tren git : ${B}$(grep -m1 '^VERSION' "$RP/esxi_host_exporter.py" | cut -d'"' -f2)${N}"
+  read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
+  [ "$a" = y ] || return
+  install -m 644 "$RP/esxi_host_exporter.py" "$RP/vsan_disk_health.py" "$RP/esxi_dashboard.html" "$RP/dashboard_template.html" "$APP/"
+  install -m 755 "$RP/deploy/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/deploy/uninstall.sh" "$APP/uninstall.sh"
+  for n in $(instances); do systemctl restart "$SVC@$n"; done
+  sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done
+}
+
 influx_show() {
   pick || return
   echo "Cau hinh InfluxDB cua $PICK (token/password da an):"
@@ -83,6 +107,8 @@ ${B}Lenh hay dung (thay pool18 bang ten instance)${N}
   Cau hinh        : $CONF/<instance>.env   (quyen 600, co mat khau)
   Kiem tra zip    : sha256sum -c esxi-host-exporter-linux.zip.sha256
   Them / doi pass : cd /home/esxi-host-exporter && bash install.sh
+  Tu GitHub       : git clone https://github.com/fixnhanh-linux/$REPO_NAME.git && sudo bash $REPO_NAME/deploy/install.sh
+  Cap nhat GitHub : cd $REPO_NAME && git pull  (hoac menu muc 13)
   Go 1 instance   : $APP/uninstall.sh pool18
 EOF
 }
@@ -105,6 +131,7 @@ ${B}========= ESXi HOST EXPORTER - MENU =========${N}
  10) Xem cau hinh InfluxDB
  11) Go 1 instance
  12) Cac lenh hay dung
+ 13) Cap nhat ban moi tu GitHub (git pull)
   0) Thoat
 EOF
   read -r -p "Chon: " c
@@ -116,8 +143,8 @@ EOF
     5) for n in $(instances); do p=$(port_of "$n"); v=$(version_of_port "$p"); echo "  $n ($p): ${v:-${R}khong co build_info (ban cu hoac chua chay)${N}}"; done
        echo "  Ban trong $APP: $(grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" | cut -d'"' -f2)"; pause ;;
     6) update_from_zip; pause ;;
-    7|8) D=/home/esxi-host-exporter
-       [ -f "$D/install.sh" ] || read -r -p "Thu muc da giai nen goi (co install.sh): " D
+    7|8) D=$(find_src)
+       [ -n "$D" ] || read -r -p "Thu muc co install.sh (goi zip da giai nen hoac <repo>/deploy): " D
        if [ -f "$D/install.sh" ]; then
          if [ "$c" = 8 ]; then pick && (cd "$D" && NAME="$PICK" VC="$(val_of "$PICK" VC)" VC_USER="$(val_of "$PICK" VC_USER)" \
               CLUSTER="$(val_of "$PICK" CLUSTER)" PORT="$(port_of "$PICK")" INTERVAL="$(val_of "$PICK" INTERVAL)" bash install.sh)
@@ -129,6 +156,7 @@ EOF
     10) influx_show; pause ;;
     11) pick && { read -r -p "Go instance $PICK? (y/N): " a; [ "$a" = y ] && "$APP/uninstall.sh" "$PICK"; }; pause ;;
     12) cheatsheet; pause ;;
+    13) update_from_git; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac

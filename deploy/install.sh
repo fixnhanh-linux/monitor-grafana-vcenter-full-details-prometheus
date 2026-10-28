@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Cai dat ESXi host + vSAN exporter (dashboard web + Prometheus) len Linux co systemd.
 #
-#   sudo ./install.sh                 # hoi tung thong tin
+#   sudo ./install.sh                 # hoi tung thong tin (tu goi zip)
+#   sudo bash deploy/install.sh       # tu repo git clone (tu tai pyVmomi bang pip)
 #   sudo NAME=pool18 VC=<IP-vCenter> VC_USER=monitor@vsphere.local CLUSTER=POOL18-XD PORT=9811 ./install.sh
 #
 # Chay lai voi NAME khac de them vCenter/cluster khac (moi instance 1 port).
@@ -51,15 +52,28 @@ if [ -z "${VSAN_PASS:-}" ]; then
   fi
 fi
 
+# Chay duoc tu 2 noi: goi zip (install.sh + app/ + vendor/) hoac repo git clone (deploy/install.sh, code o thu muc cha)
+if [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"; else FILES="$(cd "$SRC/.." && pwd)"; fi
+[ -f "$FILES/esxi_host_exporter.py" ] || die "khong thay esxi_host_exporter.py (chay tu goi zip hoac repo git clone)"
+
 echo "-> Chep chuong trinh vao $APP"
 install -d -m 755 "$APP" "$APP/vendor"
-install -m 644 "$SRC/app/esxi_host_exporter.py" "$SRC/app/vsan_disk_health.py" \
-               "$SRC/app/esxi_dashboard.html" "$SRC/app/dashboard_template.html" "$APP/"
+install -m 644 "$FILES/esxi_host_exporter.py" "$FILES/vsan_disk_health.py" \
+               "$FILES/esxi_dashboard.html" "$FILES/dashboard_template.html" "$APP/"
 install -m 755 "$SRC/uninstall.sh" "$APP/uninstall.sh"
 install -m 755 "$SRC/menu.sh" "$APP/menu.sh"
 ln -sf "$APP/menu.sh" /usr/local/bin/esxi-menu   # go "esxi-menu" neu quen lenh
 rm -rf "$APP/vendor"/*
-cp -r "$SRC/vendor/." "$APP/vendor/"
+if [ -d "$SRC/vendor" ]; then
+  cp -r "$SRC/vendor/." "$APP/vendor/"           # goi zip: pyVmomi kem san, khong can internet
+else
+  echo "-> Tai pyVmomi bang pip vao $APP/vendor (repo git clone, can internet)"
+  python3 -m pip --version >/dev/null 2>&1 \
+    || die "chua co pip: apt install python3-pip | dnf install python3-pip (hoac dung goi zip offline)"
+  python3 -m pip install -q --no-cache-dir --target "$APP/vendor" "pyvmomi>=8.0.2" 2>/dev/null \
+    || python3 -m pip install -q --no-cache-dir --break-system-packages --target "$APP/vendor" "pyvmomi>=8.0.2" \
+    || die "pip khong cai duoc pyvmomi (kiem tra internet / proxy)"
+fi
 chmod -R a+rX "$APP"
 
 echo "-> Kiem tra thu vien pyVmomi"
