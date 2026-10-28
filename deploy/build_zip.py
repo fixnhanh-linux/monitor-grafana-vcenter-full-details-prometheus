@@ -10,16 +10,19 @@ Chay tu thu muc du an:  python deploy/build_zip.py
 - KHONG BAO GIO dua .vsan_pass / *.env vao goi.
 """
 import hashlib
+import json
 import os
 import re
 import subprocess
 import sys
 import zipfile
+import zlib
 
 import pyVmomi
 
 PROJ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(PROJ, "esxi-host-exporter-linux.zip")
+PROTECTED = "--protected" in sys.argv   # goi cho KHACH: ma nguon ma hoa trong app.bundle, khong con file .py cua exporter
+OUT = os.path.join(PROJ, "esxi-host-exporter-protected-linux.zip" if PROTECTED else "esxi-host-exporter-linux.zip")
 ROOT = "esxi-host-exporter/"
 TEXT = (".py", ".sh", ".service", ".md", ".json", ".yml", ".html", ".txt", ".typed", ".pyi")
 STAMP = (2026, 10, 28, 0, 0, 0)
@@ -33,8 +36,6 @@ ENTRIES = [
     ("prometheus/alert-rules-esxi.yml", "alert-rules-esxi.yml"),
     ("prometheus/scrape-esxi-host-resource.yml", "scrape-esxi-host-resource.yml"),
     ("docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
-    ("exporter/esxi_host_exporter.py", "app/esxi_host_exporter.py"), ("exporter/vsan_disk_health.py", "app/vsan_disk_health.py"),
-    ("exporter/esxi_dashboard.html", "app/esxi_dashboard.html"), ("exporter/dashboard_template.html", "app/dashboard_template.html"),
     ("exporter/license_check.py", "app/license_check.py"), ("LICENSE", "LICENSE"),
 ]
 
@@ -43,6 +44,22 @@ def main():
     version = re.search(r'^VERSION = "([^"]+)"', open(os.path.join(PROJ, "exporter", "esxi_host_exporter.py"),
                                                       encoding="utf-8").read(), re.M).group(1)
     files = [(os.path.join(PROJ, s), d) for s, d in ENTRIES]
+    extra = {}  # ten trong zip -> bytes sinh luc build
+    EXP = os.path.join(PROJ, "exporter")
+    if not PROTECTED:
+        for n in ("esxi_host_exporter.py", "vsan_disk_health.py", "esxi_dashboard.html", "dashboard_template.html"):
+            files.append((os.path.join(EXP, n), "app/" + n))
+    else:
+        sys.path.insert(0, EXP)
+        import license_check as lc
+        keyf = os.path.join(PROJ, ".license_key", "data.key")
+        assert lc.PUBLIC_KEY_HEX and os.path.exists(keyf), "chua khoa ban quyen: chay make_license.py init / issue truoc"
+        dk = bytes.fromhex(open(keyf).read().strip())
+        rd = lambda n: open(os.path.join(EXP, n), encoding="utf-8", newline=None).read()  # newline=None: CRLF -> LF
+        plain = json.dumps({"modules": {"esxi_host_exporter": rd("esxi_host_exporter.py"), "vsan_disk_health": rd("vsan_disk_health.py")},
+                            "assets": {"esxi_dashboard.html": rd("esxi_dashboard.html")}}, ensure_ascii=False).encode("utf-8")
+        extra["app/app.bundle"] = lc.seal(zlib.compress(plain, 9), dk)
+        extra["app/esxi_host_exporter.py"] = rd("esxi_launcher.py").replace("@VERSION@", version).encode("utf-8")
     if not os.path.isdir(os.path.join(PY38_CACHE, "pyVmomi")):
         print("Tai %s cho Python 3.8/3.9 vao %s ..." % (PY38_PYVMOMI, PY38_CACHE))
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", PY38_CACHE, PY38_PYVMOMI])
@@ -60,7 +77,7 @@ def main():
                         if fn.upper().startswith("LICENSE"):
                             files.append((os.path.join(dp, fn), prefix + "LICENSE-pyvmomi.txt"))
 
-    bad = [d for _, d in files if ".vsan_pass" in d or d.endswith(".env") or "private" in d.lower() or "make_license" in d]
+    bad = [d for _, d in files if (PROTECTED and d.startswith("app/") and d.endswith((".html", "vsan_disk_health.py"))) or ".vsan_pass" in d or d.endswith(".env") or "private" in d.lower() or "make_license" in d]
     assert not bad, "co file mat khau trong goi: %s" % bad
 
     def info(name, mode):
@@ -70,6 +87,8 @@ def main():
 
     with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.writestr(info("VERSION", 0o100644), version + "\n")
+        for name, blob in extra.items():
+            z.writestr(info(name, 0o100644), blob)
         for src, dst in files:
             data = open(src, "rb").read()
             if dst.endswith(TEXT):

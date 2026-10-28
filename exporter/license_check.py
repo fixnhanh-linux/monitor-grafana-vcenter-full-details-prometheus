@@ -12,6 +12,7 @@ Ed25519 viet thuan Python theo RFC 8032 -> khong can thu vien ngoai, chay duoc t
 """
 import base64
 import hashlib
+import hmac
 import json
 import os
 import time
@@ -115,6 +116,57 @@ def _checkvalid(sig, msg, pk):
     return True
 
 
+
+# ----------------------------------------------------------------------------
+# Ma hoa goi ma nguon (app.bundle): luong khoa SHA-256 dang counter + HMAC-SHA256, chi dung thu vien chuan.
+# Khoa du lieu "dk" KHONG nam trong code: no nam trong file license (da ky so) duoi dang boc theo machine-id
+# -> khong co license dung cho dung may thi khong giai ma duoc, du co sua code kiem tra license.
+MAGIC = b"ESXB1"
+
+
+def _stream(key, nonce, n):
+    blocks = (n + 31) // 32
+    return b"".join(hashlib.sha256(key + nonce + i.to_bytes(8, "big")).digest() for i in range(blocks))[:n]
+
+
+def _xor(data, ks):
+    n = len(data)
+    return (int.from_bytes(data, "big") ^ int.from_bytes(ks, "big")).to_bytes(n, "big") if n else b""
+
+
+def _mackey(key):
+    return hashlib.sha256(key + b"mac").digest()
+
+
+def seal(data, key):
+    nonce = os.urandom(16)
+    ct = _xor(data, _stream(key, nonce, len(data)))
+    return MAGIC + nonce + ct + hmac.new(_mackey(key), nonce + ct, hashlib.sha256).digest()
+
+
+def unseal(blob, key):
+    if blob[:5] != MAGIC or len(blob) < 53:
+        raise ValueError("goi khong hop le")
+    nonce, ct, mac = blob[5:21], blob[21:-32], blob[-32:]
+    if not hmac.compare_digest(mac, hmac.new(_mackey(key), nonce + ct, hashlib.sha256).digest()):
+        raise ValueError("khong giai ma duoc (sai license / sai may / goi bi sua)")
+    return _xor(ct, _stream(key, nonce, len(ct)))
+
+
+def wrap_mask(machine):
+    return hashlib.sha256(b"esxi-wrap:" + machine.encode("utf-8")).digest()
+
+
+def derive_dk(payload, local_machine_id):
+    """Khoa du lieu tu license: wk XOR hash(machine). License ANY dung 'ANY', con lai dung machine-id THAT cua may nay."""
+    wk = payload.get("wk")
+    if not wk:
+        return b""
+    wk = base64.urlsafe_b64decode(wk + "=" * (-len(wk) % 4))
+    m = "ANY" if payload.get("machine", "ANY") == "ANY" else local_machine_id
+    return bytes(a ^ b for a, b in zip(wk, wrap_mask(m)))
+
+
 # ----------------------------------------------------------------------------
 def machine_id():
     """Dinh danh on dinh cua may (bam SHA-256), dung de gan license vao 1 server."""
@@ -170,7 +222,7 @@ def _expiry_ts(payload):
 def check(path=None):
     """Tra ve dict trang thai license. Ban chua khoa ban quyen -> valid=True, unlicensed=True."""
     info = {"valid": False, "unlicensed": False, "reason": "", "customer": "", "machine_ok": False,
-            "expires": "", "expiry_ts": 0, "days_left": None, "max_hosts": 0, "machine_id": machine_id()}
+            "expires": "", "expiry_ts": 0, "days_left": None, "max_hosts": 0, "machine_id": machine_id(), "dk": b""}
     if not PUBLIC_KEY_HEX:
         info.update(valid=True, unlicensed=True, customer="DEV (ban chua khoa ban quyen)", expires="never")
         return info
@@ -196,6 +248,7 @@ def check(path=None):
         if time.time() > ts:
             info["reason"] = "license het han ngay %s" % payload.get("expires")
             return info
+    info["dk"] = derive_dk(payload, info["machine_id"])
     info["valid"] = True
     return info
 
@@ -226,6 +279,7 @@ if __name__ == "__main__":
         print(machine_id())
     elif len(sys.argv) > 1 and sys.argv[1] == "status":
         i = check(sys.argv[2] if len(sys.argv) > 2 else None)
+        i.pop("dk", None)
         if i["unlicensed"]:
             print("Ban chua khoa ban quyen (dev)")
         elif i["valid"]:
@@ -238,4 +292,5 @@ if __name__ == "__main__":
         sys.exit(0 if i["valid"] else 1)
     else:
         i = check(sys.argv[1] if len(sys.argv) > 1 else None)
+        i["dk"] = "(an)" if i.get("dk") else ""
         print(json.dumps(i, ensure_ascii=False, indent=2))

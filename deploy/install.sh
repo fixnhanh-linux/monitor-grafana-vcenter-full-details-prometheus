@@ -87,8 +87,11 @@ PYTHONPATH="$NEWV" python3 -c 'import pyVmomi, pyVim.connect; from pyVmomi impor
 echo "-> Chep chuong trinh vao $APP"
 rm -rf "$APP/vendor.old"; [ -d "$APP/vendor" ] && mv "$APP/vendor" "$APP/vendor.old"
 mv "$NEWV" "$APP/vendor"; rm -rf "$APP/vendor.old"
-install -m 644 "$FILES/esxi_host_exporter.py" "$FILES/vsan_disk_health.py" \
-               "$FILES/esxi_dashboard.html" "$FILES/dashboard_template.html" "$FILES/license_check.py" "$APP/"
+rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle"
+for f in "$FILES"/*.py "$FILES"/*.html "$FILES"/*.bundle; do
+  [ -f "$f" ] && [ "$(basename "$f")" != esxi_launcher.py ] && install -m 644 "$f" "$APP/"
+done
+[ -f "$APP/app.bundle" ] && echo "   (goi bao ve: ma nguon duoc ma hoa trong app.bundle)"
 install -m 755 "$SRC/uninstall.sh" "$APP/uninstall.sh"
 install -m 755 "$SRC/menu.sh" "$APP/menu.sh"
 ln -sf "$APP/menu.sh" /usr/local/bin/esxi-menu   # go "esxi-menu" neu quen lenh

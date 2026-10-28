@@ -234,6 +234,7 @@ update_from_zip() {
       echo "${R}Goi zip khong co pyVmomi chay duoc voi $(python3 -V 2>&1) - dung lai, chua thay doi gi.${N}"; rm -rf "$T"; return
     fi
     license_guard "$T/esxi-host-exporter/app" || { rm -rf "$T"; return; }
+    rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle"
     install -m 644 "$T"/esxi-host-exporter/app/* "$APP/"
     install -m 755 "$T/esxi-host-exporter/menu.sh" "$APP/menu.sh" 2>/dev/null
     install -m 755 "$T/esxi-host-exporter/uninstall.sh" "$APP/uninstall.sh" 2>/dev/null
@@ -262,6 +263,7 @@ update_from_git() {
   echo "Ban tren git : ${B}$(grep -m1 '^VERSION' "$E/esxi_host_exporter.py" | cut -d'"' -f2)${N}"
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   [ "$a" = y ] || return
+  [ -f "$APP/app.bundle" ] && { echo "${Y}Ban dang cai la BAN BAO VE (ma hoa). Cap nhat bang goi zip bao ve (muc 6), khong dung git.${N}"; return; }
   license_guard "$E" || return
   install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$E/license_check.py" "$APP/"
   install -m 755 "$RP/deploy/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/deploy/uninstall.sh" "$APP/uninstall.sh"
