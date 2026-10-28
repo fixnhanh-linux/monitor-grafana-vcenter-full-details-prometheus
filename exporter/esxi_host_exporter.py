@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 """Prometheus exporter: tai nguyen tung host ESXi + vSAN cho dashboard "MONITOR RESOURCE HOST ESXi".
 
 Cach dung:
@@ -38,6 +39,7 @@ from pyVim.connect import Disconnect, SmartConnect
 from pyVmomi import SoapStubAdapter, vim, vmodl
 
 import vsan_disk_health as vdh
+import license_check
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
 VERSION = "2026.10.28-1"
@@ -525,6 +527,7 @@ def record_history(history, hosts, ts):
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
+    license_check.enforce()  # ban quyen: license hong -> thoat ma 4 (xem license_check.py)
     vc = sys.argv[1].replace("https://", "").split("/")[0]
     user = sys.argv[2]
     cluster = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "-" else None

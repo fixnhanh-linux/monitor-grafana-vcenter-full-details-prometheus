@@ -35,6 +35,7 @@ ENTRIES = [
     ("docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
     ("exporter/esxi_host_exporter.py", "app/esxi_host_exporter.py"), ("exporter/vsan_disk_health.py", "app/vsan_disk_health.py"),
     ("exporter/esxi_dashboard.html", "app/esxi_dashboard.html"), ("exporter/dashboard_template.html", "app/dashboard_template.html"),
+    ("exporter/license_check.py", "app/license_check.py"), ("LICENSE", "LICENSE"),
 ]
 
 
@@ -59,7 +60,7 @@ def main():
                         if fn.upper().startswith("LICENSE"):
                             files.append((os.path.join(dp, fn), prefix + "LICENSE-pyvmomi.txt"))
 
-    bad = [d for _, d in files if ".vsan_pass" in d or d.endswith(".env")]
+    bad = [d for _, d in files if ".vsan_pass" in d or d.endswith(".env") or "private" in d.lower() or "make_license" in d]
     assert not bad, "co file mat khau trong goi: %s" % bad
 
     def info(name, mode):

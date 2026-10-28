@@ -151,6 +151,15 @@ VSAN_PASS='...' python3 esxi_host_exporter.py <IP-vCenter> monitor@vsphere.local
 python3 vsan_disk_health.py <IP-vCenter> monitor@vsphere.local <cluster> result.json   # chi lay health disk ra JSON
 ```
 
+## Bản quyền & license
+
+Phần mềm độc quyền của **FIX NHANH** (xem [LICENSE](LICENSE)). Exporter chỉ chạy khi có file license hợp lệ do FIX NHANH cấp:
+
+- Ký số Ed25519, **gắn với machine-id của server** → chép sang máy khác không chạy được; có ngày hết hạn và giới hạn số host.
+- Lấy machine-id: `sudo esxi-menu` → **15** (hoặc `python3 /opt/esxi-host-exporter/license_check.py id`) → gửi cho FIX NHANH.
+- Cài license: đặt file `*.license.key` cạnh `install.sh` (hoặc `LICENSE_FILE=/đường/dẫn sudo bash install.sh`), hoặc chép vào `/etc/esxi-host-exporter/license.key` rồi restart.
+- Thiếu / sai / hết hạn license: exporter dừng (mã 4, systemd không thử lại) và in machine-id; cập nhật phiên bản bị chặn nếu máy chưa có license hợp lệ.
+
 ## Bảo mật
 
 - Không commit mật khẩu: `.gitignore` đã chặn `.vsan_pass`, `*.env`, gói `.zip`.

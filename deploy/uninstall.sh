@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 # Go cai dat:  sudo ./uninstall.sh            (go tat ca instance)
 #              sudo ./uninstall.sh pool18     (chi go 1 instance)
 set -euo pipefail

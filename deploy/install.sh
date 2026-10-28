@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 # Cai dat ESXi host + vSAN exporter (dashboard web + Prometheus) len Linux co systemd.
 #
 #   sudo ./install.sh                 # hoi tung thong tin (tu goi zip)
@@ -87,7 +88,7 @@ echo "-> Chep chuong trinh vao $APP"
 rm -rf "$APP/vendor.old"; [ -d "$APP/vendor" ] && mv "$APP/vendor" "$APP/vendor.old"
 mv "$NEWV" "$APP/vendor"; rm -rf "$APP/vendor.old"
 install -m 644 "$FILES/esxi_host_exporter.py" "$FILES/vsan_disk_health.py" \
-               "$FILES/esxi_dashboard.html" "$FILES/dashboard_template.html" "$APP/"
+               "$FILES/esxi_dashboard.html" "$FILES/dashboard_template.html" "$FILES/license_check.py" "$APP/"
 install -m 755 "$SRC/uninstall.sh" "$APP/uninstall.sh"
 install -m 755 "$SRC/menu.sh" "$APP/menu.sh"
 ln -sf "$APP/menu.sh" /usr/local/bin/esxi-menu   # go "esxi-menu" neu quen lenh
@@ -100,7 +101,7 @@ if ! id "$SVC_USER" >/dev/null 2>&1; then
 fi
 
 echo "-> Ghi cau hinh $ENV_FILE (chi root doc duoc)"
-install -d -m 700 "$CONF"
+install -d -m 750 -o root -g "$SVC_USER" "$CONF"   # service doc duoc license.key; file .env van 600 root
 OLD_PASS_LINE=""
 if [ -z "$VSAN_PASS" ] && [ -f "$ENV_FILE" ]; then
   OLD_PASS_LINE=$(grep '^VSAN_PASS=' "$ENV_FILE")
@@ -143,6 +144,17 @@ umask 077
 chmod 600 "$ENV_FILE"; chown root:root "$ENV_FILE"
 umask 022
 
+# Ban quyen: file license do FIX NHANH cap (gan machine-id). Dat canh install.sh (license.key) hoac LICENSE_FILE=/duong/dan
+LIC_DST=/etc/esxi-host-exporter/license.key
+LIC_SRC="${LICENSE_FILE:-}"; [ -n "$LIC_SRC" ] || for f in "$SRC/license.key" "$SRC"/*.license.key /home/*.license.key; do [ -f "$f" ] && { LIC_SRC="$f"; break; }; done
+if [ -n "$LIC_SRC" ] && [ -f "$LIC_SRC" ]; then
+  install -m 640 -o root -g "$SVC_USER" "$LIC_SRC" "$LIC_DST" && echo "-> Da cai license: $LIC_SRC"
+fi
+echo "-> Kiem tra ban quyen"
+python3 "$APP/license_check.py" status "$LIC_DST" || {
+  echo "!! Chua co license hop le. Gui machine-id tren cho FIX NHANH de xin license, luu vao $LIC_DST"
+  echo "   roi: sudo systemctl restart esxi-host-exporter@$NAME   (hoac chay lai install.sh voi LICENSE_FILE=...)"
+}
 echo "-> Cai systemd unit"
 install -m 644 "$SRC/$UNIT" "/etc/systemd/system/$UNIT"
 systemctl daemon-reload
