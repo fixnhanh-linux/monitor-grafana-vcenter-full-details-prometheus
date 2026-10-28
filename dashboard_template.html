@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vSAN Disk Health</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1d2330; --muted: #5f6b7a; --line: #dfe3e8;
+    --head: #f7f8fa; --hover: #f0f4fa; --accent: #0b6bcb;
+    --ok: #1f8a4c; --ok-bg: #e5f4ea; --warn: #b26a00; --warn-bg: #fdf1dc;
+    --bad: #c62828; --bad-bg: #fde7e7; --unk: #6b7280; --unk-bg: #eceef1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b1f27; --text: #e6e9ef; --muted: #9aa4b2; --line: #2c323d;
+      --head: #20252e; --hover: #232a35; --accent: #5aa4f0;
+      --ok: #4cc27f; --ok-bg: #173323; --warn: #f0b04a; --warn-bg: #3a2c13;
+      --bad: #f07171; --bad-bg: #3b1a1a; --unk: #a3abb8; --unk-bg: #2a2f38;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .note { background: var(--warn-bg); color: var(--text); border-left: 4px solid var(--warn);
+          padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
+  .note.err { background: var(--bad-bg); border-left-color: var(--bad); }
+  .live { display: inline-flex; align-items: center; gap: 6px; }
+  .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .live.stale::before { background: var(--bad); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .tile .n { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .tile.ok .n { color: var(--ok); } .tile.warn .n { color: var(--warn); } .tile.bad .n { color: var(--bad); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .seg button { border: 1px solid var(--line); background: var(--panel); color: var(--text);
+                padding: 6px 12px; cursor: pointer; font: inherit; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button + button { border-left: none; }
+  .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  input[type=search] { flex: 1; min-width: 180px; padding: 6px 10px; border: 1px solid var(--line);
+                       border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
+  .table { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { background: var(--head); font-size: 12px; color: var(--muted); font-weight: 600;
+       text-transform: uppercase; letter-spacing: .03em; }
+  tr.host { cursor: pointer; }
+  tr.host:hover td { background: var(--hover); }
+  tr.host td:first-child { font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .caret { display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
+  tr.host.open .caret { transform: rotate(90deg); }
+  tr.disks > td { padding: 0; background: var(--head); }
+  tr.disks table td, tr.disks table th { padding: 7px 12px 7px 38px; font-size: 13px; }
+  tr.disks table th { background: transparent; }
+  .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12.5px; word-break: break-all; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px;
+           font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .b-green { color: var(--ok); background: var(--ok-bg); }
+  .b-yellow { color: var(--warn); background: var(--warn-bg); }
+  .b-red { color: var(--bad); background: var(--bad-bg); }
+  .b-unknown { color: var(--unk); background: var(--unk-bg); }
+  .sub { display: flex; flex-wrap: wrap; gap: 4px; }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  @media (max-width: 640px) {
+    .hide-sm { display: none; }
+    th, td { padding: 8px; }
+    tr.disks table td, tr.disks table th { padding-left: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>vSAN Disk Health</h1>
+    <span class="meta" id="meta"></span>
+    <span class="meta live" id="live" hidden></span>
+  </header>
+  <div class="note err" id="err" hidden></div>
+  <div class="note" id="note" hidden></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="toolbar">
+    <div class="seg" id="seg">
+      <button data-f="all" class="on">Tất cả host</button>
+      <button data-f="issue">Có vấn đề</button>
+    </div>
+    <input type="search" id="q" placeholder="Tìm host hoặc disk…">
+  </div>
+  <div class="table">
+    <table>
+      <thead><tr><th>Host</th><th>Health</th><th>Disks</th><th class="hide-sm">Chi tiết</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const DATA = __VSAN_DATA__;
+const META = __VSAN_META__;
+
+const RANK = { red: 3, yellow: 2, unknown: 1, green: 0 };
+// Giong vCenter Disk Management: khong phai green la Unhealthy; mau cam/do cho biet muc yellow/red cua API
+const LABEL = { green: "Healthy", yellow: "Unhealthy", red: "Unhealthy", unknown: "Không có dữ liệu" };
+const LEVEL = { green: "green", yellow: "yellow – cảnh báo", red: "red – nghiêm trọng", unknown: "unknown" };
+const norm = h => (h in RANK ? h : "unknown");
+const badge = h => `<span class="badge b-${norm(h)}" title="Mức API: ${LEVEL[norm(h)]}">${LABEL[norm(h)]}</span>`;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ipKey = s => s.split(".").map(p => p.padStart(3, "0")).join(".");
+
+const hosts = {};
+for (const r of DATA) {
+  const h = hosts[r.host] ??= { name: r.host, disks: [], health: "green" };
+  if (r.disk) h.disks.push(r);
+  else h.reason = r.reason;
+  if (RANK[norm(r.health)] > RANK[h.health]) h.health = norm(r.health);
+}
+const list = Object.values(hosts).sort((a, b) => RANK[b.health] - RANK[a.health] || ipKey(a.name).localeCompare(ipKey(b.name)));
+
+const disks = DATA.filter(r => r.disk);
+const count = h => disks.filter(d => norm(d.health) === h).length;
+document.getElementById("meta").textContent =
+  [META.cluster && "Cluster " + META.cluster, META.vcenter && "vCenter " + META.vcenter, META.generated && "Cập nhật " + META.generated]
+    .filter(Boolean).join(" · ");
+if (META.note) { const n = document.getElementById("note"); n.textContent = META.note; n.hidden = false; }
+if (META.error) { const n = document.getElementById("err"); n.textContent = META.error + " — đang hiển thị dữ liệu lần trước."; n.hidden = false; }
+
+// Che do chay lien tuc: tu tai lai trang theo chu ky cua script, canh bao khi du lieu cu
+if (META.refresh) {
+  const live = document.getElementById("live");
+  live.hidden = false;
+  const tick = () => {
+    const age = Math.round((Date.now() - META.ts) / 1000);
+    const stale = age > META.refresh * 3;
+    live.classList.toggle("stale", stale);
+    live.textContent = (stale ? "Dữ liệu cũ, script có thể đã dừng · " : "Tự cập nhật mỗi " + Math.round(META.refresh / 60 * 10) / 10 + " phút · ") +
+      "lấy lúc " + new Date(META.ts).toLocaleTimeString("vi-VN") + " (" + (age < 60 ? age + " giây" : Math.floor(age / 60) + " phút") + " trước)";
+  };
+  tick(); setInterval(tick, 1000);
+  setInterval(() => location.reload(), Math.min(META.refresh, 60) * 1000);
+}
+document.getElementById("tiles").innerHTML = [
+  ["", list.length, "Hosts"], ["", disks.length, "Disks"],
+  ["ok", count("green"), "Healthy"], ["bad", disks.length - count("green"), "Unhealthy"],
+  ["warn", count("yellow"), "↳ mức yellow"], ["bad", count("red") + count("unknown"), "↳ mức red / không rõ"],
+].map(([c, n, l]) => `<div class="tile ${c}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+
+let filter = "all", query = "";
+const open = new Set(list.filter(h => h.health !== "green").map(h => h.name));
+
+// Giu trang thai xem (host dang mo, bo loc, tim kiem, vi tri cuon) qua cac lan tu tai lai
+const KEY = "vsan-dashboard-view";
+try {
+  const s = JSON.parse(sessionStorage.getItem(KEY) || "null");
+  if (s) {
+    filter = s.filter || "all"; query = s.query || "";
+    open.clear(); s.open.forEach(h => open.add(h));
+    list.filter(h => h.health !== "green").forEach(h => open.add(h.name));
+    document.getElementById("q").value = query;
+    document.querySelectorAll("#seg button").forEach(x => x.classList.toggle("on", x.dataset.f === filter));
+    requestAnimationFrame(() => scrollTo(0, s.y || 0));
+  }
+} catch (e) {}
+addEventListener("beforeunload", () => {
+  try { sessionStorage.setItem(KEY, JSON.stringify({ filter, query, open: [...open], y: scrollY })); } catch (e) {}
+});
+
+function render() {
+  const q = query.trim().toLowerCase();
+  const rows = list.filter(h => (filter === "all" || h.health !== "green") &&
+    (!q || h.name.toLowerCase().includes(q) || h.disks.some(d => d.disk.toLowerCase().includes(q))));
+  if (!rows.length) {
+    document.getElementById("rows").innerHTML = `<tr><td colspan="4" class="empty">Không có host nào khớp.</td></tr>`;
+    return;
+  }
+  document.getElementById("rows").innerHTML = rows.map(h => {
+    const bad = h.disks.filter(d => norm(d.health) !== "green");
+    const detail = h.reason ? esc(h.reason) : bad.length ? bad.map(d => esc(d.reason || d.op_health)).join(", ") : "OK";
+    const isOpen = open.has(h.name);
+    return `<tr class="host${isOpen ? " open" : ""}" data-h="${esc(h.name)}">
+        <td><span class="caret">▸</span> ${esc(h.name)}</td><td>${badge(h.health)}</td>
+        <td>${h.disks.length - bad.length}/${h.disks.length} healthy</td><td class="hide-sm">${detail}</td></tr>` +
+      (isOpen ? `<tr class="disks"><td colspan="4"><table>
+        <tr><th>Disk</th><th>Health</th><th class="hide-sm">Operational</th><th class="hide-sm">Metadata</th><th class="hide-sm">Capacity</th><th class="hide-sm">Congestion</th><th>Lý do</th></tr>
+        ${h.disks.map(d => `<tr><td class="mono">${esc(d.disk)}</td><td>${badge(d.health)}</td>
+          <td class="hide-sm">${badge(d.op_health)}</td><td class="hide-sm">${badge(d.metadata_health)}</td>
+          <td class="hide-sm">${badge(d.capacity_health)}</td><td class="hide-sm">${badge(d.congestion_health)}</td>
+          <td>${esc(d.reason)}</td></tr>`).join("") || `<tr><td colspan="7">${esc(h.reason || "Không có disk")}</td></tr>`}
+        </table></td></tr>` : "");
+  }).join("");
+}
+
+document.getElementById("rows").addEventListener("click", e => {
+  const tr = e.target.closest("tr.host"); if (!tr) return;
+  const h = tr.dataset.h; open.has(h) ? open.delete(h) : open.add(h); render();
+});
+document.getElementById("seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  filter = b.dataset.f;
+  document.querySelectorAll("#seg button").forEach(x => x.classList.toggle("on", x === b));
+  render();
+});
+document.getElementById("q").addEventListener("input", e => { query = e.target.value; render(); });
+render();
+</script>
+</body>
+</html>

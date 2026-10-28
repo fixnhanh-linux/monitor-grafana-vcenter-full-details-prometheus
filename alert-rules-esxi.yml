@@ -1,0 +1,99 @@
+# Alert rules cho esxi_host_exporter.py - theo bang "Mapping day du alert -> kenh thong bao"
+# (file MONITOR RESOURCE HOST ESXi.docx). Them vao prometheus.yml:
+#   rule_files:
+#     - /etc/prometheus/rules/alert-rules-esxi.yml
+#
+# Luu y ve "Delay": Prometheus chi thay doi trang thai sau moi lan scrape + evaluation_interval,
+# va exporter lay du lieu vCenter moi 60s. Delay 0s/5s trong bang thuc te ~ 1-2 phut.
+# Can nhanh hon -> dung them alarm cua vCenter (SNMP trap / webhook), xem README.
+
+groups:
+  - name: esxi-host-resource
+    rules:
+      - alert: EsxiVmnicDown
+        expr: esxi_host_nic_up == 0
+        for: 0s
+        labels: { severity: critical }
+        annotations:
+          summary: "vmnic {{ $labels.nic }} DOWN tren host {{ $labels.host }} ({{ $labels.cluster }})"
+          description: "Uplink {{ $labels.nic }} mat link. Kiem tra cap / switch / port."
+
+      - alert: VsanDiskError
+        expr: vsan_disk_health > 0
+        for: 0s
+        labels: { severity: error }
+        annotations:
+          summary: "Disk vSAN loi tren host {{ $labels.host }} ({{ $labels.cluster }})"
+          description: "Disk {{ $labels.disk }} health = {{ $value }} (1=yellow, 2=red, 3=unknown). Xem ly do o dashboard MONITOR RESOURCE HOST ESXi."
+
+      - alert: VsanDiskGroupUnhealthy
+        expr: esxi_vsan_diskgroup_health > 0
+        for: 0s
+        labels: { severity: unhealthy }
+        annotations:
+          summary: "DiskGroup vSAN Unhealthy tren host {{ $labels.host }} ({{ $labels.cluster }})"
+          description: "Disk group {{ $labels.diskgroup }} co disk khong healthy (muc {{ $value }})."
+
+      - alert: EsxiHostDisconnected
+        expr: esxi_host_connected == 0
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "Host {{ $labels.host }} mat ket noi voi vCenter ({{ $labels.cluster }})"
+
+      - alert: VsanResyncInProgress
+        expr: esxi_vsan_resync_objects > 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "vSAN dang resync {{ $value }} object tren cluster {{ $labels.cluster }}"
+
+      - alert: EsxiCpuHigh
+        expr: esxi_host_cpu_usage_percent > 60
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "CPU host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 60% trong 5 phut)"
+
+      - alert: EsxiRamHigh
+        expr: esxi_host_mem_usage_percent > 90
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "RAM host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 90% trong 5 phut)"
+
+      - alert: VsanWriteLatencyHigh
+        expr: esxi_vsan_write_latency_ms > 15
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Write latency host {{ $labels.host }} = {{ $value | printf \"%.1f\" }}ms (> 15ms trong 10 phut)"
+
+      - alert: VsanCongestion
+        expr: esxi_vsan_host_congestion > 60
+        for: 30s
+        labels: { severity: warning }
+        annotations:
+          summary: "vSAN congestion host {{ $labels.host }} = {{ $value }} (> 60)"
+
+      - alert: VsanVmkPacketDrop
+        expr: esxi_host_vmk_drop_percent{vsan="true"} > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "vmk vSAN {{ $labels.vmk }} ({{ $labels.direction }}) tren {{ $labels.host }} drop {{ $value | printf \"%.2f\" }}%"
+          description: "Packet drop/discard tren mang vSAN > 0 keo dai -> nghen hoac QoS."
+
+  - name: esxi-exporter
+    rules:
+      - alert: EsxiExporterStale
+        expr: time() - vsan_disk_exporter_last_success_timestamp_seconds > 900
+        labels: { severity: warning }
+        annotations:
+          summary: "Exporter {{ $labels.instance }} khong lay duoc du lieu vCenter > 15 phut"
+      - alert: EsxiExporterDown
+        expr: up{job=~"esxi_host_resource.*"} == 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "Prometheus khong scrape duoc exporter {{ $labels.instance }}"

@@ -1,0 +1,24 @@
+[Unit]
+Description=ESXi host + vSAN exporter (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Cau hinh tung instance: /etc/esxi-host-exporter/<ten>.env (VC, VC_USER, CLUSTER, PORT, INTERVAL, VSAN_PASS)
+EnvironmentFile=/etc/esxi-host-exporter/%i.env
+Environment=PYTHONPATH=/opt/esxi-host-exporter/vendor
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 /opt/esxi-host-exporter/esxi_host_exporter.py ${VC} ${VC_USER} ${CLUSTER} ${PORT} ${INTERVAL}
+User=esxi-exporter
+Group=esxi-exporter
+Restart=always
+RestartSec=30
+# Ma thoat 3 = sai mat khau vCenter -> khong tu chay lai (tranh khoa tai khoan)
+RestartPreventExitStatus=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor Resource Host ESXi</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f3f4f6; --panel: #fff; --text: #1c2230; --muted: #5f6b7a; --line: #e0e4ea; --head: #f7f8fa;
+    --hover: #eef3fb; --accent: #0b6bcb; --ok: #1e8a4a; --ok-bg: #e4f4ea; --warn: #b26a00; --warn-bg: #fdf0da;
+    --bad: #c62828; --bad-bg: #fde6e6; --unk: #6b7280; --unk-bg: #eceef1; --bar: #dfe4ea;
+    --c1: #2a78d6; --c2: #e06c1a; --c3: #8a4fd0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111419; --panel: #1a1e26; --text: #e5e8ee; --muted: #98a2b1; --line: #2b313c; --head: #1f242d;
+      --hover: #222a36; --accent: #5aa4f0; --ok: #4cc27f; --ok-bg: #163222; --warn: #f0b04a; --warn-bg: #3a2c13;
+      --bad: #f07171; --bad-bg: #3b1a1a; --unk: #a3abb8; --unk-bg: #2a2f38; --bar: #2c333f;
+      --c1: #5aa4f0; --c2: #f39a4e; --c3: #b48cf0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .01em; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .live { display: inline-flex; align-items: center; gap: 6px; }
+  .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .live.stale::before { background: var(--bad); }
+  .banner { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px;
+            background: var(--bad-bg); border-left: 4px solid var(--bad); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+  .tile .n { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .tile.ok .n { color: var(--ok); } .tile.warn .n { color: var(--warn); } .tile.bad .n { color: var(--bad); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .seg { display: inline-flex; }
+  .seg button { border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 6px 12px;
+                cursor: pointer; font: inherit; font-weight: 600; font-size: 13px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; } .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button + button { border-left: none; }
+  .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .seg .cnt { font-weight: 400; opacity: .8; margin-left: 4px; }
+  input[type=search] { flex: 1; min-width: 180px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+                       background: var(--panel); color: var(--text); font: inherit; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0;
+             padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--head); }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+  th { background: var(--head); font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase;
+       letter-spacing: .03em; user-select: none; }
+  th.sort { cursor: pointer; } th.sort:hover { color: var(--text); }
+  th .arr { opacity: .5; margin-left: 3px; }
+  tr.host { cursor: pointer; } tr.host:hover > td { background: var(--hover); }
+  tr.host td.name { font-weight: 600; color: var(--accent); }
+  .caret { display: inline-block; width: 12px; color: var(--muted); transition: transform .15s; }
+  tr.host.open .caret { transform: rotate(90deg); }
+  td.reason { white-space: normal; color: var(--muted); font-size: 12.5px; min-width: 220px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .meter { display: flex; align-items: center; gap: 8px; min-width: 110px; }
+  .meter .b { flex: 1; height: 8px; background: var(--bar); border-radius: 4px; overflow: hidden; }
+  .meter .b i { display: block; height: 100%; background: var(--ok); }
+  .meter.warn .b i { background: var(--warn); } .meter.bad .b i { background: var(--bad); }
+  .meter span { width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px;
+           font-size: 12px; font-weight: 600; }
+  .badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .s0 { color: var(--ok); background: var(--ok-bg); } .s1 { color: var(--warn); background: var(--warn-bg); }
+  .s2 { color: var(--bad); background: var(--bad-bg); } .s3 { color: var(--unk); background: var(--unk-bg); }
+  .t0 { color: var(--ok); } .t1 { color: var(--warn); } .t2 { color: var(--bad); } .t3 { color: var(--unk); }
+  .nic { margin-right: 8px; font-size: 13px; }
+  .nic.up b { color: var(--ok); } .nic.down b { color: var(--bad); }
+  .dim { color: var(--muted); }
+  tr.detail > td { background: var(--head); padding: 12px; white-space: normal; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .box h3 { margin: 0 0 8px; font-size: 13px; }
+  .box table th, .box table td { padding: 5px 6px; font-size: 12.5px; }
+  .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  svg.chart { width: 100%; height: 130px; display: block; }
+  svg.chart text { fill: var(--muted); font-size: 10px; }
+  .bottom { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 12px; margin-top: 14px; }
+  .barrow { display: grid; grid-template-columns: 150px 1fr 70px; gap: 8px; align-items: center; padding: 4px 12px; font-size: 13px; }
+  .barrow .b { height: 10px; background: var(--bar); border-radius: 5px; overflow: hidden; }
+  .barrow .b i { display: block; height: 100%; background: var(--c1); }
+  .empty { padding: 26px; text-align: center; color: var(--muted); }
+  @media (max-width: 700px) { .hide-sm { display: none; } .barrow { grid-template-columns: 110px 1fr 60px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">MONITOR RESOURCE HOST ESXi</h1>
+    <span class="meta" id="meta"></span>
+    <span class="meta live" id="live"></span>
+  </header>
+  <div class="banner" id="err" hidden></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="toolbar">
+    <div class="seg" id="seg">
+      <button data-f="all" class="on">TẤT CẢ<span class="cnt" id="c-all"></span></button>
+      <button data-f="warn">CẢNH BÁO<span class="cnt" id="c-warn"></span></button>
+      <button data-f="err">LỖI<span class="cnt" id="c-err"></span></button>
+    </div>
+    <input type="search" id="q" placeholder="Tìm host, vmnic, disk…">
+  </div>
+  <div class="card">
+    <div class="scroll">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="rows"><tr><td class="empty">Đang tải dữ liệu từ exporter…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="card"><h2>Top 10 vmnic — bandwidth TX hiện tại (Mb/s)</h2><div id="toptx" style="padding:8px 0"></div></div>
+    <div class="card"><h2>Top 10 vSAN write latency (ms)</h2><div id="toplat" style="padding:8px 0"></div></div>
+  </div>
+</div>
+<script>
+const COLS = [
+  { k: "host", t: "Host - IP MGT", sort: h => ipKey(h.host) },
+  { k: "cpu", t: "CPU%", sort: h => h.cpu_pct },
+  { k: "ram", t: "RAM%", sort: h => h.ram_pct },
+  { k: "nic", t: "NIC", sort: h => Object.values(h.nics).filter(n => !n.up).length },
+  { k: "dg", t: "Trạng thái DiskGroup vSAN", sort: h => h.disk_health ?? -1 },
+  { k: "cong", t: "vSAN congestion", sort: h => h.congestion },
+  { k: "lat", t: "Write latency", sort: h => h.lat_write_ms ?? -1, cls: "hide-sm" },
+  { k: "vms", t: "VMs", sort: h => h.vms, cls: "hide-sm" },
+  { k: "up", t: "Uptime", sort: h => h.uptime_s, cls: "hide-sm" },
+  { k: "status", t: "Status", sort: h => h.status },
+  { k: "reason", t: "Lý do", cls: "hide-sm" },
+];
+const ST = ["Ok", "WARN", "ERROR"];
+const DG = ["healthy", "unhealthy (yellow)", "unhealthy (red)", "không rõ"];
+const HL = { green: 0, yellow: 1, red: 2 };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ipKey = s => s.split(".").map(p => p.padStart(3, "0")).join(".");
+const fmtB = b => { const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0; while (b >= 1024 && i < 4) { b /= 1024; i++; } return b.toFixed(1) + " " + u[i]; };
+const fmtUp = s => s >= 86400 ? Math.floor(s / 86400) + " day" : s >= 3600 ? Math.floor(s / 3600) + " giờ" : Math.floor(s / 60) + " phút";
+const fmtT = t => new Date(t * 1000).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+
+let S = null, filter = "all", query = "", sortK = "status", sortDesc = true;
+const open = new Set();
+try {
+  const v = JSON.parse(sessionStorage.getItem("esxi-view") || "null");
+  if (v) { filter = v.filter; query = v.query; sortK = v.sortK; sortDesc = v.sortDesc; v.open.forEach(h => open.add(h)); }
+} catch (e) {}
+const save = () => { try { sessionStorage.setItem("esxi-view", JSON.stringify({ filter, query, sortK, sortDesc, open: [...open] })); } catch (e) {} };
+document.getElementById("q").value = query;
+
+function meter(v, warn, bad) {
+  if (v == null) return '<span class="dim">–</span>';
+  const c = v >= bad ? "bad" : v >= warn ? "warn" : "";
+  return `<div class="meter ${c}"><div class="b"><i style="width:${Math.min(100, v).toFixed(0)}%"></i></div><span>${v.toFixed(0)}%</span></div>`;
+}
+
+function chart(series, unit, thr) {
+  const W = 340, H = 130, L = 34, B = 18, T = 6, R = 6;
+  const pts = series.flatMap(s => s.pts).filter(p => p[1] != null);
+  if (new Set(pts.map(p => p[0])).size < 2) return '<div class="dim" style="font-size:12px;padding:30px 0;text-align:center">Đang thu thập lịch sử (cần ≥ 2 lần lấy dữ liệu)…</div>';
+  const t0 = Math.min(...pts.map(p => p[0])), t1 = Math.max(...pts.map(p => p[0]));
+  const vmax = Math.max(thr || 0, ...pts.map(p => p[1] || 0)) * 1.1 || 1;
+  const x = t => L + (W - L - R) * (t - t0) / ((t1 - t0) || 1), y = v => T + (H - T - B) * (1 - v / vmax);
+  const grid = [0, .5, 1].map(f => `<line x1="${L}" x2="${W - R}" y1="${y(vmax * f)}" y2="${y(vmax * f)}" stroke="var(--line)"/>
+      <text x="${L - 4}" y="${y(vmax * f) + 3}" text-anchor="end">${(vmax * f).toFixed(vmax * f < 10 ? 1 : 0)}</text>`).join("");
+  const th = thr ? `<line x1="${L}" x2="${W - R}" y1="${y(thr)}" y2="${y(thr)}" stroke="var(--warn)" stroke-dasharray="4 3"/>` : "";
+  const lines = series.map(s => `<polyline fill="none" stroke="${s.color}" stroke-width="1.6"
+      points="${s.pts.filter(p => p[1] != null).map(p => x(p[0]).toFixed(1) + "," + y(p[1]).toFixed(1)).join(" ")}"/>`).join("");
+  const ax = `<text x="${L}" y="${H - 4}">${fmtT(t0)}</text><text x="${W - R}" y="${H - 4}" text-anchor="end">${fmtT(t1)}</text>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${th}${lines}${ax}</svg>
+    <div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}<span>${unit}</span></div>`;
+}
+
+function cell(h, k) {
+  const W = S.warn;
+  switch (k) {
+    case "host": return `<td class="name"><span class="caret">▸</span> ${esc(h.host)}</td>`;
+    case "cpu": return `<td>${h.state === "connected" ? meter(h.cpu_pct, W.cpu, 85) : "–"}</td>`;
+    case "ram": return `<td>${h.state === "connected" ? meter(h.ram_pct, W.ram, 95) : "–"}</td>`;
+    case "nic": return `<td>${Object.entries(h.nics).sort().map(([n, v]) =>
+      `<span class="nic ${v.up ? "up" : "down"}">${esc(n)} <b>${v.up ? "▲" : "▼"}</b></span>`).join("") || '<span class="dim">N/A</span>'}</td>`;
+    case "dg": return `<td class="${h.disk_health == null ? "dim" : "t" + h.disk_health}">${h.disk_health == null ? "–" : DG[h.disk_health]}</td>`;
+    case "cong": { const c = h.congestion >= 150 ? 2 : h.congestion > W.congestion ? 1 : 0; return `<td class="num t${c}">${h.congestion}</td>`; }
+    case "lat": { const v = h.lat_write_ms; return `<td class="num hide-sm ${v == null ? "dim" : v > 30 ? "t2" : v > W.latency ? "t1" : ""}">${v == null ? "–" : v.toFixed(1) + " ms"}</td>`; }
+    case "vms": return `<td class="num hide-sm">${h.state === "connected" ? h.vms : "–"}</td>`;
+    case "up": return `<td class="hide-sm">${h.state === "connected" ? fmtUp(h.uptime_s) : "–"}</td>`;
+    case "status": return `<td><span class="badge s${h.status}">${ST[h.status]}</span></td>`;
+    case "reason": return `<td class="reason hide-sm">${h.reason === "OK" ? "" : esc(h.reason)}</td>`;
+  }
+}
+
+function detail(h) {
+  const hist = (S.history[h.host] || []);
+  const nicNames = Object.keys(h.nics).sort();
+  const colors = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--ok)"];
+  const disks = h.disks.map(d => `<tr><td class="mono">${esc(d.disk)}</td><td class="mono dim">${esc((d.diskgroup || "–").slice(0, 8))}</td>
+      <td><span class="badge s${HL[d.health] ?? 3}">${esc(d.health)}</span></td><td class="t${HL[d.op_health] ?? 3}">${esc(d.op_health)}</td>
+      <td class="t${HL[d.metadata_health] ?? 3}">${esc(d.metadata_health)}</td><td class="num">${d.congestion_value ?? "–"}</td>
+      <td class="num">${d.used_ratio == null ? "–" : (d.used_ratio * 100).toFixed(0) + "%"}</td><td>${esc(d.reason)}</td></tr>`).join("");
+  const nics = nicNames.map(n => { const v = h.nics[n]; return `<tr><td>${esc(n)}</td>
+      <td class="${v.up ? "t0" : "t2"}">${v.up ? "▲ UP" : "▼ DOWN"}</td><td class="num">${v.speed ? (v.speed / 1000) + " Gb/s" : "–"}</td>
+      <td class="num">${v.tx_mbps.toFixed(1)}</td><td class="num">${v.rx_mbps.toFixed(1)}</td></tr>`; }).join("");
+  const vmks = Object.entries(h.vmks).sort().map(([n, v]) => `<tr><td>${esc(n)}${v.vsan ? ' <span class="badge s0" style="padding:0 6px">vSAN</span>' : ""}</td>
+      <td class="mono">${esc(v.ip) || "–"}</td><td class="num ${Math.max(v.drop_pct_rx, v.drop_pct_tx) > S.warn.vmk_drop ? "t1" : ""}">${v.drop_pct_rx.toFixed(2)}% / ${v.drop_pct_tx.toFixed(2)}%</td></tr>`).join("");
+  const txSeries = nicNames.flatMap((n, i) => [{ name: n + " TX", color: colors[i % 4], pts: hist.map(p => [p.t, p.nic[n]?.[0]]) }]);
+  const rxSeries = nicNames.map((n, i) => ({ name: n + " RX", color: colors[i % 4], pts: hist.map(p => [p.t, p.nic[n]?.[1]]) }));
+  return `<tr class="detail"><td colspan="${COLS.length}"><div class="grid">
+    <div class="box"><h3>Disk vSAN (${h.disks.length})</h3><div class="scroll"><table>
+      <tr><th>Disk</th><th>Group</th><th>Health</th><th>Operational</th><th>Metadata</th><th>Cong.</th><th>Dùng</th><th>Lý do</th></tr>
+      ${disks || '<tr><td colspan="8" class="dim">Không có dữ liệu disk</td></tr>'}</table></div></div>
+    <div class="box"><h3>NIC vật lý & VMkernel</h3><table>
+      <tr><th>vmnic</th><th>Link</th><th>Tốc độ</th><th>TX Mb/s</th><th>RX Mb/s</th></tr>${nics || '<tr><td colspan="5" class="dim">–</td></tr>'}</table>
+      <table style="margin-top:8px"><tr><th>vmk</th><th>IP</th><th>Drop RX / TX</th></tr>${vmks || '<tr><td colspan="3" class="dim">–</td></tr>'}</table></div>
+    <div class="box"><h3>vmnic — bandwidth TX (real-time)</h3>${chart(txSeries, "Mb/s")}</div>
+    <div class="box"><h3>vmnic — bandwidth RX (real-time)</h3>${chart(rxSeries, "Mb/s")}</div>
+    <div class="box"><h3>vmk vSAN — Packet Drop/Discard rate</h3>${chart([{ name: "drop % (max RX/TX)", color: "var(--bad)", pts: hist.map(p => [p.t, p.drop]) }], "%", S.warn.vmk_drop)}</div>
+    <div class="box"><h3>CPU / RAM / vSAN write latency</h3>${chart([
+      { name: "CPU %", color: "var(--c1)", pts: hist.map(p => [p.t, p.cpu]) },
+      { name: "RAM %", color: "var(--c2)", pts: hist.map(p => [p.t, p.ram]) },
+      { name: "Write latency ms", color: "var(--c3)", pts: hist.map(p => [p.t, p.lat]) }], "", null)}</div>
+  </div></td></tr>`;
+}
+
+function render() {
+  if (!S) return;
+  const hosts = S.hosts;
+  const cnt = s => hosts.filter(h => h.status === s).length;
+  document.getElementById("c-all").textContent = hosts.length;
+  document.getElementById("c-warn").textContent = cnt(1);
+  document.getElementById("c-err").textContent = cnt(2);
+  document.querySelectorAll("#seg button").forEach(b => b.classList.toggle("on", b.dataset.f === filter));
+  const rs = Object.values(S.resync);
+  const rsObj = rs.reduce((a, r) => a + r.objects, 0), rsB = rs.reduce((a, r) => a + r.bytes, 0);
+  const avg = k => { const c = hosts.filter(h => h.state === "connected"); return c.length ? c.reduce((a, h) => a + h[k], 0) / c.length : 0; };
+  document.getElementById("tiles").innerHTML = [
+    ["", hosts.length, "Total host"], ["ok", cnt(0), "OK"], ["warn", cnt(1), "Cảnh báo"], ["bad", cnt(2), "Lỗi"],
+    [rsObj ? "warn" : "", rsObj ? `${rsObj} obj · ${fmtB(rsB)}` : "–", "vSAN resync"],
+    ["", avg("cpu_pct").toFixed(0) + "%", "CPU trung bình"], ["", avg("ram_pct").toFixed(0) + "%", "RAM trung bình"],
+  ].map(([c, n, l]) => `<div class="tile ${c}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+
+  const col = COLS.find(c => c.k === sortK) || COLS[9];
+  document.getElementById("thead").innerHTML = COLS.map(c => `<th class="${c.sort ? "sort" : ""} ${c.cls || ""}" data-k="${c.k}">${c.t}${c.k === sortK ? `<span class="arr">${sortDesc ? "▼" : "▲"}</span>` : ""}</th>`).join("");
+  const q = query.trim().toLowerCase();
+  const list = hosts.filter(h => (filter === "all" || (filter === "warn" ? h.status === 1 : h.status === 2)) &&
+      (!q || h.host.includes(q) || h.reason.toLowerCase().includes(q) || Object.keys(h.nics).some(n => n.includes(q)) ||
+       h.disks.some(d => d.disk.toLowerCase().includes(q))))
+    .sort((a, b) => { const x = col.sort(a), y = col.sort(b); const r = x < y ? -1 : x > y ? 1 : ipKey(a.host).localeCompare(ipKey(b.host)); return sortDesc ? -r : r; });
+  document.getElementById("rows").innerHTML = list.length ? list.map(h =>
+    `<tr class="host${open.has(h.host) ? " open" : ""}" data-h="${esc(h.host)}">${COLS.map(c => cell(h, c.k)).join("")}</tr>` +
+    (open.has(h.host) ? detail(h) : "")).join("") : `<tr><td colspan="${COLS.length}" class="empty">Không có host nào khớp bộ lọc.</td></tr>`;
+
+  const tx = hosts.flatMap(h => Object.entries(h.nics).map(([n, v]) => [h.host + " " + n, v.tx_mbps])).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const lat = hosts.filter(h => h.lat_write_ms != null).map(h => [h.host, h.lat_write_ms]).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const bars = (rows, unit, warn) => { const mx = Math.max(...rows.map(r => r[1]), warn || 0, 1);
+    return rows.map(([n, v]) => `<div class="barrow"><span>${esc(n)}</span><div class="b"><i style="width:${(v / mx * 100).toFixed(1)}%;${warn && v > warn ? "background:var(--warn)" : ""}"></i></div><span class="num">${v.toFixed(1)} ${unit}</span></div>`).join("") || '<div class="empty">–</div>'; };
+  document.getElementById("toptx").innerHTML = bars(tx, "");
+  document.getElementById("toplat").innerHTML = bars(lat, "ms", S.warn.latency);
+}
+
+function tickLive() {
+  if (!S) return;
+  const age = Math.round(Date.now() / 1000 - S.last_success);
+  const stale = !S.last_success || age > S.interval * 3;
+  const el = document.getElementById("live");
+  el.classList.toggle("stale", stale);
+  el.textContent = S.last_success ? `Cập nhật ${new Date(S.last_success * 1000).toLocaleTimeString("vi-VN")} (${age}s trước)${stale ? " — dữ liệu cũ" : ""}` : "Đang lấy dữ liệu lần đầu…";
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    S = await r.json();
+    document.getElementById("title").textContent = "CLUSTER VMWARE" + (S.cluster ? " — " + S.cluster : "");
+    document.getElementById("meta").textContent = `vCenter ${S.vcenter} · lấy dữ liệu mỗi ${S.interval}s · disk health mỗi ${S.slow_interval / 60} phút · exporter v${S.version || "?"}`;
+    const err = document.getElementById("err");
+    err.hidden = !S.error; err.textContent = S.error ? "Lần lấy dữ liệu gần nhất bị lỗi: " + S.error + " — đang hiển thị dữ liệu trước đó." : "";
+    render(); tickLive();
+  } catch (e) {
+    const err = document.getElementById("err"); err.hidden = false; err.textContent = "Không kết nối được exporter: " + e;
+  }
+}
+
+document.getElementById("rows").addEventListener("click", e => {
+  const tr = e.target.closest("tr.host"); if (!tr) return;
+  const h = tr.dataset.h; open.has(h) ? open.delete(h) : open.add(h); save(); render();
+});
+document.getElementById("thead").addEventListener("click", e => {
+  const th = e.target.closest("th.sort"); if (!th) return;
+  if (sortK === th.dataset.k) sortDesc = !sortDesc; else { sortK = th.dataset.k; sortDesc = th.dataset.k !== "host"; }
+  save(); render();
+});
+document.getElementById("seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; filter = b.dataset.f; save(); render();
+});
+document.getElementById("q").addEventListener("input", e => { query = e.target.value; save(); render(); });
+load(); setInterval(load, 30000); setInterval(tickLive, 1000);
+</script>
+</body>
+</html>
