@@ -253,8 +253,14 @@ def check(path=None):
     return info
 
 
+_ENFORCED = None
+
+
 def enforce():
     """Goi luc khoi dong exporter. License hong -> in huong dan + thoat ma 4. Tra ve dict trang thai."""
+    global _ENFORCED
+    if _ENFORCED is not None:  # da kiem tra roi (vi du binary goi 2 lan) -> khong lam lai, khong in lai
+        return _ENFORCED
     info = check()
     if info["valid"]:
         if info.get("unlicensed"):
@@ -263,6 +269,7 @@ def enforce():
             left = "vinh vien" if not info["expiry_ts"] else "con %d ngay (het han %s)" % (info["days_left"], info["expires"])
             print("[LICENSE] OK - khach: %s | %s | host toi da: %s"
                   % (info["customer"], left, info["max_hosts"] or "khong gioi han"), flush=True)
+        _ENFORCED = info
         return info
     print("=" * 64, flush=True)
     print("[LICENSE] KHONG HOP LE: %s" % info["reason"], flush=True)

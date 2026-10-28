@@ -22,7 +22,9 @@ import pyVmomi
 
 PROJ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROTECTED = "--protected" in sys.argv   # goi cho KHACH: ma nguon ma hoa trong app.bundle, khong con file .py cua exporter
-OUT = os.path.join(PROJ, "esxi-host-exporter-protected-linux.zip" if PROTECTED else "esxi-host-exporter-linux.zip")
+BINARY = "--binary" in sys.argv         # goi cho KHACH (manh nhat): code cua minh la binary Nuitka (.build/esxi-host-exporter)
+OUT = os.path.join(PROJ, "esxi-host-exporter-binary-linux.zip" if BINARY
+                   else "esxi-host-exporter-protected-linux.zip" if PROTECTED else "esxi-host-exporter-linux.zip")
 ROOT = "esxi-host-exporter/"
 TEXT = (".py", ".sh", ".service", ".md", ".json", ".yml", ".html", ".txt", ".typed", ".pyi")
 STAMP = (2026, 10, 28, 0, 0, 0)
@@ -46,7 +48,17 @@ def main():
     files = [(os.path.join(PROJ, s), d) for s, d in ENTRIES]
     extra = {}  # ten trong zip -> bytes sinh luc build
     EXP = os.path.join(PROJ, "exporter")
-    if not PROTECTED:
+    if BINARY:
+        binf = os.path.join(PROJ, ".build", "esxi-host-exporter")
+        assert os.path.exists(binf), "chua co binary: chay 'bash deploy/build_binary.sh' truoc (tren Linux)"
+        files = [(s, d) for s, d in files if d not in ("menu.sh", "app/license_check.py")]
+        files.append((binf, "app/esxi-host-exporter"))
+        extra["menu.sh"] = (
+            "#!/usr/bin/env bash\n"
+            "# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary.\n"
+            'exec /opt/esxi-host-exporter/esxi-host-exporter --run-menu "$@"\n'
+        ).encode("utf-8")
+    elif not PROTECTED:
         for n in ("esxi_host_exporter.py", "vsan_disk_health.py", "esxi_dashboard.html", "dashboard_template.html"):
             files.append((os.path.join(EXP, n), "app/" + n))
     else:
@@ -73,10 +85,14 @@ def main():
             "# Menu quan ly - noi dung ma hoa trong app.bundle, giai ma khi license hop le.\n"
             'exec python3 /opt/esxi-host-exporter/esxi_host_exporter.py --run-menu "$@"\n'
         ).encode("utf-8")
-    if not os.path.isdir(os.path.join(PY38_CACHE, "pyVmomi")):
-        print("Tai %s cho Python 3.8/3.9 vao %s ..." % (PY38_PYVMOMI, PY38_CACHE))
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", PY38_CACHE, PY38_PYVMOMI])
-    for site, prefix in ((os.path.dirname(os.path.dirname(pyVmomi.__file__)), "vendor/"), (PY38_CACHE, "vendor-py38/")):
+    # Binary Nuitka mang san Python 3.10 -> chi can vendor/ (pyVmomi 9.x), khong can vendor-py38.
+    vendors = [(os.path.dirname(os.path.dirname(pyVmomi.__file__)), "vendor/")]
+    if not BINARY:
+        if not os.path.isdir(os.path.join(PY38_CACHE, "pyVmomi")):
+            print("Tai %s cho Python 3.8/3.9 vao %s ..." % (PY38_PYVMOMI, PY38_CACHE))
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", PY38_CACHE, PY38_PYVMOMI])
+        vendors.append((PY38_CACHE, "vendor-py38/"))
+    for site, prefix in vendors:
         for pkg in ("pyVmomi", "pyVim"):
             for dp, dns, fns in os.walk(os.path.join(site, pkg)):
                 dns[:] = [d for d in dns if d != "__pycache__"]
@@ -106,7 +122,8 @@ def main():
             data = open(src, "rb").read()
             if dst.endswith(TEXT):
                 data = data.replace(b"\r\n", b"\n")
-            z.writestr(info(dst, 0o100755 if dst.endswith(".sh") else 0o100644), data)
+            ex = dst.endswith(".sh") or dst == "app/esxi-host-exporter"
+            z.writestr(info(dst, 0o100755 if ex else 0o100644), data)
 
     digest = hashlib.sha256(open(OUT, "rb").read()).hexdigest()
     with open(OUT + ".sha256", "w", encoding="ascii", newline="\n") as f:

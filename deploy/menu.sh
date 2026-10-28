@@ -27,7 +27,7 @@ version_of_port() {
   curl -s -m 5 "localhost:$1/metrics" | grep -o 'esxi_exporter_build_info{version="[^"]*"' | cut -d'"' -f2
 }
 
-installed_ver() { grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2; }
+installed_ver() { cat "$APP/VERSION" 2>/dev/null || grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2; }
 my_ip() { hostname -I 2>/dev/null | awk '{print $1}'; }
 
 # Bao cao trang thai: bash gom service/.env/log, python doc /metrics tung instance -> bang tong hop + chi tiet
@@ -233,9 +233,23 @@ update_from_zip() {
     else
       echo "${R}Goi zip khong co pyVmomi chay duoc voi $(python3 -V 2>&1) - dung lai, chua thay doi gi.${N}"; rm -rf "$T"; return
     fi
-    license_guard "$T/esxi-host-exporter/app" || { rm -rf "$T"; return; }
-    rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle"
+    local NEWBIN="$T/esxi-host-exporter/app/esxi-host-exporter"
+    if [ -f "$NEWBIN" ]; then  # ban nhi phan: kiem tra license bang binary moi truoc khi thay
+      chmod +x "$NEWBIN"
+      ESXI_LICENSE="$CONF/license.key" "$NEWBIN" --license-status "$CONF/license.key" || {
+        echo "${R}Ban moi can license hop le ma may chua co - dung lai, chua thay doi gi.${N}"; rm -rf "$T"; return; }
+    else
+      license_guard "$T/esxi-host-exporter/app" || { rm -rf "$T"; return; }
+    fi
+    rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle" "$APP/license_check.py" "$APP/esxi-host-exporter"
     install -m 644 "$T"/esxi-host-exporter/app/* "$APP/"
+    if [ -f "$APP/esxi-host-exporter" ]; then
+      chmod 755 "$APP/esxi-host-exporter"
+      printf '#!/bin/sh\nexec /opt/esxi-host-exporter/esxi-host-exporter "$@"\n' > "$APP/start"; chmod 755 "$APP/start"
+      "$APP/esxi-host-exporter" --version > "$APP/VERSION" 2>/dev/null
+    else
+      cat "$T/esxi-host-exporter/VERSION" > "$APP/VERSION" 2>/dev/null
+    fi
     # thu muc cau hinh cu la 700: cho service (user esxi-exporter) doc duoc license.key; file .env van 600 root
     getent group esxi-exporter >/dev/null && { chgrp esxi-exporter "$CONF"; chmod 750 "$CONF"; [ -f "$CONF/license.key" ] && { chgrp esxi-exporter "$CONF/license.key"; chmod 640 "$CONF/license.key"; }; }
     install -m 755 "$T/esxi-host-exporter/menu.sh" "$APP/menu.sh" 2>/dev/null

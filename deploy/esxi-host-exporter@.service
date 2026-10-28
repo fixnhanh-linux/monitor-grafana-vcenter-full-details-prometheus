@@ -8,7 +8,7 @@ Wants=network-online.target
 EnvironmentFile=/etc/esxi-host-exporter/%i.env
 Environment=PYTHONPATH=/opt/esxi-host-exporter/vendor
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/env python3 /opt/esxi-host-exporter/esxi_host_exporter.py ${VC} ${VC_USER} ${CLUSTER} ${PORT} ${INTERVAL}
+ExecStart=/opt/esxi-host-exporter/start ${VC} ${VC_USER} ${CLUSTER} ${PORT} ${INTERVAL}
 User=esxi-exporter
 Group=esxi-exporter
 Restart=always

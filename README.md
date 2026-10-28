@@ -158,6 +158,10 @@ Phần mềm độc quyền của **FIX NHANH** (xem [LICENSE](LICENSE)). Export
 - Ký số Ed25519, **gắn với machine-id của server** → chép sang máy khác không chạy được; có ngày hết hạn và giới hạn số host.
 - Lấy machine-id: `sudo esxi-menu` → **15** (hoặc `python3 /opt/esxi-host-exporter/license_check.py id`) → gửi cho FIX NHANH.
 - Cài license: đặt file `*.license.key` cạnh `install.sh` (hoặc `LICENSE_FILE=/đường/dẫn sudo bash install.sh`), hoặc chép vào `/etc/esxi-host-exporter/license.key` rồi restart.
+- **Ba mức đóng gói** (chọn khi build trên máy FIX NHANH):
+  1. `python deploy/build_zip.py` → bản **nội bộ**, mã nguồn `.py` rõ. Không giao khách.
+  2. `python deploy/build_zip.py --protected` → **bản bảo vệ**: mã nguồn + menu mã hóa trong `app.bundle`, giải mã trong RAM khi license hợp lệ.
+  3. `bash deploy/build_binary.sh` rồi `python deploy/build_zip.py --binary` → **bản nhị phân (mạnh nhất)**: code của mình biên dịch Nuitka thành 1 file chạy `esxi-host-exporter`, trên server không còn file `.py`/`.html` nào của exporter. Build trên Linux có glibc bằng/cũ hơn server (vd Ubuntu 20.04 cho server 20.04+; 22.04 cho server 22.04+).
 - **Gói giao cho khách là bản bảo vệ** (`python deploy/build_zip.py --protected` → `esxi-host-exporter-protected-linux.zip`): mã nguồn exporter và dashboard nằm trong `app.bundle` **mã hóa** (SHA-256 counter + HMAC), trên server không còn file `.py`/`.html` nào của exporter. **Menu `esxi-menu` cũng được mã hóa** trong `app.bundle`: file `menu.sh` cài trên server chỉ là stub vài dòng, nội dung menu chỉ giải mã trong RAM khi license hợp lệ. Khóa giải mã nằm trong file license (ký số, bọc theo machine-id) và chỉ được giải mã trong RAM khi license hợp lệ — không có license đúng máy thì không đọc, không chạy được, kể cả khi sửa mã kiểm tra.
 - Bản `git clone` / zip thường (`build_zip.py` không có `--protected`) là bản **nội bộ**, có mã nguồn rõ — không giao cho khách.
 - Thiếu / sai / hết hạn license: exporter dừng (mã 4, systemd không thử lại) và in machine-id; cập nhật phiên bản bị chặn nếu máy chưa có license hợp lệ.

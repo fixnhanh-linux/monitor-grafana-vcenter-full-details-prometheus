@@ -34,7 +34,23 @@ def _run_menu():
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "--run-menu":
+    arg1 = sys.argv[1] if len(sys.argv) > 1 else ""
+    if arg1 == "--version":
+        import esxi_host_exporter as app
+        print(app.VERSION)
+        return
+    if arg1 == "--license-status":   # install.sh dung de kiem tra; exit 0 = hop le
+        i = license_check.check(sys.argv[2] if len(sys.argv) > 2 else None)
+        if i["unlicensed"]:
+            print("Ban chua khoa ban quyen (dev)")
+        elif i["valid"]:
+            left = "vinh vien" if not i["expiry_ts"] else "con %d ngay (het han %s)" % (i["days_left"], i["expires"])
+            print("HOP LE - khach: %s | %s | host toi da: %s" % (i["customer"], left, i["max_hosts"] or "khong gioi han"))
+        else:
+            print("KHONG HOP LE: %s" % i["reason"])
+        print("machine-id: %s" % i["machine_id"])
+        sys.exit(0 if i["valid"] else 1)
+    if arg1 == "--run-menu":
         license_check.enforce()
         _run_menu()
         return
