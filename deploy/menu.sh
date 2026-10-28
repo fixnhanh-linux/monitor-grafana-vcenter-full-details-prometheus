@@ -203,6 +203,15 @@ update_from_zip() {
   echo "Phien ban trong goi: ${B}$(cat "$T/esxi-host-exporter/VERSION" 2>/dev/null)${N}"
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   if [ "$a" = y ]; then
+    # pyVmomi theo Python cua server: >= 3.10 -> vendor/, 3.8-3.9 -> vendor-py38/; kiem tra import truoc khi thay
+    local VS="$T/esxi-host-exporter/vendor"
+    python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' || VS="$T/esxi-host-exporter/vendor-py38"
+    if [ -d "$VS" ] && PYTHONPATH="$VS" python3 -c 'import pyVmomi, pyVim.connect; from pyVmomi import vim; vim.cluster.VsanVcClusterHealthSystem'; then
+      rm -rf "$APP/vendor.old"; mv "$APP/vendor" "$APP/vendor.old" 2>/dev/null; cp -r "$VS" "$APP/vendor"
+      chmod -R a+rX "$APP/vendor"; rm -rf "$APP/vendor.old"; echo "pyVmomi: $(basename "$VS") ($(python3 -V 2>&1))"
+    else
+      echo "${R}Goi zip khong co pyVmomi chay duoc voi $(python3 -V 2>&1) - dung lai, chua thay doi gi.${N}"; rm -rf "$T"; return
+    fi
     install -m 644 "$T"/esxi-host-exporter/app/* "$APP/"
     install -m 755 "$T/esxi-host-exporter/menu.sh" "$APP/menu.sh" 2>/dev/null
     install -m 755 "$T/esxi-host-exporter/uninstall.sh" "$APP/uninstall.sh" 2>/dev/null

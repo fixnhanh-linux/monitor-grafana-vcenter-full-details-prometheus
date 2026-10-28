@@ -3,13 +3,17 @@
 
 Chay tu thu muc du an:  python deploy/build_zip.py
 - File text chuyen sang LF, .sh co quyen 755 (giu khi giai nen bang unzip).
-- Kem thu vien pyVmomi (vendor/) lay tu Python dang cai -> server khong can internet.
+- Kem thu vien pyVmomi -> server khong can internet:
+    vendor/      pyVmomi dang cai tren may build (9.x, can Python >= 3.10 tren server)
+    vendor-py38/ pyVmomi 8.0.3.0.1 cho server Python 3.8 / 3.9 (tai bang pip, cache o .build/)
 - Ghi VERSION (lay tu esxi_host_exporter.py) va file .sha256 dinh dang chuan cua sha256sum.
 - KHONG BAO GIO dua .vsan_pass / *.env vao goi.
 """
 import hashlib
 import os
 import re
+import subprocess
+import sys
 import zipfile
 
 import pyVmomi
@@ -19,6 +23,8 @@ OUT = os.path.join(PROJ, "esxi-host-exporter-linux.zip")
 ROOT = "esxi-host-exporter/"
 TEXT = (".py", ".sh", ".service", ".md", ".json", ".yml", ".html", ".txt", ".typed", ".pyi")
 STAMP = (2026, 10, 28, 0, 0, 0)
+PY38_PYVMOMI = "pyvmomi==8.0.3.0.1"
+PY38_CACHE = os.path.join(PROJ, ".build", "pyvmomi-8.0.3.0.1")
 
 ENTRIES = [
     ("deploy/install.sh", "install.sh"), ("deploy/uninstall.sh", "uninstall.sh"), ("deploy/menu.sh", "menu.sh"),
@@ -36,19 +42,22 @@ def main():
     version = re.search(r'^VERSION = "([^"]+)"', open(os.path.join(PROJ, "exporter", "esxi_host_exporter.py"),
                                                       encoding="utf-8").read(), re.M).group(1)
     files = [(os.path.join(PROJ, s), d) for s, d in ENTRIES]
-    site = os.path.dirname(os.path.dirname(pyVmomi.__file__))
-    for pkg in ("pyVmomi", "pyVim"):
-        for dp, dns, fns in os.walk(os.path.join(site, pkg)):
-            dns[:] = [d for d in dns if d != "__pycache__"]
-            for fn in fns:
-                full = os.path.join(dp, fn)
-                files.append((full, "vendor/" + os.path.relpath(full, site).replace(os.sep, "/")))
-    dist = [d for d in os.listdir(site) if d.lower().startswith("pyvmomi-") and d.endswith(".dist-info")]
-    for d in dist:
-        for dp, _, fns in os.walk(os.path.join(site, d)):
-            for fn in fns:
-                if fn.upper().startswith("LICENSE"):
-                    files.append((os.path.join(dp, fn), "vendor/LICENSE-pyvmomi.txt"))
+    if not os.path.isdir(os.path.join(PY38_CACHE, "pyVmomi")):
+        print("Tai %s cho Python 3.8/3.9 vao %s ..." % (PY38_PYVMOMI, PY38_CACHE))
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", PY38_CACHE, PY38_PYVMOMI])
+    for site, prefix in ((os.path.dirname(os.path.dirname(pyVmomi.__file__)), "vendor/"), (PY38_CACHE, "vendor-py38/")):
+        for pkg in ("pyVmomi", "pyVim"):
+            for dp, dns, fns in os.walk(os.path.join(site, pkg)):
+                dns[:] = [d for d in dns if d != "__pycache__"]
+                for fn in fns:
+                    full = os.path.join(dp, fn)
+                    files.append((full, prefix + os.path.relpath(full, site).replace(os.sep, "/")))
+        for d in os.listdir(site):
+            if d.lower().startswith("pyvmomi-") and d.endswith(".dist-info"):
+                for dp, _, fns in os.walk(os.path.join(site, d)):
+                    for fn in fns:
+                        if fn.upper().startswith("LICENSE"):
+                            files.append((os.path.join(dp, fn), prefix + "LICENSE-pyvmomi.txt"))
 
     bad = [d for _, d in files if ".vsan_pass" in d or d.endswith(".env")]
     assert not bad, "co file mat khau trong goi: %s" % bad

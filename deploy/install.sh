@@ -56,29 +56,42 @@ fi
 if [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"; else FILES="$(cd "$SRC/../exporter" 2>/dev/null && pwd)"; fi
 [ -f "$FILES/esxi_host_exporter.py" ] || die "khong thay esxi_host_exporter.py (chay tu goi zip hoac repo git clone)"
 
+# pyVmomi 9.x can Python >= 3.10; Python 3.8/3.9 dung pyVmomi 8.0.3 (goi zip kem ca 2: vendor/ va vendor-py38/)
+PYV=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+if python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then VSRC="$SRC/vendor"; PIPSPEC="pyvmomi>=8.0.2"
+else VSRC="$SRC/vendor-py38"; PIPSPEC="pyvmomi>=8.0.2,<9"; fi
+
+# Cai pyVmomi vao thu muc tam, kiem tra import duoc roi moi thay -> loi thi instance dang chay khong bi anh huong
+install -d -m 755 "$APP"
+NEWV="$APP/vendor.new"; rm -rf "$NEWV"; install -d -m 755 "$NEWV"
+if [ -d "$VSRC" ]; then
+  echo "-> pyVmomi kem trong goi ($(basename "$VSRC"), Python $PYV)"
+  cp -r "$VSRC/." "$NEWV/"                       # goi zip: khong can internet
+elif [ -d "$SRC/vendor" ] && [ "$VSRC" != "$SRC/vendor" ]; then
+  rm -rf "$NEWV"; die "goi zip nay chi co pyVmomi cho Python >= 3.10 (server dang Python $PYV) - lay goi zip moi (co vendor-py38/)"
+else
+  echo "-> Tai $PIPSPEC bang pip (repo git clone, Python $PYV, can internet)"
+  python3 -m pip --version >/dev/null 2>&1 \
+    || { rm -rf "$NEWV"; die "chua co pip: apt install python3-pip | dnf install python3-pip (hoac dung goi zip offline)"; }
+  python3 -m pip install -q --no-cache-dir --target "$NEWV" "$PIPSPEC" 2>/dev/null \
+    || python3 -m pip install -q --no-cache-dir --break-system-packages --target "$NEWV" "$PIPSPEC" \
+    || { rm -rf "$NEWV"; die "pip khong cai duoc pyvmomi (kiem tra internet / proxy)"; }
+fi
+chmod -R a+rX "$NEWV"
+
+echo "-> Kiem tra thu vien pyVmomi"
+PYTHONPATH="$NEWV" python3 -c 'import pyVmomi, pyVim.connect; from pyVmomi import vim; vim.cluster.VsanVcClusterHealthSystem' \
+  || { rm -rf "$NEWV"; die "khong import duoc pyVmomi voi Python $PYV - chua thay doi gi tren server"; }
+
 echo "-> Chep chuong trinh vao $APP"
-install -d -m 755 "$APP" "$APP/vendor"
+rm -rf "$APP/vendor.old"; [ -d "$APP/vendor" ] && mv "$APP/vendor" "$APP/vendor.old"
+mv "$NEWV" "$APP/vendor"; rm -rf "$APP/vendor.old"
 install -m 644 "$FILES/esxi_host_exporter.py" "$FILES/vsan_disk_health.py" \
                "$FILES/esxi_dashboard.html" "$FILES/dashboard_template.html" "$APP/"
 install -m 755 "$SRC/uninstall.sh" "$APP/uninstall.sh"
 install -m 755 "$SRC/menu.sh" "$APP/menu.sh"
 ln -sf "$APP/menu.sh" /usr/local/bin/esxi-menu   # go "esxi-menu" neu quen lenh
-rm -rf "$APP/vendor"/*
-if [ -d "$SRC/vendor" ]; then
-  cp -r "$SRC/vendor/." "$APP/vendor/"           # goi zip: pyVmomi kem san, khong can internet
-else
-  echo "-> Tai pyVmomi bang pip vao $APP/vendor (repo git clone, can internet)"
-  python3 -m pip --version >/dev/null 2>&1 \
-    || die "chua co pip: apt install python3-pip | dnf install python3-pip (hoac dung goi zip offline)"
-  python3 -m pip install -q --no-cache-dir --target "$APP/vendor" "pyvmomi>=8.0.2" 2>/dev/null \
-    || python3 -m pip install -q --no-cache-dir --break-system-packages --target "$APP/vendor" "pyvmomi>=8.0.2" \
-    || die "pip khong cai duoc pyvmomi (kiem tra internet / proxy)"
-fi
 chmod -R a+rX "$APP"
-
-echo "-> Kiem tra thu vien pyVmomi"
-PYTHONPATH="$APP/vendor" python3 -c 'import pyVmomi, pyVim.connect; from pyVmomi import vim; vim.cluster.VsanVcClusterHealthSystem' \
-  || die "khong import duoc pyVmomi tu $APP/vendor"
 
 if ! id "$SVC_USER" >/dev/null 2>&1; then
   echo "-> Tao user he thong $SVC_USER"

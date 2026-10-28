@@ -25,7 +25,7 @@ cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **a
 
 - **vCenter**: tạo user (vd `monitor@vsphere.local`), cấp role **Read-only** ở cấp vCenter, tick *Propagate to children*.
   Bật *vSAN Performance Service* trên cluster để có số liệu latency.
-- **Server Linux**: có systemd, Python ≥ 3.8, tới được vCenter cổng 443:
+- **Server Linux**: có systemd, Python ≥ 3.8 (3.10+ dùng pyVmomi 9.x, 3.8/3.9 dùng pyVmomi 8.0.3 — gói zip kèm sẵn cả hai, install.sh tự chọn), tới được vCenter cổng 443:
   `curl -k -s -o /dev/null -w "%{http_code}\n" https://<IP-vCenter>/sdk/vsanServiceVersions.xml` → `200`.
 
 ## 2. Cài exporter
