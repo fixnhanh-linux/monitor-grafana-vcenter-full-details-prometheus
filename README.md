@@ -67,14 +67,16 @@ mật khẩu (gõ ẩn). Mỗi vCenter cài 1 instance với **tên và port kh�
  4) Restart tat ca instance          11) Go 1 instance
  5) Kiem tra phien ban dang chay     12) Cac lenh hay dung
  6) Cap nhat ban moi tu file zip     13) Cap nhat ban moi tu GitHub (git pull)
- 7) Them vCenter / instance moi       0) Thoat
+ 7) Them vCenter / instance moi      14) Sinh / cai cau hinh Prometheus
+                                      0) Thoat
 ```
 
 Kiểm tra phiên bản đang chạy: `curl -s localhost:9811/metrics | grep build_info`.
 
 ## 4. Prometheus
 
-1. Chép [`prometheus/scrape-esxi-host-resource.yml`](prometheus/scrape-esxi-host-resource.yml) vào
+0. Nhanh nhất: trên server exporter chạy `sudo esxi-menu` → **14**: tự sinh cấu hình scrape từ các instance đã cài (IP + port + nhãn pool), nếu Prometheus cùng máy thì hỏi chép vào `scrape_configs/` + `rules/`, chạy `promtool check config` và reload.
+1. Hoặc chép tay [`prometheus/scrape-esxi-host-resource.yml`](prometheus/scrape-esxi-host-resource.yml) vào
    `/etc/prometheus/scrape_configs/` (hoặc dán vào `scrape_configs` của `prometheus.yml`), thay `<IP-server>`, port, nhãn `pool`.
 2. Chép [`prometheus/alert-rules-esxi.yml`](prometheus/alert-rules-esxi.yml) vào thư mục `rule_files`.
 3. `promtool check config /etc/prometheus/prometheus.yml && systemctl reload prometheus`

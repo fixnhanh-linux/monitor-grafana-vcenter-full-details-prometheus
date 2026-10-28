@@ -254,6 +254,106 @@ influx_show() {
   echo; echo "Bat/sua: chon muc 9 (sua file .env), bo dau # o cac dong INFLUX_, luu, menu se restart."
 }
 
+# ---- muc 14: sinh cau hinh Prometheus tu cac instance dang cai, (tuy chon) cai vao Prometheus tren may nay
+yaml_list() {  # yaml_list <file> <key>: cac dong "- xxx" ngay duoi key cap 1 (rule_files, scrape_config_files)
+  awk -v k="$2:" '$1==k{f=1;next} f&&/^[^ \t#]/{f=0} f&&/^[ \t]*-/{sub(/^[ \t]*-[ \t]*/,""); gsub(/["\047]/,""); print}' "$1"
+}
+ask_yn() { local a; read -r -p "$1 (y/N): " a; [ "$a" = y ] || [ "$a" = Y ]; }
+
+prom_config() {
+  local ip out pc src rules n p vc dir f dst cfg_ok
+  mapfile -t LIST < <(instances)
+  [ ${#LIST[@]} -gt 0 ] || { echo "${Y}Chua co instance nao. Chon muc 7 de cai truoc.${N}"; return; }
+  ip=$(my_ip); out="$CONF/prometheus-scrape-esxi.yml"
+  {
+    echo "# Sinh boi esxi-menu $(date '+%d/%m/%Y %H:%M') - exporter tren $(hostname) ($ip)"
+    echo "# Dung cho scrape_config_files, hoac dan phan '- job_name ...' vao scrape_configs cua prometheus.yml"
+    echo "scrape_configs:"
+    echo "  - job_name: 'esxi_host_resource'"
+    echo "    scrape_interval: 30s"
+    echo "    scrape_timeout: 25s"
+    echo "    static_configs:"
+    for n in "${LIST[@]}"; do
+      p=$(port_of "$n"); vc=$(val_of "$n" VC)
+      echo "      - targets: ['$ip:$p']"
+      echo "        labels: { pool: '$n', vcenter: '$vc' }"
+    done
+  } > "$out"
+  chmod 644 "$out"
+  echo "${B}== Cau hinh scrape (da luu: $out) ==${N}"; cat "$out"
+
+  # alert rule: lay tu bo cai (goi zip hoac repo git clone)
+  src=$(find_src); rules=""
+  for f in "$src/alert-rules-esxi.yml" "$src/../prometheus/alert-rules-esxi.yml"; do [ -f "$f" ] && { rules=$(readlink -f "$f"); break; }; done
+  echo; echo "${B}== Alert rule ==${N}"; echo "  ${rules:-khong thay alert-rules-esxi.yml (giai nen goi zip / git clone truoc)}"
+
+  # Prometheus tren may nay?
+  pc=$(systemctl cat prometheus 2>/dev/null | grep -o -- '--config.file[= ][^ ]*' | head -1 | sed 's/--config.file[= ]//')
+  pc=${pc:-/etc/prometheus/prometheus.yml}
+  echo
+  if [ ! -f "$pc" ]; then
+    echo "${Y}May nay khong co Prometheus ($pc). Chep file tren sang may Prometheus:${N}"
+    echo "  scp $out <may-prometheus>:/etc/prometheus/scrape_configs/esxi-host-resource.yml"
+    [ -n "$rules" ] && echo "  scp $rules <may-prometheus>:/etc/prometheus/rules/"
+    echo "  roi tren may do: promtool check config /etc/prometheus/prometheus.yml && systemctl reload prometheus"
+    return
+  fi
+  echo "${B}== Prometheus tren may nay: $pc ==${N}"
+  cfg_ok=1
+  if grep -rqs "esxi_host_resource" "$pc"; then
+    echo "${Y}prometheus.yml da co job esxi_host_resource -> sua truc tiep trong $pc (khong tao them de tranh trung job).${N}"; cfg_ok=0
+  fi
+  local sdirs rdirs; sdirs=$(yaml_list "$pc" scrape_config_files); rdirs=$(yaml_list "$pc" rule_files)
+  echo "  scrape_config_files: ${sdirs:-(khong dung)}"
+  echo "  rule_files         : ${rdirs:-(chua khai bao)}"
+  local copied=()
+  if [ $cfg_ok = 1 ]; then
+    if [ -n "$sdirs" ]; then
+      dir=$(dirname "$(head -1 <<<"$sdirs")"); dst="$dir/esxi-host-resource.yml"
+      for f in "$dir"/*; do [ -f "$f" ] && [ "$f" != "$dst" ] && grep -qs "esxi_host_resource" "$f" && { echo "${Y}  $f da co job esxi_host_resource -> bo qua, sua file do.${N}"; cfg_ok=0; }; done
+      if [ $cfg_ok = 1 ] && ask_yn "Chep cau hinh scrape vao $dst ?"; then
+        mkdir -p "$dir"; [ -f "$dst" ] && cp "$dst" "$dst.bak"; install -m 644 "$out" "$dst"; copied+=("$dst"); echo "${G}  Da chep $dst${N}"
+      fi
+    else
+      echo "${Y}  prometheus.yml khong dung scrape_config_files: dan phan tu dong '- job_name' o tren vao muc scrape_configs cua $pc${N}"
+      echo "  (hoac them vao $pc:  scrape_config_files: [ '$(dirname "$pc")/scrape_configs/*.yml' ]  roi chay lai muc 14)"
+    fi
+  fi
+  if [ -n "$rules" ]; then
+    local rd; rd=$(head -1 <<<"$rdirs")
+    if [[ "$rd" == *'*'* ]]; then
+      dst="$(dirname "$rd")/alert-rules-esxi.yml"
+      if ask_yn "Chep alert rule vao $dst ?"; then
+        mkdir -p "$(dirname "$dst")"; [ -f "$dst" ] && cp "$dst" "$dst.bak"; install -m 644 "$rules" "$dst"; copied+=("$dst"); echo "${G}  Da chep $dst${N}"
+      fi
+    else
+      echo "${Y}  Them vao $pc:  rule_files: [ '$(dirname "$pc")/rules/*.yml' ]  roi chep $rules vao $(dirname "$pc")/rules/${N}"
+    fi
+  fi
+  [ ${#copied[@]} -gt 0 ] || return
+  echo
+  if command -v promtool >/dev/null; then
+    if ! promtool check config "$pc"; then
+      echo "${R}promtool bao loi -> hoan tac file vua chep.${N}"
+      for f in "${copied[@]}"; do if [ -f "$f.bak" ]; then mv "$f.bak" "$f"; else rm -f "$f"; fi; done
+      return
+    fi
+  else echo "${Y}Khong co promtool - bo qua buoc kiem tra cu phap.${N}"; fi
+  for f in "${copied[@]}"; do rm -f "$f.bak"; done
+  if ask_yn "Reload Prometheus de ap dung?"; then
+    systemctl reload prometheus 2>/dev/null || curl -s -X POST localhost:9090/-/reload || systemctl restart prometheus
+    sleep 5
+    echo "Target job esxi_host_resource:"
+    curl -s -m 5 localhost:9090/api/v1/targets | python3 -c '
+import json, sys
+try: t = json.load(sys.stdin)["data"]["activeTargets"]
+except Exception: print("  khong doc duoc API Prometheus localhost:9090"); sys.exit()
+rows = [x for x in t if x.get("labels", {}).get("job") == "esxi_host_resource"]
+for x in rows: print("  %-22s %-8s %s" % (x["scrapeUrl"].split("/")[2], x["health"], x.get("lastError", "")))
+if not rows: print("  chua thay (doi 30s roi xem lai: Status -> Targets)")'
+  fi
+}
+
 cheatsheet() {
 cat <<EOF
 ${B}Lenh hay dung (thay pool18 bang ten instance)${N}
@@ -310,7 +410,7 @@ draw_menu() {
   brow ""                          " 8) Doi mat khau / cai lai"
   brow "#DIEU KHIEN"               " 9) Sua cau hinh .env"
   brow " 3) Restart 1 instance"    "11) Go 1 instance"
-  brow " 4) Restart tat ca"        ""
+  brow " 4) Restart tat ca"        "14) Cau hinh Prometheus"
   bline "╠" "═" "╣"
   bcenter "0) Thoat         (Ctrl+C khi xem log = quay lai menu)"
   bline "╚" "═" "╝"
@@ -351,6 +451,7 @@ while true; do
     11) pick && { read -r -p "Go instance $PICK? (y/N): " a; [ "$a" = y ] && "$APP/uninstall.sh" "$PICK"; }; pause ;;
     12) cheatsheet; pause ;;
     13) update_from_git; pause ;;
+    14) prom_config; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac
