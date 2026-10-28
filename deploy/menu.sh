@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 # Menu quan ly ESXi host exporter - go "esxi-menu" (can root) neu quen lenh.
 APP=/opt/esxi-host-exporter
 CONF=/etc/esxi-host-exporter
@@ -27,7 +26,7 @@ version_of_port() {
   curl -s -m 5 "localhost:$1/metrics" | grep -o 'esxi_exporter_build_info{version="[^"]*"' | cut -d'"' -f2
 }
 
-installed_ver() { cat "$APP/VERSION" 2>/dev/null || grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2; }
+installed_ver() { grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2; }
 my_ip() { hostname -I 2>/dev/null | awk '{print $1}'; }
 
 # Bao cao trang thai: bash gom service/.env/log, python doc /metrics tung instance -> bang tong hop + chi tiet
@@ -190,26 +189,6 @@ status_all() {
   done | python3 -c "$STATUS_PY" "$(my_ip)" "$(installed_ver)" "$(hostname)"
 }
 
-license_guard() {  # license_guard <thu muc chua license_check.py moi>: ban moi co khoa ban quyen ma may chua co license -> chan
-  local lc="$1/license_check.py"
-  [ -f "$lc" ] || return 0
-  ESXI_LICENSE="$CONF/license.key" python3 "$lc" status "$CONF/license.key" >/tmp/.lic.$$ 2>&1
-  local rc=$?; local msg; msg=$(cat /tmp/.lic.$$); rm -f /tmp/.lic.$$
-  if [ $rc -ne 0 ]; then
-    echo "${R}Ban moi YEU CAU license ma may nay chua co license hop le:${N}"; echo "$msg"
-    echo "${Y}Cap nhat bi dung (khong thay doi gi). Xin license: gui machine-id cho FIX NHANH, luu vao $CONF/license.key roi cap nhat lai.${N}"
-    return 1
-  fi
-}
-
-license_show() {
-  echo "${B}== Ban quyen (license) ==${N}"
-  python3 "$APP/license_check.py" status "$CONF/license.key" || true
-  echo; echo "File license: $CONF/license.key"
-  echo "Muon xin / gia han license: gui dong ${B}machine-id${N} o tren cho FIX NHANH."
-  echo "Cai license moi: chep file vao $CONF/license.key (quyen 640, group esxi-exporter) roi restart (muc 4)."
-}
-
 update_from_zip() {
   read -r -p "Duong dan file zip [/home/esxi-host-exporter-linux.zip]: " Z
   Z=${Z:-/home/esxi-host-exporter-linux.zip}
@@ -233,25 +212,7 @@ update_from_zip() {
     else
       echo "${R}Goi zip khong co pyVmomi chay duoc voi $(python3 -V 2>&1) - dung lai, chua thay doi gi.${N}"; rm -rf "$T"; return
     fi
-    local NEWBIN="$T/esxi-host-exporter/app/esxi-host-exporter"
-    if [ -f "$NEWBIN" ]; then  # ban nhi phan: kiem tra license bang binary moi truoc khi thay
-      chmod +x "$NEWBIN"
-      ESXI_LICENSE="$CONF/license.key" "$NEWBIN" --license-status "$CONF/license.key" || {
-        echo "${R}Ban moi can license hop le ma may chua co - dung lai, chua thay doi gi.${N}"; rm -rf "$T"; return; }
-    else
-      license_guard "$T/esxi-host-exporter/app" || { rm -rf "$T"; return; }
-    fi
-    rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle" "$APP/license_check.py" "$APP/esxi-host-exporter"
     install -m 644 "$T"/esxi-host-exporter/app/* "$APP/"
-    if [ -f "$APP/esxi-host-exporter" ]; then
-      chmod 755 "$APP/esxi-host-exporter"
-      printf '#!/bin/sh\nexec /opt/esxi-host-exporter/esxi-host-exporter "$@"\n' > "$APP/start"; chmod 755 "$APP/start"
-      "$APP/esxi-host-exporter" --version > "$APP/VERSION" 2>/dev/null
-    else
-      cat "$T/esxi-host-exporter/VERSION" > "$APP/VERSION" 2>/dev/null
-    fi
-    # thu muc cau hinh cu la 700: cho service (user esxi-exporter) doc duoc license.key; file .env van 600 root
-    getent group esxi-exporter >/dev/null && { chgrp esxi-exporter "$CONF"; chmod 750 "$CONF"; [ -f "$CONF/license.key" ] && { chgrp esxi-exporter "$CONF/license.key"; chmod 640 "$CONF/license.key"; }; }
     install -m 755 "$T/esxi-host-exporter/menu.sh" "$APP/menu.sh" 2>/dev/null
     install -m 755 "$T/esxi-host-exporter/uninstall.sh" "$APP/uninstall.sh" 2>/dev/null
     for n in $(instances); do systemctl restart "$SVC@$n"; done
@@ -279,9 +240,7 @@ update_from_git() {
   echo "Ban tren git : ${B}$(grep -m1 '^VERSION' "$E/esxi_host_exporter.py" | cut -d'"' -f2)${N}"
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   [ "$a" = y ] || return
-  [ -f "$APP/app.bundle" ] && { echo "${Y}Ban dang cai la BAN BAO VE (ma hoa). Cap nhat bang goi zip bao ve (muc 6), khong dung git.${N}"; return; }
-  license_guard "$E" || return
-  install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$E/license_check.py" "$APP/"
+  install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$APP/"
   install -m 755 "$RP/deploy/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/deploy/uninstall.sh" "$APP/uninstall.sh"
   for n in $(instances); do systemctl restart "$SVC@$n"; done
   sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done
@@ -458,7 +417,7 @@ draw_menu() {
   echo
   bline "╔" "═" "╗"
   bcenter "E S X i   H O S T   E X P O R T E R" "$W$Y"
-  bcenter "Menu quan ly  -  (C) 2026 FIX NHANH - ban quyen" "$D"
+  bcenter "Menu quan ly  -  vCenter / vSAN monitoring" "$D"
   bline "╟" "─" "╢"
   bcenter "May: $(hostname) ($(my_ip))   |   $(date '+%d/%m/%Y %H:%M')" "$BL"
   bcenter "Ban cai: $(installed_ver)   |   Instance dang chay: $act/$tot" "$ac"
@@ -489,7 +448,6 @@ draw_menu() {
   brow "H|B|TICH HOP"                  ""
   brow "I|B|14|Cau hinh Prometheus"    "H|D|TRO GIUP"
   brow "I|B|10|Cau hinh InfluxDB"      "I|D|12|Cac lenh hay dung"
-  brow "I|B|15|Ban quyen / machine-id"  ""
   bline "╠" "═" "╣"
   bfree "${R}${W}  0)${N} Thoat        ${D}Ctrl+C khi xem log = quay lai menu${N}"
   bline "╚" "═" "╝"
@@ -498,7 +456,7 @@ draw_menu() {
 while true; do
   clear 2>/dev/null
   draw_menu
-  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-15):${N} " c
+  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-14):${N} " c
   echo
   case "$c" in
     1) status_all; pause ;;
@@ -531,7 +489,6 @@ while true; do
     12) cheatsheet; pause ;;
     13) update_from_git; pause ;;
     14) prom_config; pause ;;
-    15) license_show; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 """Lay vSAN physical disk health tu vCenter (giong cot Health o vSAN > Disk Management).
 
 Cach dung:

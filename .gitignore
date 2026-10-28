@@ -1,13 +1,17 @@
-# File chua mat khau vCenter - khong bao gio commit
+# Mat khau vCenter - khong bao gio commit
 .vsan_pass
 *.env
+
+# Goi build (tao lai bang: python deploy/build_zip.py)
+*.zip
+*.zip.sha256
+
+# Du lieu that / file noi bo
+vsan_dashboard.html
+result.json
+.claude/
+
 __pycache__/
+*.pyc
 *.tmp
 .build/
-
-# Ban quyen - TUYET DOI khong commit
-.license_key/
-make_license.py
-*.license.key
-*.license
-license.key

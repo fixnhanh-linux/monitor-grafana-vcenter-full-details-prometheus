@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 # Cai dat ESXi host + vSAN exporter (dashboard web + Prometheus) len Linux co systemd.
 #
 #   sudo ./install.sh                 # hoi tung thong tin (tu goi zip)
@@ -53,26 +52,14 @@ if [ -z "${VSAN_PASS:-}" ]; then
   fi
 fi
 
-# Nhan biet goi: BINARY (binary Nuitka) / app/ co .py (thuong hoac bao ve) / repo git clone (code o exporter/)
-BIN_MODE=0
-if [ -f "$SRC/app/esxi-host-exporter" ] && head -c4 "$SRC/app/esxi-host-exporter" 2>/dev/null | grep -q ELF; then
-  BIN_MODE=1; FILES="$SRC/app"
-elif [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"
-else FILES="$(cd "$SRC/../exporter" 2>/dev/null && pwd)"; fi
-if [ "$BIN_MODE" = 1 ]; then
-  [ -f "$FILES/esxi-host-exporter" ] || die "thieu binary esxi-host-exporter trong goi"
-else
-  [ -f "$FILES/esxi_host_exporter.py" ] || die "khong thay esxi_host_exporter.py (chay tu goi zip hoac repo git clone)"
-fi
+# Chay duoc tu 2 noi: goi zip (install.sh + app/ + vendor/) hoac repo git clone (deploy/install.sh, code o exporter/)
+if [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"; else FILES="$(cd "$SRC/../exporter" 2>/dev/null && pwd)"; fi
+[ -f "$FILES/esxi_host_exporter.py" ] || die "khong thay esxi_host_exporter.py (chay tu goi zip hoac repo git clone)"
 
 # pyVmomi 9.x can Python >= 3.10; Python 3.8/3.9 dung pyVmomi 8.0.3 (goi zip kem ca 2: vendor/ va vendor-py38/)
-# Ban BINARY mang san Python 3.10 -> luon dung vendor/ (9.x), khong phu thuoc python3 he thong.
-if [ "$BIN_MODE" = 1 ]; then PYV="binary (python noi bo 3.10)"; VSRC="$SRC/vendor"; PIPSPEC="pyvmomi>=8.0.2"
-else
-  PYV=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
-  if python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then VSRC="$SRC/vendor"; PIPSPEC="pyvmomi>=8.0.2"
-  else VSRC="$SRC/vendor-py38"; PIPSPEC="pyvmomi>=8.0.2,<9"; fi
-fi
+PYV=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+if python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then VSRC="$SRC/vendor"; PIPSPEC="pyvmomi>=8.0.2"
+else VSRC="$SRC/vendor-py38"; PIPSPEC="pyvmomi>=8.0.2,<9"; fi
 
 # Cai pyVmomi vao thu muc tam, kiem tra import duoc roi moi thay -> loi thi instance dang chay khong bi anh huong
 install -d -m 755 "$APP"
@@ -92,43 +79,18 @@ else
 fi
 chmod -R a+rX "$NEWV"
 
-if [ "$BIN_MODE" = 1 ]; then
-  echo "-> Kiem tra thu vien pyVmomi (binary tu kiem tra khi chay)"   # binary dung python noi bo, bo qua kiem tra bang python3 he thong
-else
-  echo "-> Kiem tra thu vien pyVmomi"
-  PYTHONPATH="$NEWV" python3 -c 'import pyVmomi, pyVim.connect; from pyVmomi import vim; vim.cluster.VsanVcClusterHealthSystem' \
-    || { rm -rf "$NEWV"; die "khong import duoc pyVmomi voi Python $PYV - chua thay doi gi tren server"; }
-fi
+echo "-> Kiem tra thu vien pyVmomi"
+PYTHONPATH="$NEWV" python3 -c 'import pyVmomi, pyVim.connect; from pyVmomi import vim; vim.cluster.VsanVcClusterHealthSystem' \
+  || { rm -rf "$NEWV"; die "khong import duoc pyVmomi voi Python $PYV - chua thay doi gi tren server"; }
 
 echo "-> Chep chuong trinh vao $APP"
 rm -rf "$APP/vendor.old"; [ -d "$APP/vendor" ] && mv "$APP/vendor" "$APP/vendor.old"
 mv "$NEWV" "$APP/vendor"; rm -rf "$APP/vendor.old"
-# don sach moi bien the cu truoc khi cai
-rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" \
-      "$APP/app.bundle" "$APP/license_check.py" "$APP/esxi-host-exporter"
-if [ "$BIN_MODE" = 1 ]; then
-  install -m 755 "$FILES/esxi-host-exporter" "$APP/esxi-host-exporter"
-  printf '#!/bin/sh\nexec /opt/esxi-host-exporter/esxi-host-exporter "$@"\n' > "$APP/start"
-  echo "   (ban NHI PHAN: code duoc bien dich, khong co file .py cua exporter)"
-else
-  printf '#!/bin/sh\nexec /usr/bin/env python3 /opt/esxi-host-exporter/esxi_host_exporter.py "$@"\n' > "$APP/start"
-fi
-chmod 755 "$APP/start"
-for f in "$FILES"/*.py "$FILES"/*.html "$FILES"/*.bundle; do
-  b=$(basename "$f"); [ -f "$f" ] || continue
-  [ "$b" = esxi_launcher.py ] && continue
-  # goi bao ve: chi cai launcher + license_check + app.bundle; bo qua .py/.html cu con sot lai (giai nen de len goi cu)
-  if [ -f "$FILES/app.bundle" ]; then case "$b" in vsan_disk_health.py|esxi_dashboard.html|dashboard_template.html) continue;; esac; fi
-  install -m 644 "$f" "$APP/"
-done
-[ -f "$APP/app.bundle" ] && echo "   (goi bao ve: ma nguon duoc ma hoa trong app.bundle)"
+install -m 644 "$FILES/esxi_host_exporter.py" "$FILES/vsan_disk_health.py" \
+               "$FILES/esxi_dashboard.html" "$FILES/dashboard_template.html" "$APP/"
 install -m 755 "$SRC/uninstall.sh" "$APP/uninstall.sh"
 install -m 755 "$SRC/menu.sh" "$APP/menu.sh"
 ln -sf "$APP/menu.sh" /usr/local/bin/esxi-menu   # go "esxi-menu" neu quen lenh
-# Ghi VERSION de menu doc (moi bien the)
-if [ "$BIN_MODE" = 1 ]; then "$APP/esxi-host-exporter" --version > "$APP/VERSION" 2>/dev/null || cp "$SRC/VERSION" "$APP/VERSION" 2>/dev/null
-elif [ -f "$APP/esxi_host_exporter.py" ]; then grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" | cut -d'"' -f2 > "$APP/VERSION"
-else cp "$SRC/VERSION" "$APP/VERSION" 2>/dev/null; fi
 chmod -R a+rX "$APP"
 
 if ! id "$SVC_USER" >/dev/null 2>&1; then
@@ -138,7 +100,7 @@ if ! id "$SVC_USER" >/dev/null 2>&1; then
 fi
 
 echo "-> Ghi cau hinh $ENV_FILE (chi root doc duoc)"
-install -d -m 750 -o root -g "$SVC_USER" "$CONF"   # service doc duoc license.key; file .env van 600 root
+install -d -m 700 "$CONF"
 OLD_PASS_LINE=""
 if [ -z "$VSAN_PASS" ] && [ -f "$ENV_FILE" ]; then
   OLD_PASS_LINE=$(grep '^VSAN_PASS=' "$ENV_FILE")
@@ -181,18 +143,6 @@ umask 077
 chmod 600 "$ENV_FILE"; chown root:root "$ENV_FILE"
 umask 022
 
-# Ban quyen: file license do FIX NHANH cap (gan machine-id). Dat canh install.sh (license.key) hoac LICENSE_FILE=/duong/dan
-LIC_DST=/etc/esxi-host-exporter/license.key
-LIC_SRC="${LICENSE_FILE:-}"; [ -n "$LIC_SRC" ] || for f in "$SRC/license.key" "$SRC"/*.license.key /home/*.license.key; do [ -f "$f" ] && { LIC_SRC="$f"; break; }; done
-if [ -n "$LIC_SRC" ] && [ -f "$LIC_SRC" ]; then
-  install -m 640 -o root -g "$SVC_USER" "$LIC_SRC" "$LIC_DST" && echo "-> Da cai license: $LIC_SRC"
-fi
-echo "-> Kiem tra ban quyen"
-if [ "$BIN_MODE" = 1 ]; then ESXI_LICENSE="$LIC_DST" "$APP/esxi-host-exporter" --license-status "$LIC_DST"
-else python3 "$APP/license_check.py" status "$LIC_DST"; fi || {
-  echo "!! Chua co license hop le. Gui machine-id tren cho FIX NHANH de xin license, luu vao $LIC_DST"
-  echo "   roi: sudo systemctl restart esxi-host-exporter@$NAME   (hoac chay lai install.sh voi LICENSE_FILE=...)"
-}
 echo "-> Cai systemd unit"
 install -m 644 "$SRC/$UNIT" "/etc/systemd/system/$UNIT"
 systemctl daemon-reload

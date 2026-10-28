@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 FIX NHANH. All rights reserved. Proprietary - xem file LICENSE.
 """Prometheus exporter: tai nguyen tung host ESXi + vSAN cho dashboard "MONITOR RESOURCE HOST ESXi".
 
 Cach dung:
@@ -39,7 +38,6 @@ from pyVim.connect import Disconnect, SmartConnect
 from pyVmomi import SoapStubAdapter, vim, vmodl
 
 import vsan_disk_health as vdh
-import license_check
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
 VERSION = "2026.10.28-1"
@@ -493,14 +491,6 @@ def push_influx(prom_text, ts):
 
 HISTORY_LEN = int(os.environ.get("ESXI_HISTORY_POINTS", 120))  # so diem lich su giu trong RAM cho dashboard web
 DASHBOARD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "esxi_dashboard.html")
-ASSETS = {}  # ban dong goi bao ve: esxi_launcher nap noi dung html tu app.bundle (ma hoa) vao day
-
-
-def asset(name):
-    if name in ASSETS:
-        return ASSETS[name]
-    with open(os.path.join(os.path.dirname(DASHBOARD_FILE), name), "rb") as f:
-        return f.read()
 
 
 def host_views(hosts, disks):
@@ -535,7 +525,6 @@ def record_history(history, hosts, ts):
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
-    license_check.enforce()  # ban quyen: license hong -> thoat ma 4 (xem license_check.py)
     vc = sys.argv[1].replace("https://", "").split("/")[0]
     user = sys.argv[2]
     cluster = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "-" else None
@@ -606,7 +595,8 @@ def main():
                     }, ensure_ascii=False)
                 self.send(body.encode("utf-8"), "application/json; charset=utf-8")
             elif path in ("/", "/index.html"):
-                self.send(asset("esxi_dashboard.html"), "text/html; charset=utf-8")
+                with open(DASHBOARD_FILE, "rb") as f:
+                    self.send(f.read(), "text/html; charset=utf-8")
             else:
                 self.send_error(404, "Dung / (dashboard), /api/state hoac /metrics")
 
