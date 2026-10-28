@@ -89,7 +89,11 @@ rm -rf "$APP/vendor.old"; [ -d "$APP/vendor" ] && mv "$APP/vendor" "$APP/vendor.
 mv "$NEWV" "$APP/vendor"; rm -rf "$APP/vendor.old"
 rm -f "$APP/esxi_host_exporter.py" "$APP/vsan_disk_health.py" "$APP/esxi_dashboard.html" "$APP/dashboard_template.html" "$APP/app.bundle"
 for f in "$FILES"/*.py "$FILES"/*.html "$FILES"/*.bundle; do
-  [ -f "$f" ] && [ "$(basename "$f")" != esxi_launcher.py ] && install -m 644 "$f" "$APP/"
+  b=$(basename "$f"); [ -f "$f" ] || continue
+  [ "$b" = esxi_launcher.py ] && continue
+  # goi bao ve: chi cai launcher + license_check + app.bundle; bo qua .py/.html cu con sot lai (giai nen de len goi cu)
+  if [ -f "$FILES/app.bundle" ]; then case "$b" in vsan_disk_health.py|esxi_dashboard.html|dashboard_template.html) continue;; esac; fi
+  install -m 644 "$f" "$APP/"
 done
 [ -f "$APP/app.bundle" ] && echo "   (goi bao ve: ma nguon duoc ma hoa trong app.bundle)"
 install -m 755 "$SRC/uninstall.sh" "$APP/uninstall.sh"
