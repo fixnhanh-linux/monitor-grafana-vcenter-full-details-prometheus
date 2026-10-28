@@ -26,17 +26,167 @@ version_of_port() {
   curl -s -m 5 "localhost:$1/metrics" | grep -o 'esxi_exporter_build_info{version="[^"]*"' | cut -d'"' -f2
 }
 
+installed_ver() { grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2; }
+my_ip() { hostname -I 2>/dev/null | awk '{print $1}'; }
+
+# Bao cao trang thai: bash gom service/.env/log, python doc /metrics tung instance -> bang tong hop + chi tiet
+read -r -d '' STATUS_PY <<'PY'
+import re, shutil, sys, time, urllib.request
+ip, inst_ver, hostname = sys.argv[1:4]
+cols = shutil.get_terminal_size((110, 30)).columns
+TTY = sys.stdout.isatty()
+def c(code, s): return "\033[%sm%s\033[0m" % (code, s) if TTY and code else s
+RED, GRN, YEL, CYN, DIM, BLD = "1;31", "32", "33", "36", "2", "1"
+W = 108
+PAD = " " * max(0, (cols - W) // 2)
+def say(s=""): print(PAD + s)
+def cell(s, w, code=None, right=False):
+    s = str(s)[:w]; s = s.rjust(w) if right else s.ljust(w)
+    return c(code, s)
+LBL = re.compile(r'(\w+)="((?:[^"\\]|\\.)*)"')
+def parse(text):
+    out = {}
+    for ln in text.splitlines():
+        if not ln or ln[0] == "#": continue
+        try:
+            head, val = ln.rsplit(" ", 1); val = float(val)
+        except ValueError: continue
+        if "{" in head:
+            name, rest = head.split("{", 1)
+            lab = {k: v.replace('\\"', '"').replace("\\n", " ").replace("\\\\", "\\") for k, v in LBL.findall(rest)}
+        else: name, lab = head, {}
+        out.setdefault(name, []).append((lab, val))
+    return out
+def fetch(port):
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%s/metrics" % port, timeout=8) as r:
+            return parse(r.read().decode("utf-8", "replace")), ""
+    except Exception as e:
+        return None, str(e)[:60]
+def ago(sec):
+    sec = int(sec)
+    if sec < 60: return "%ds truoc" % sec
+    if sec < 3600: return "%dm%02ds truoc" % (sec // 60, sec % 60)
+    return "%dh%02dm truoc" % (sec // 3600, sec % 3600 // 60)
+def dur(sec):
+    sec = int(sec); d, h, m = sec // 86400, sec % 86400 // 3600, sec % 3600 // 60
+    return ("%dd %dh" % (d, h)) if d else ("%dh %dm" % (h, m)) if h else "%dm" % m
+def gb(b):
+    for u in ("B", "KB", "MB", "GB", "TB"):
+        if b < 1024 or u == "TB": return "%.1f %s" % (b, u)
+        b /= 1024.0
+
+now = time.time()
+rows = [l.rstrip("\n").split("\t") for l in sys.stdin if l.strip()]
+say(c(BLD, "TRANG THAI ESXi HOST EXPORTER".center(W)))
+say(c(DIM, ("%s (%s)  |  %s  |  ban cai trong /opt: %s" % (hostname, ip, time.strftime("%d/%m/%Y %H:%M:%S"), inst_ver or "?")).center(W)))
+if not rows:
+    say(); say(c(YEL, "Chua co instance nao. Chon muc 7 de cai.")); sys.exit()
+
+infos = []
+for r in rows:
+    r += [""] * (10 - len(r))
+    name, port, svc, since, vc, user, cluster, interval, influx, lastlog = r[:10]
+    m, err = fetch(port) if svc == "active" else (None, "service " + svc)
+    i = dict(name=name, port=port, svc=svc, since=int(since or 0), vc=vc, user=user, cluster=cluster,
+             interval=int(interval or 60), influx=influx, lastlog=lastlog, m=m, err=err)
+    if m is not None:
+        g = lambda k: m.get(k, [])
+        i["ver"] = next((l.get("version") for l, _ in g("esxi_exporter_build_info")), "")
+        info = {l.get("host"): l for l, _ in g("esxi_host_info")}
+        i["hosts"] = [(l.get("cluster", ""), l.get("host", ""), int(v), info.get(l.get("host"), {})) for l, v in g("esxi_host_status")]
+        i["discon"] = sum(1 for _, v in g("esxi_host_connected") if v == 0)
+        i["maint"] = sum(1 for _, v in g("esxi_host_maintenance") if v == 1)
+        disks = g("vsan_disk_health")
+        i["disks"], i["dbad"] = len(disks), [l for l, v in disks if v != 0]
+        i["nicdown"] = [(l.get("host"), l.get("nic")) for l, v in g("esxi_host_nic_up") if v == 0]
+        objs = {l.get("cluster"): v for l, v in g("esxi_vsan_resync_objects")}
+        i["resync"] = [(l.get("cluster"), objs.get(l.get("cluster"), 0), v) for l, v in g("esxi_vsan_resync_bytes") if v > 0]
+        i["last"] = next((v for _, v in g("vsan_disk_exporter_last_success_timestamp_seconds")), 0)
+        i["up"] = next((v for _, v in g("vsan_disk_exporter_up")), 0)
+    infos.append(i)
+
+# ---- bang tong hop
+say()
+say(c(CYN, cell("INSTANCE", 11) + cell("PORT", 6) + cell("SERVICE", 10) + cell("PHIEN BAN", 15) + cell("HOST", 6, right=True)
+           + cell("OK", 5, right=True) + cell("WARN", 6, right=True) + cell("ERROR", 7, right=True) + cell("DISK", 6, right=True)
+           + cell("DISK LOI", 10, right=True) + cell("NIC DOWN", 10, right=True) + "  DU LIEU MOI NHAT"))
+say(c(DIM, "-" * W))
+tot = [0] * 7
+for i in infos:
+    line = cell(i["name"], 11) + cell(i["port"], 6) + cell(i["svc"], 10, GRN if i["svc"] == "active" else RED)
+    if i["m"] is None:
+        say(line + c(RED, "khong doc duoc /metrics: " + i["err"])); continue
+    st = [h[2] for h in i["hosts"]]
+    ok, wa, er = st.count(0), st.count(1), st.count(2)
+    age = now - i["last"] if i["last"] else None
+    stale = age is None or age > i["interval"] * 3 + 300
+    vals = [len(st), ok, wa, er, i["disks"], len(i["dbad"]), len(i["nicdown"])]
+    tot = [a + b for a, b in zip(tot, vals)]
+    say(line + cell(i["ver"] or "CU-can cap nhat", 15, None if i["ver"] else RED)
+        + cell(len(st), 6, right=True) + cell(ok, 5, GRN, True) + cell(wa, 6, YEL if wa else None, True)
+        + cell(er, 7, RED if er else None, True) + cell(i["disks"], 6, right=True)
+        + cell(len(i["dbad"]), 10, RED if i["dbad"] else None, True) + cell(len(i["nicdown"]), 10, RED if i["nicdown"] else None, True)
+        + "  " + c(RED if stale else GRN, ago(age) if age is not None else "chua co du lieu"))
+say(c(DIM, "-" * W))
+say(cell("TONG", 42) + cell(tot[0], 6, right=True) + cell(tot[1], 5, GRN, True) + cell(tot[2], 6, YEL if tot[2] else None, True)
+    + cell(tot[3], 7, RED if tot[3] else None, True) + cell(tot[4], 6, right=True)
+    + cell(tot[5], 10, RED if tot[5] else None, True) + cell(tot[6], 10, RED if tot[6] else None, True))
+
+# ---- chi tiet tung instance
+K = lambda k: c(CYN, k.ljust(13) + ": ")
+for i in infos:
+    say(); say(c(BLD, ("== %s " % i["name"]).ljust(W, "=")))
+    run = "chay tu %s (%s)" % (time.strftime("%d/%m %H:%M", time.localtime(i["since"])), dur(now - i["since"])) if i["since"] and i["svc"] == "active" else ""
+    say(K("Service") + c(GRN if i["svc"] == "active" else RED, i["svc"]) + "  esxi-host-exporter@%s  port %s  %s" % (i["name"], i["port"], run))
+    say(K("vCenter") + "%s  |  user %s  |  cluster: %s  |  chu ky %ss" % (i["vc"] or "?", i["user"] or "?", i["cluster"] if i["cluster"] not in ("", "-") else "tat ca", i["interval"]))
+    if i["m"] is None:
+        say(K("Loi") + c(RED, i["err"] or "khong doc duoc /metrics"))
+        say(K("Log cuoi") + (i["lastlog"] or "-"))
+        say(K("Xu ly") + "menu 2 (xem log), menu 3 (restart); sai mat khau -> menu 8"); continue
+    say(K("Phien ban") + (i["ver"] if i["ver"] else c(RED, "CU - khong co build_info -> cap nhat: menu 6 (zip) hoac 13 (GitHub)"))
+        + ("" if not i["ver"] or not inst_ver or i["ver"] == inst_ver else c(YEL, "  (khac ban trong /opt %s -> restart: menu 4)" % inst_ver)))
+    if i["last"]:
+        age = now - i["last"]; stale = age > i["interval"] * 3 + 300
+        say(K("Du lieu") + "lan cuoi %s  " % time.strftime("%H:%M:%S", time.localtime(i["last"]))
+            + c(RED if stale else GRN, "(%s)" % ago(age)) + ("  exporter UP" if i["up"] else c(RED, "  lan lay gan nhat LOI")))
+    else:
+        say(K("Du lieu") + c(YEL, "chua co (dang lay lan dau, cho 1-4 phut)"))
+    cl = {}
+    for h in i["hosts"]: cl[h[0]] = cl.get(h[0], 0) + 1
+    say(K("Cluster") + (", ".join("%s (%d host)" % kv for kv in sorted(cl.items())) or "-"))
+    st = [h[2] for h in i["hosts"]]
+    say(K("Host") + "%d tong  |  " % len(st) + c(GRN, "%d OK" % st.count(0)) + "  |  " + c(YEL if st.count(1) else None, "%d WARN" % st.count(1))
+        + "  |  " + c(RED if st.count(2) else None, "%d ERROR" % st.count(2))
+        + "  |  " + c(RED if i["discon"] else None, "%d mat ket noi" % i["discon"]) + "  |  %d maintenance" % i["maint"])
+    say(K("Disk vSAN") + "%d tong  |  " % i["disks"] + c(RED if i["dbad"] else GRN, "%d khong green" % len(i["dbad"]))
+        + ("  (%s)" % ", ".join("%s %s" % (l.get("host", "?"), l.get("disk", "")[:24]) for l in i["dbad"][:3]) if i["dbad"] else ""))
+    say(K("vmnic DOWN") + (c(RED, ", ".join("%s %s" % x for x in i["nicdown"][:6]) + (" ..." if len(i["nicdown"]) > 6 else "")) if i["nicdown"] else c(GRN, "khong co")))
+    say(K("vSAN resync") + (c(YEL, ", ".join("%s: %d object, %s" % (cn, o, gb(b)) for cn, o, b in i["resync"])) if i["resync"] else c(GRN, "khong co")))
+    say(K("InfluxDB") + (i["influx"] if i["influx"] else c(DIM, "tat")))
+    say(K("Web") + "http://%s:%s/" % (ip, i["port"]))
+    say(K("Log cuoi") + (i["lastlog"] or "-"))
+    bad = sorted((h for h in i["hosts"] if h[2]), key=lambda h: (-h[2], h[1]))
+    if bad:
+        say(c(CYN, "Host can xem".ljust(13) + ":"))
+        for cl_, host, s, inf in bad[:20]:
+            say("   " + cell("ERROR" if s == 2 else "WARN", 6, RED if s == 2 else YEL) + " " + cell(cl_, 14) + cell(host, 18)
+                + (inf.get("reason") or c(DIM, "(ban cu: khong co ly do)"))[:W - 44])
+        if len(bad) > 20: say("   ... va %d host khac (xem Grafana / dashboard web)" % (len(bad) - 20))
+say()
+say(c(DIM, "DU LIEU mau do = qua 3 chu ky chua co du lieu moi.  PHIEN BAN CU = server chua cap nhat (menu 6 / 13)."))
+PY
+
 status_all() {
-  printf "%-12s %-6s %-10s %-16s %-6s %-6s %s\n" INSTANCE PORT SERVICE VERSION HOST LOI "LAN LAY DU LIEU GAN NHAT"
+  local n st since last
   for n in $(instances); do
-    p=$(port_of "$n"); st=$(systemctl is-active "$SVC@$n" 2>/dev/null)
-    m=$(curl -s -m 5 "localhost:$p/metrics")
-    ver=$(grep -o 'esxi_exporter_build_info{version="[^"]*"' <<<"$m" | cut -d'"' -f2)
-    hosts=$(grep -c '^esxi_host_status{' <<<"$m"); bad=$(grep '^esxi_host_status{' <<<"$m" | grep -vc ' 0$')
-    last=$(journalctl -u "$SVC@$n" -n 30 --no-pager -o cat 2>/dev/null | grep -E 'OK:|LOI|that bai' | tail -1)
-    [ "$st" = active ] && c=$G || c=$R
-    printf "%-12s %-6s ${c}%-10s${N} %-16s %-6s %-6s %s\n" "$n" "$p" "$st" "${ver:-${R}cu/khong ro${N}}" "$hosts" "$bad" "$last"
-  done
+    st=$(systemctl is-active "$SVC@$n" 2>/dev/null)
+    since=$(date -d "$(systemctl show -p ActiveEnterTimestamp --value "$SVC@$n" 2>/dev/null)" +%s 2>/dev/null)
+    last=$(journalctl -u "$SVC@$n" -n 50 --no-pager -o cat 2>/dev/null | grep -E 'OK:|LOI|that bai' | tail -1)
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$n" "$(port_of "$n")" "${st:-unknown}" "${since:-0}" \
+      "$(val_of "$n" VC)" "$(val_of "$n" VC_USER)" "$(val_of "$n" CLUSTER)" "$(val_of "$n" INTERVAL)" \
+      "$(val_of "$n" INFLUX_URL)" "${last//$'\t'/ }"
+  done | python3 -c "$STATUS_PY" "$(my_ip)" "$(installed_ver)" "$(hostname)"
 }
 
 update_from_zip() {
@@ -116,33 +266,61 @@ EOF
 
 [ "$(id -u)" -eq 0 ] || { echo "Can chay bang root: sudo esxi-menu"; exit 1; }
 
+# ---- ve menu trong khung, can giua man hinh
+BW=64                                   # be rong ben trong khung
+W=$'\e[1m'; [ -t 1 ] || W=
+rep() { local s; printf -v s '%*s' "$2" ''; printf '%s' "${s// /$1}"; }
+setpad() { local w; w=$(stty size </dev/tty 2>/dev/null | cut -d" " -f2); [[ $w =~ ^[0-9]+$ ]] || w=${COLUMNS:-80}; w=$(( (w - BW - 2) / 2 )); [ $w -lt 0 ] && w=0; printf -v PADS '%*s' $w ''; }
+bline() { printf '%s%s%s%s%s%s\n' "$PADS" "$B" "$1" "$(rep "$2" $BW)" "$3" "$N"; }
+bcenter() {  # bcenter "chu khong dau" [mau]
+  local t="${1:0:BW}" l r; l=$(( (BW - ${#t}) / 2 )); r=$(( BW - ${#t} - l ))
+  printf '%s%s║%s%*s%s%s%s%*s%s║%s\n' "$PADS" "$B" "$N" $l '' "${2:-}" "$t" "$N" $r '' "$B" "$N"
+}
+brow() {     # brow "cot trai" "cot phai"; bat dau bang # = tieu de nhom
+  local l="$1" r="$2" lc="" rc="" h=$(( BW / 2 - 1 ))
+  [[ $l == '#'* ]] && { l=${l#\#}; lc=$Y; }; [[ $r == '#'* ]] && { r=${r#\#}; rc=$Y; }
+  printf '%s%s║%s  %s%-*s%s%s%-*s%s%s║%s\n' "$PADS" "$B" "$N" "$lc" $h "$l" "$N" "$rc" $((BW - h - 2)) "$r" "$N" "$B" "$N"
+}
+draw_menu() {
+  setpad
+  local tot=0 act=0 n ac
+  for n in $(instances); do tot=$((tot+1)); [ "$(systemctl is-active "$SVC@$n" 2>/dev/null)" = active ] && act=$((act+1)); done
+  ac=$G; [ $act -lt $tot ] && ac=$R
+  echo
+  bline "╔" "═" "╗"
+  bcenter "ESXi HOST EXPORTER  -  MENU QUAN LY" "$W"
+  bcenter "$(hostname) ($(my_ip))   |   $(date '+%d/%m/%Y %H:%M')"
+  bcenter "Ban cai: $(installed_ver)   |   Instance: $act/$tot dang chay" "$ac"
+  bline "╠" "═" "╣"
+  brow "#XEM TRANG THAI"           "#CAP NHAT PHIEN BAN"
+  brow " 1) Trang thai chi tiet"   " 6) Tu file zip (+ sha256)"
+  brow " 2) Xem log 1 instance"    "13) Tu GitHub (git pull)"
+  brow " 5) Kiem tra phien ban"    ""
+  brow "10) Cau hinh InfluxDB"     "#CAI DAT / CAU HINH"
+  brow "12) Cac lenh hay dung"     " 7) Them vCenter / instance"
+  brow ""                          " 8) Doi mat khau / cai lai"
+  brow "#DIEU KHIEN"               " 9) Sua cau hinh .env"
+  brow " 3) Restart 1 instance"    "11) Go 1 instance"
+  brow " 4) Restart tat ca"        ""
+  bline "╠" "═" "╣"
+  bcenter "0) Thoat         (Ctrl+C khi xem log = quay lai menu)"
+  bline "╚" "═" "╝"
+}
+
 while true; do
   clear 2>/dev/null
-  cat <<EOF
-${B}========= ESXi HOST EXPORTER - MENU =========${N}
-  1) Trang thai tat ca instance
-  2) Xem log 1 instance (Ctrl+C de thoat log)
-  3) Restart 1 instance
-  4) Restart tat ca instance
-  5) Kiem tra phien ban dang chay
-  6) Cap nhat ban moi tu file zip
-  7) Them vCenter / instance moi
-  8) Doi mat khau / cai lai 1 instance
-  9) Sua cau hinh (.env) 1 instance
- 10) Xem cau hinh InfluxDB
- 11) Go 1 instance
- 12) Cac lenh hay dung
- 13) Cap nhat ban moi tu GitHub (git pull)
-  0) Thoat
-EOF
-  read -r -p "Chon: " c
+  draw_menu
+  printf '%s' "$PADS"; read -r -p "Chon so: " c
+  echo
   case "$c" in
     1) status_all; pause ;;
     2) if pick; then trap ':' INT; journalctl -u "$SVC@$PICK" -n 50 -f; trap - INT; fi ;;  # Ctrl+C chi thoat log
     3) pick && systemctl restart "$SVC@$PICK" && echo "${G}Da restart $PICK${N}"; pause ;;
     4) for n in $(instances); do systemctl restart "$SVC@$n" && echo "${G}Da restart $n${N}"; done; pause ;;
-    5) for n in $(instances); do p=$(port_of "$n"); v=$(version_of_port "$p"); echo "  $n ($p): ${v:-${R}khong co build_info (ban cu hoac chua chay)${N}}"; done
-       echo "  Ban trong $APP: $(grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" | cut -d'"' -f2)"; pause ;;
+    5) printf "%-12s %-6s %s\n" INSTANCE PORT "PHIEN BAN DANG CHAY"
+       for n in $(instances); do p=$(port_of "$n"); v=$(version_of_port "$p")
+         printf "%-12s %-6s %s\n" "$n" "$p" "${v:-${R}CU / khong co build_info (chua cap nhat hoac chua chay)${N}}"; done
+       echo; echo "Ban trong $APP: ${B}$(installed_ver)${N}  (khac ban dang chay -> restart: muc 4)"; pause ;;
     6) update_from_zip; pause ;;
     7|8) D=$(find_src)
        [ -n "$D" ] || read -r -p "Thu muc co install.sh (goi zip da giai nen hoac <repo>/deploy): " D
