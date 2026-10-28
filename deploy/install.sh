@@ -52,8 +52,8 @@ if [ -z "${VSAN_PASS:-}" ]; then
   fi
 fi
 
-# Chay duoc tu 2 noi: goi zip (install.sh + app/ + vendor/) hoac repo git clone (deploy/install.sh, code o thu muc cha)
-if [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"; else FILES="$(cd "$SRC/.." && pwd)"; fi
+# Chay duoc tu 2 noi: goi zip (install.sh + app/ + vendor/) hoac repo git clone (deploy/install.sh, code o exporter/)
+if [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"; else FILES="$(cd "$SRC/../exporter" 2>/dev/null && pwd)"; fi
 [ -f "$FILES/esxi_host_exporter.py" ] || die "khong thay esxi_host_exporter.py (chay tu goi zip hoac repo git clone)"
 
 echo "-> Chep chuong trinh vao $APP"

@@ -1,0 +1,17 @@
+# Mau cau hinh scrape cho Prometheus.
+# Chep vao /etc/prometheus/scrape_configs/esxi-host-resource.yml (neu prometheus.yml dung scrape_config_files)
+# hoac dan phan "- job_name ..." vao muc scrape_configs cua prometheus.yml.
+# Thay <IP-server> bang IP may chay exporter; moi vCenter / instance 1 port, them nhan site/pool cho de doc.
+scrape_configs:
+  - job_name: 'esxi_host_resource'
+    scrape_interval: 30s
+    scrape_timeout: 25s
+    static_configs:
+      - targets: ['<IP-server>:9811']
+        labels: { site: 'FPT HCM', pool: 'POOL 18' }
+      - targets: ['<IP-server>:9812']
+        labels: { site: 'FPT HCM', pool: 'POOL 25' }
+      - targets: ['<IP-server>:9813']
+        labels: { site: 'FPT HCM', pool: 'POOL 6' }
+      - targets: ['<IP-server>:9814']
+        labels: { site: 'FPT HCM', pool: 'POOL CORE' }

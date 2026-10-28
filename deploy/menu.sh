@@ -77,10 +77,11 @@ update_from_git() {
   [ -d "$RP/.git" ] || { echo "${R}Chua clone: git clone https://github.com/fixnhanh-linux/$REPO_NAME.git${N}"; return; }
   echo "Ban dang cai : $(grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" | cut -d'"' -f2)"
   git -C "$RP" pull --ff-only || { echo "${R}git pull loi${N}"; return; }
-  echo "Ban tren git : ${B}$(grep -m1 '^VERSION' "$RP/esxi_host_exporter.py" | cut -d'"' -f2)${N}"
+  local E="$RP/exporter"
+  echo "Ban tren git : ${B}$(grep -m1 '^VERSION' "$E/esxi_host_exporter.py" | cut -d'"' -f2)${N}"
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   [ "$a" = y ] || return
-  install -m 644 "$RP/esxi_host_exporter.py" "$RP/vsan_disk_health.py" "$RP/esxi_dashboard.html" "$RP/dashboard_template.html" "$APP/"
+  install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$APP/"
   install -m 755 "$RP/deploy/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/deploy/uninstall.sh" "$APP/uninstall.sh"
   for n in $(instances); do systemctl restart "$SVC@$n"; done
   sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done

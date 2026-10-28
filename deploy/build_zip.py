@@ -23,16 +23,17 @@ STAMP = (2026, 10, 28, 0, 0, 0)
 ENTRIES = [
     ("deploy/install.sh", "install.sh"), ("deploy/uninstall.sh", "uninstall.sh"), ("deploy/menu.sh", "menu.sh"),
     ("deploy/esxi-host-exporter@.service", "esxi-host-exporter@.service"),
-    ("README.md", "README.md"), ("esxi_host_resource_grafana.json", "esxi_host_resource_grafana.json"),
-    ("alert-rules-esxi.yml", "alert-rules-esxi.yml"),
-    ("Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
-    ("esxi_host_exporter.py", "app/esxi_host_exporter.py"), ("vsan_disk_health.py", "app/vsan_disk_health.py"),
-    ("esxi_dashboard.html", "app/esxi_dashboard.html"), ("dashboard_template.html", "app/dashboard_template.html"),
+    ("README.md", "README.md"), ("grafana/esxi_host_resource_grafana.json", "esxi_host_resource_grafana.json"),
+    ("prometheus/alert-rules-esxi.yml", "alert-rules-esxi.yml"),
+    ("prometheus/scrape-esxi-host-resource.yml", "scrape-esxi-host-resource.yml"),
+    ("docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
+    ("exporter/esxi_host_exporter.py", "app/esxi_host_exporter.py"), ("exporter/vsan_disk_health.py", "app/vsan_disk_health.py"),
+    ("exporter/esxi_dashboard.html", "app/esxi_dashboard.html"), ("exporter/dashboard_template.html", "app/dashboard_template.html"),
 ]
 
 
 def main():
-    version = re.search(r'^VERSION = "([^"]+)"', open(os.path.join(PROJ, "esxi_host_exporter.py"),
+    version = re.search(r'^VERSION = "([^"]+)"', open(os.path.join(PROJ, "exporter", "esxi_host_exporter.py"),
                                                       encoding="utf-8").read(), re.M).group(1)
     files = [(os.path.join(PROJ, s), d) for s, d in ENTRIES]
     site = os.path.dirname(os.path.dirname(pyVmomi.__file__))

@@ -1,10 +1,66 @@
-# MONITOR RESOURCE HOST ESXi + vSAN Disk Health → Prometheus → Grafana
+# Monitor Resource Host ESXi + vSAN — Prometheus · Grafana · Cảnh báo
 
-Làm theo yêu cầu trong `MONITOR RESOURCE HOST ESXi.docx`.
+Exporter Python đọc vCenter (chỉ đọc) → xuất số liệu từng host ESXi, NIC, vmk, disk vSAN, cluster
+cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **alert rule** và tuỳ chọn đẩy lên **InfluxDB**.
 
-## Cài từ GitHub (git clone)
+## Sơ đồ
 
-Repo: **https://github.com/fixnhanh-linux/monitor-grafana-vcenter-full-details-prometheus**
+```mermaid
+flowchart LR
+    VC["vCenter<br/>vSphere API · vSAN Health · vSAN Performance"]
+
+    subgraph SRV["Server Linux (systemd)"]
+        EXP["esxi_host_exporter<br/>esxi-host-exporter@&lt;instance&gt;<br/>port 9811, 9812 ... (1 vCenter / 1 port)"]
+        MENU["sudo esxi-menu<br/>quản lý không cần nhớ lệnh"]
+    end
+
+    PROM[("Prometheus<br/>scrape 30s")]
+    GRAF["Grafana<br/>grafana/esxi_host_resource_grafana.json"]
+    AM["Alertmanager<br/>prometheus/alert-rules-esxi.yml"]
+    EL["Element / Matrix"]
+    WEB["Trình duyệt<br/>http://&lt;IP-server&gt;:9811/"]
+    INF[("InfluxDB<br/>tuỳ chọn")]
+
+    VC -- "HTTPS 443 · tài khoản Read-only · 60s/lần" --> EXP
+    EXP -- "/metrics" --> PROM
+    EXP -- "dashboard web" --> WEB
+    EXP -. "line protocol (INFLUX_URL)" .-> INF
+    PROM --> GRAF
+    PROM -- "alert rule" --> AM --> EL
+    MENU --- EXP
+```
+
+```mermaid
+flowchart TD
+    A{"Server có internet?"} -- "có" --> B["git clone repo<br/>sudo bash deploy/install.sh"]
+    A -- "không" --> C["python deploy/build_zip.py (máy có internet)<br/>chép .zip + .sha256 lên server<br/>sha256sum -c → unzip → sudo bash install.sh"]
+    B --> D["Thêm target vào Prometheus<br/>prometheus/scrape-esxi-host-resource.yml"]
+    C --> D
+    D --> E["Chép alert rule<br/>prometheus/alert-rules-esxi.yml"]
+    E --> F["Import Grafana<br/>grafana/esxi_host_resource_grafana.json"]
+    F --> G["Cập nhật về sau: sudo esxi-menu<br/>13 = git pull · 6 = từ file zip"]
+```
+
+## Cấu trúc thư mục — cần gì lấy nấy
+
+| Thư mục | Dùng khi | Nội dung |
+|---|---|---|
+| [`exporter/`](exporter/) | Chạy exporter (server hoặc thử trên máy) | `esxi_host_exporter.py` (chính), `vsan_disk_health.py`, `esxi_dashboard.html`, `dashboard_template.html` |
+| [`deploy/`](deploy/) | Cài / gỡ / quản lý trên Linux, đóng gói offline | `install.sh`, `uninstall.sh`, `menu.sh` (lệnh `esxi-menu`), `esxi-host-exporter@.service`, `build_zip.py` |
+| [`grafana/`](grafana/) | Import vào Grafana | `esxi_host_resource_grafana.json` |
+| [`prometheus/`](prometheus/) | Cấu hình Prometheus | `scrape-esxi-host-resource.yml` (mẫu scrape), `alert-rules-esxi.yml` (12 rule) |
+| [`docs/`](docs/) | Đọc / in / gửi | `Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx` (hướng dẫn A–Z) |
+
+## 1. Chuẩn bị
+
+- **vCenter**: tạo user (vd `monitor@vsphere.local`), cấp role **Read-only** ở cấp vCenter, tick *Propagate to children*.
+  Bật *vSAN Performance Service* trên cluster để có số liệu latency.
+- **Server Linux**: có systemd, Python ≥ 3.8, tới được vCenter cổng 443:
+  `curl -k -s -o /dev/null -w "%{http_code}\n" https://<IP-vCenter>/sdk/vsanServiceVersions.xml` → `200`.
+
+## 2. Cài exporter
+
+**Cách 1 — git clone (server có internet, tự tải `pyvmomi` bằng pip):**
 
 ```bash
 cd /root
@@ -13,299 +69,117 @@ cd monitor-grafana-vcenter-full-details-prometheus
 sudo bash deploy/install.sh
 ```
 
-- Cần internet trên server: `install.sh` tự tải thư viện `pyvmomi` bằng pip
-  (thiếu pip: `apt install python3-pip` hoặc `dnf install python3-pip`). Server không có internet → dùng gói zip bên dưới.
-- Script hỏi tên instance, IP vCenter, user, cluster, port, chu kỳ, mật khẩu (gõ ẩn) — giống cài từ zip.
-- Cài xong gõ `sudo esxi-menu` để quản lý.
+Thiếu pip: `apt install python3-pip` hoặc `dnf install python3-pip`.
 
-Cập nhật bản mới từ GitHub:
+**Cách 2 — gói zip (server không có internet, `pyvmomi` kèm sẵn):**
 
 ```bash
-sudo esxi-menu        # chon 13) Cap nhat ban moi tu GitHub (git pull)
+python deploy/build_zip.py          # tren may co Python + pyvmomi -> esxi-host-exporter-linux.zip + .sha256
+scp esxi-host-exporter-linux.zip esxi-host-exporter-linux.zip.sha256 root@<IP-server>:/home/
+# tren server:
+cd /home && sha256sum -c esxi-host-exporter-linux.zip.sha256      # phai la OK
+unzip -o esxi-host-exporter-linux.zip && cd esxi-host-exporter && sudo bash install.sh
 ```
 
-hoặc làm tay:
+`install.sh` hỏi: tên instance (vd `pool18`), IP vCenter, user, cluster (`-` = tất cả), port (9811), chu kỳ (60s),
+mật khẩu (gõ ẩn). Mỗi vCenter cài 1 instance với **tên và port khác nhau**.
 
-```bash
-cd /root/monitor-grafana-vcenter-full-details-prometheus && git pull
-sudo bash deploy/install.sh           # cung ten instance, Enter de giu mat khau cu
-```
+- Mật khẩu lưu ở `/etc/esxi-host-exporter/<instance>.env` (quyền `600`), chạy dưới user hệ thống `esxi-exporter`.
+- Sai mật khẩu → service dừng hẳn (không thử lại, tránh khoá tài khoản vCenter).
+- Dashboard web có sẵn: `http://<IP-server>:9811/`.
 
-Tạo gói zip cài offline (trên máy có Python + pyvmomi): `python deploy/build_zip.py`.
-
-## Cài nhanh trên Linux từ `esxi-host-exporter-linux.zip`
-
-Yêu cầu: Linux có systemd + Python ≥ 3.8 (Ubuntu 20.04+, Debian 11+, RHEL/Rocky 8+). **Không cần internet** — thư viện `pyvmomi` đã kèm trong gói.
-Máy cài phải tới được vCenter cổng 443.
-
-```bash
-scp esxi-host-exporter-linux.zip user@<IP-server>:/tmp/
-ssh user@<IP-server>
-cd /tmp && unzip -o esxi-host-exporter-linux.zip     # khong co unzip: python3 -m zipfile -e esxi-host-exporter-linux.zip .
-cd esxi-host-exporter
-sudo bash install.sh
-```
-
-Script hỏi: tên instance, IP vCenter, user, cluster (`-` = tất cả), port (9811), chu kỳ (60s), **mật khẩu (gõ ẩn)**.
-Cài xong in ra link `http://<ip>:9811/` (dashboard web) và `/metrics` (Prometheus).
-
-### Quên lệnh? Gõ `sudo esxi-menu`
+## 3. Quản lý — quên lệnh thì gõ `sudo esxi-menu`
 
 ```
-========= ESXi HOST EXPORTER - MENU =========
-  1) Trang thai tat ca instance          7) Them vCenter / instance moi
-  2) Xem log 1 instance                  8) Doi mat khau / cai lai 1 instance
-  3) Restart 1 instance                  9) Sua cau hinh (.env) 1 instance
-  4) Restart tat ca instance            10) Xem cau hinh InfluxDB (token da an)
-  5) Kiem tra phien ban dang chay       11) Go 1 instance
-  6) Cap nhat ban moi tu file zip       12) Cac lenh hay dung
-  0) Thoat
+ 1) Trang thai tat ca instance        8) Doi mat khau / cai lai 1 instance
+ 2) Xem log 1 instance                9) Sua cau hinh (.env) 1 instance
+ 3) Restart 1 instance               10) Xem cau hinh InfluxDB (token da an)
+ 4) Restart tat ca instance          11) Go 1 instance
+ 5) Kiem tra phien ban dang chay     12) Cac lenh hay dung
+ 6) Cap nhat ban moi tu file zip     13) Cap nhat ban moi tu GitHub (git pull)
+ 7) Them vCenter / instance moi       0) Thoat
 ```
 
-- Mục 1 hiện bảng: instance, port, service active/inactive, **phiên bản**, số host, số host lỗi, dòng log gần nhất.
-- Mục 6 tự làm đủ các bước cập nhật: `sha256sum -c` → giải nén → chép sang `/opt` → restart tất cả → in phiên bản mới.
-- Mục 8 cài lại instance với thông tin cũ, chỉ hỏi mật khẩu mới.
-- `install.sh` tự cài menu vào `/opt/esxi-host-exporter/menu.sh` và lệnh `/usr/local/bin/esxi-menu`.
-  Server đã cài bản cũ: chạy mục 6 không có sẵn → cài 1 lần bằng `sudo bash install.sh` (cùng tên instance, Enter giữ mật khẩu)
-  hoặc chép tay: `install -m 755 /home/esxi-host-exporter/menu.sh /opt/esxi-host-exporter/ && ln -sf /opt/esxi-host-exporter/menu.sh /usr/local/bin/esxi-menu`.
+Kiểm tra phiên bản đang chạy: `curl -s localhost:9811/metrics | grep build_info`.
 
-| Việc | Lệnh |
-|---|---|
-| Xem log | `journalctl -u esxi-host-exporter@pool18 -f` |
-| Thêm vCenter/cluster khác | `sudo bash install.sh` với tên instance + port khác |
-| Đổi mật khẩu / cập nhật code | `sudo bash install.sh` với **cùng** tên instance |
-| Sửa ngưỡng cảnh báo | `sudo nano /etc/esxi-host-exporter/pool18.env` → `sudo systemctl restart esxi-host-exporter@pool18` |
-| Gỡ | `sudo /opt/esxi-host-exporter/uninstall.sh` (thêm tên instance để gỡ 1 cái) |
+## 4. Prometheus
 
-- Chạy dưới user hệ thống `esxi-exporter` (không phải root); mật khẩu nằm ở `/etc/esxi-host-exporter/<tên>.env` quyền `600`.
-- **Sai mật khẩu → service dừng hẳn** (exit 3, systemd không thử lại) để không khóa tài khoản vCenter.
-- Lần lấy dữ liệu đầu với ~46 host mất 1–4 phút.
-
-Đã test cài thật trên Ubuntu 22.04 (systemd) với vCenter <IP-vCenter>: 46 host / 73 disk, sai mật khẩu dừng đúng, gỡ sạch.
-
-## Đẩy metric lên InfluxDB (tùy chọn, từ bản 2026.10.16-5)
-
-Sau mỗi vòng lấy dữ liệu, exporter gửi toàn bộ metric lên InfluxDB (song song với `/metrics` cho Prometheus).
-Mỗi metric → 1 measurement cùng tên (vd `esxi_host_cpu_usage_percent`), nhãn → tag (`cluster`, `host`, `nic`…),
-giá trị → field `value`, timestamp = lúc lấy dữ liệu (precision giây). ~4.000 dòng / lần cho 87 host.
-
-Bật bằng cách bỏ dấu `#` các dòng INFLUX trong `/etc/esxi-host-exporter/<instance>.env` rồi restart instance:
-
-```bash
-# InfluxDB 2.x
-INFLUX_URL='http://10.16.16.x:8086'
-INFLUX_ORG='fpt'
-INFLUX_BUCKET='vmware'
-INFLUX_TOKEN='<token co quyen write bucket>'
-# InfluxDB 1.x (thay cho 4 dong tren)
-INFLUX_URL='http://10.16.16.x:8086'
-INFLUX_DB='vmware'
-INFLUX_USER='...'        # bo trong neu khong bat xac thuc
-INFLUX_PASSWORD='...'
-```
-
-```bash
-systemctl restart esxi-host-exporter@pool18
-journalctl -u esxi-host-exporter@pool18 -f      # phai thay "InfluxDB: da gui ... dong"
-```
-
-Lỗi InfluxDB (sai token, mất kết nối…) chỉ ghi log `InfluxDB LOI`, không ảnh hưởng `/metrics` và dashboard web.
-Truy vấn mẫu (Flux): `from(bucket:"vmware") |> range(start:-1h) |> filter(fn:(r)=> r._measurement=="esxi_host_cpu_usage_percent" and r.cluster=="POOL17")`.
-
-**Cách khác không cần sửa exporter**: dùng Telegraf `[[inputs.prometheus]] urls = ["http://<IP-server>:9811/metrics"]`
-+ `[[outputs.influxdb_v2]]`.
-
-## A. Dashboard "MONITOR RESOURCE HOST ESXi" (exporter `esxi_host_exporter.py`)
-
-| File | Dùng để |
-|---|---|
-| `esxi_host_exporter.py` | Exporter tài nguyên host ESXi + vSAN (cần `vsan_disk_health.py` cùng thư mục) |
-| `esxi_host_resource_grafana.json` | Dashboard Grafana |
-| `alert-rules-esxi.yml` | Alert rule Prometheus theo bảng mapping cảnh báo |
-
-Chạy (mỗi vCenter 1 service, port riêng):
-
-```bash
-VSAN_PASS='...' python3 esxi_host_exporter.py <IP-vCenter> monitor@vsphere.local POOL18-XD 9811 60
-curl -s localhost:9811/metrics | grep esxi_host_status
-```
-
-`POOL18-XD` → thay bằng `-` để lấy mọi cluster của vCenter. Service systemd giống mục 1 bên dưới, chỉ đổi `ExecStart`:
-
-```ini
-ExecStart=/usr/bin/python3 /opt/vsan-disk-health/esxi_host_exporter.py <IP-vCenter> monitor@vsphere.local - 9811 60
-```
-
-Prometheus:
-
-```yaml
-  - job_name: 'esxi_host_resource_fpt_hcm'
-    scrape_interval: 30s
-    scrape_timeout: 20s
-    static_configs:
-      - targets: ['<IP-server>:9811']
-rule_files:
-  - /etc/prometheus/rules/alert-rules-esxi.yml
-```
-
-- **Dashboard web có sẵn, không cần Grafana**: mở `http://<máy chạy exporter>:9811/` (giao diện `esxi_dashboard.html`,
-  dữ liệu `/api/state`, tự cập nhật 30s, lịch sử biểu đồ giữ trong RAM ~2 giờ — mất khi restart exporter).
-- Mật khẩu: biến `VSAN_PASS`, hoặc dòng đầu file `.vsan_pass` cạnh script (đã có trong `.gitignore`), hoặc gõ khi chạy.
-- Nhịp lấy dữ liệu: CPU/RAM/NIC/vmk drop/vSAN latency/resync mỗi `interval` (60s, ~26s/vòng với 46 host);
-  vSAN disk health + số VM mỗi `ESXI_SLOW_INTERVAL` (mặc định 300s, ~35s/lần — vCenter cũng chỉ cập nhật health theo cache).
-- **vSAN latency** lấy từ vSAN Performance Service (`host-domclient`, mẫu 5 phút) — cùng số với biểu đồ vSAN trên vCenter.
-  Không dùng counter `datastore/disk` của host vì với NVMe chúng luôn = 0 (làm tròn theo ms).
-
-**Exporter này đã gồm luôn metric `vsan_disk_*`** → không cần chạy thêm exporter 9810 (mục B chỉ dùng khi muốn chạy riêng phần disk).
-
-### Trạng thái host (cột Status)
-
-| Status | Khi nào |
-|---|---|
-| **ERROR** | Host không `connected` · vmnic uplink DOWN · có disk vSAN không green |
-| **WARN** | Maintenance · CPU > 60% · RAM > 90% · write latency > 15ms · congestion > 60 · vmk vSAN drop > 0.1% |
-| **OK** | Còn lại |
-
-Ngưỡng đổi được bằng biến môi trường `ESXI_WARN_CPU`, `ESXI_WARN_RAM`, `ESXI_WARN_LATENCY_MS`, `ESXI_WARN_CONGESTION`, `ESXI_WARN_VMK_DROP_PCT`.
-Cột **Lý do** ghi rõ nguyên nhân, ví dụ `NIC down: vmnic1; Disk Unhealthy: eui.C (TRANSIENT_ERROR)`.
-
-### Dashboard Grafana — 1 file duy nhất `esxi_host_resource_grafana.json` (28 panel, 4 nhóm)
-
-Grafana → **Dashboards → New → Import** → upload file → chọn datasource Prometheus → chọn Cluster.
-
-- **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / vSAN resync (hiện `–` khi = 0) / độ mới dữ liệu.
-- **Bảng host**: Host · CPU% · RAM% · NIC `vmnic0 ▲ vmnic1 ▼` · DiskGroup vSAN · vSAN congestion · Write latency · VMs · Uptime · Status · Lý do.
-  Biến **Trạng thái** = bộ lọc *Tất cả / Cảnh báo + Lỗi / Lỗi*. Bấm header để sort, **bấm tên host** → mở phần chi tiết của host đó.
-- **Network**: bandwidth TX/RX từng vmnic (Mb/s, như MbTX/s của esxtop), **Packet Drop/Discard rate (%) của vmk vSAN** (tự nhận vmk gắn tag vSAN, không cần đoán vmk2), lịch sử link UP/DOWN.
-- **Chi tiết host**: CPU/RAM, latency, bảng từng disk vSAN (disk group, health, congestion, dung lượng), lịch sử trạng thái.
-- **vSAN Disk Health** (gộp từ dashboard disk cũ): Disks / Healthy / Unhealthy / host không có dữ liệu disk, bảng **Disk Unhealthy**
-  (host, disk, health, operational, metadata, lý do), lịch sử health disk theo host, top 10 congestion & dung lượng, trạng thái exporter.
-
-### Bảng mapping cảnh báo → rule
+1. Chép [`prometheus/scrape-esxi-host-resource.yml`](prometheus/scrape-esxi-host-resource.yml) vào
+   `/etc/prometheus/scrape_configs/` (hoặc dán vào `scrape_configs` của `prometheus.yml`), thay `<IP-server>`, port, nhãn `pool`.
+2. Chép [`prometheus/alert-rules-esxi.yml`](prometheus/alert-rules-esxi.yml) vào thư mục `rule_files`.
+3. `promtool check config /etc/prometheus/prometheus.yml && systemctl reload prometheus`
+   → Status → Targets: job `esxi_host_resource` **UP**.
 
 | Tình huống | Rule | Severity | for |
 |---|---|---|---|
-| vmnic Down | `EsxiVmnicDown` (`esxi_host_nic_up == 0`) | critical | 0s |
-| Disk lỗi | `VsanDiskError` (`vsan_disk_health > 0`) | error | 0s |
-| DiskGroup vSAN | `VsanDiskGroupUnhealthy` | unhealthy | 0s |
+| vmnic down | `EsxiVmnicDown` | critical | 0s |
+| Disk vSAN lỗi | `VsanDiskError` | error | 0s |
+| DiskGroup vSAN Unhealthy | `VsanDiskGroupUnhealthy` | unhealthy | 0s |
 | Host disconnected | `EsxiHostDisconnected` | critical | 30s |
 | vSAN resync > 0 | `VsanResyncInProgress` | warning | 2m |
-| CPU > 60% | `EsxiCpuHigh` | warning | 5m |
-| RAM > 90% | `EsxiRamHigh` | warning | 5m |
-| Write latency > 15ms | `VsanWriteLatencyHigh` | warning | 10m |
-| vSAN congestion | `VsanCongestion` (> 60) | warning | 30s |
-| *(thêm)* vmk vSAN drop | `VsanVmkPacketDrop` (> 0.1%) | warning | 5m |
+| CPU > 60% / RAM > 90% | `EsxiCpuHigh` / `EsxiRamHigh` | warning | 5m |
+| vSAN write latency > 15ms | `VsanWriteLatencyHigh` | warning | 10m |
+| vSAN congestion > 60 | `VsanCongestion` | warning | 30s |
+| Drop vmk vSAN > 0,1% | `VsanVmkPacketDrop` | warning | 5m |
+| Exporter mất dữ liệu | `EsxiExporterStale` / `EsxiExporterDown` | warning | 15m / 2m |
 
-Gửi sang **Element**: route theo `severity` trong Alertmanager tới receiver Matrix/Element đang dùng.
-Delay **0s / 5s** thực tế ≈ 1–2 phút (exporter lấy dữ liệu 60s/lần + scrape + evaluation). Cần gần tức thì cho vmnic down / disk lỗi → bật thêm **alarm có sẵn của vCenter** (*Network uplink redundancy lost*, *vSAN disk health*) gửi SNMP trap/webhook.
+Gửi sang Element: route `alertname=~"Esxi.*|Vsan.*"` trong Alertmanager tới receiver Element đang dùng.
 
-> ⚠️ `huong_dan_vsan.md` (exporter cũ) đang ghi **mật khẩu vCenter dạng chữ** trong code. Nên đổi mật khẩu đó và chuyển sang đọc từ file env như hướng dẫn ở đây.
+## 5. Grafana
 
----
+Dashboards → New → Import → upload [`grafana/esxi_host_resource_grafana.json`](grafana/esxi_host_resource_grafana.json)
+→ chọn Prometheus → chọn Cluster. Đã có bản cũ thì chọn **Overwrite**.
 
-## B. vSAN Disk Health
+- **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / vSAN resync / độ mới dữ liệu.
+- **Bảng host**: CPU% · RAM% · **NIC UP (xanh) / NIC DOWN (đỏ)** · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Lý do.
+- **Network**: bandwidth vmnic top 10, drop/discard vmk vSAN, vmnic DOWN.
+- **Chi tiết host** và **vSAN Disk Health**: từng disk, lịch sử trạng thái, exporter theo pool.
 
-Giám sát **Health của từng disk vSAN** giống cột *Health* ở vCenter → Cluster → Configure → vSAN → Disk Management.
-Dữ liệu lấy từ **vSAN Health Service của vCenter** (API `VsanQueryVcClusterHealthSummary`), chỉ đọc.
+**Status host**: ERROR khi host mất kết nối · vmnic ≥ 10Gb down · có disk vSAN không green;
+WARN khi maintenance · CPU > 60% · RAM > 90% · write latency > 15ms · congestion > 60 · drop vmk vSAN > 0,1%.
+Đổi ngưỡng trong file `.env`: `ESXI_WARN_CPU`, `ESXI_WARN_RAM`, `ESXI_WARN_LATENCY_MS`, `ESXI_WARN_CONGESTION`,
+`ESXI_WARN_VMK_DROP_PCT`, `ESXI_NIC_MIN_MBPS` (mặc định chỉ theo dõi vmnic ≥ 10000 Mb/s).
 
-| File | Dùng để |
+## 6. InfluxDB (tuỳ chọn)
+
+Bỏ dấu `#` các dòng sau trong `/etc/esxi-host-exporter/<instance>.env` (hoặc menu mục 9), restart instance:
+
+```bash
+INFLUX_URL='http://<IP-influx>:8086'
+INFLUX_ORG='fpt'                 # InfluxDB 2.x
+INFLUX_BUCKET='vmware'
+INFLUX_TOKEN='<token>'
+# InfluxDB 1.x: INFLUX_URL + INFLUX_DB='vmware' (+ INFLUX_USER, INFLUX_PASSWORD)
+```
+
+Mỗi metric → measurement cùng tên, nhãn → tag, giá trị → field `value`. Log báo `InfluxDB: da gui ... dong`.
+Không muốn sửa exporter: dùng Telegraf `[[inputs.prometheus]]` đọc `/metrics` rồi `[[outputs.influxdb_v2]]`.
+
+## 7. Metric chính
+
+| Nhóm | Metric (nhãn) |
 |---|---|
-| `vsan_disk_health.py` | Script lấy dữ liệu: in JSON, xuất dashboard HTML, hoặc chạy **Prometheus exporter** |
-| `dashboard_template.html` | Giao diện dashboard HTML (dùng khi xuất `.html`) |
+| Host | `esxi_host_status` (0 OK/1 WARN/2 ERROR), `esxi_host_info` (nics_up, nics_down, reason), `esxi_host_cpu_usage_percent`, `esxi_host_mem_usage_percent`, `esxi_host_uptime_seconds`, `esxi_host_vms_running`, `esxi_host_connected`, `esxi_host_maintenance` |
+| NIC (`nic`) | `esxi_host_nic_up`, `esxi_host_nic_speed_mbps`, `esxi_host_nic_transmit_mbps`, `esxi_host_nic_receive_mbps` |
+| vmk (`vmk`, `vsan`, `direction`) | `esxi_host_vmk_drop_percent`, `esxi_host_vmk_dropped_packets` |
+| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion` |
+| Cluster | `esxi_cluster_status`, `esxi_cluster_vsan_health`, `esxi_cluster_drs_mode`, `esxi_cluster_hosts`, `esxi_cluster_vms_total`, `esxi_cluster_cpu_total_hz`, `esxi_cluster_mem_total_bytes`, `esxi_cluster_vsan_capacity_bytes`, `esxi_vsan_resync_bytes` |
+| Disk (`disk`) | `vsan_disk_health`, `vsan_disk_info` (reason), `vsan_disk_congestion_value`, `vsan_disk_used_ratio` |
+| Exporter | `esxi_exporter_build_info` (version), `vsan_disk_exporter_up`, `vsan_disk_exporter_last_success_timestamp_seconds` |
 
-## 1. Cài exporter trên máy Linux (vd. <IP-server> — cùng máy với các exporter vSAN đang chạy)
+Health: `0=green, 1=yellow, 2=red, 3=unknown`.
 
-```bash
-sudo mkdir -p /opt/vsan-disk-health
-sudo cp vsan_disk_health.py dashboard_template.html /opt/vsan-disk-health/
-sudo pip3 install "pyvmomi>=8.0.2"     # ban co san vSAN Health API
-```
-
-Tạo file chứa mật khẩu (chỉ root đọc được):
-
-```bash
-sudo tee /etc/vsan-disk-health.env >/dev/null <<'EOF'
-VSAN_PASS='MAT_KHAU_VCENTER'
-EOF
-sudo chmod 600 /etc/vsan-disk-health.env
-```
-
-Tạo service systemd `/etc/systemd/system/vsan-disk-health.service`:
-
-```ini
-[Unit]
-Description=vSAN Disk Health Prometheus Exporter (POOL18-XD)
-After=network-online.target
-
-[Service]
-EnvironmentFile=/etc/vsan-disk-health.env
-ExecStart=/usr/bin/python3 /opt/vsan-disk-health/vsan_disk_health.py <IP-vCenter> monitor@vsphere.local POOL18-XD :9810 120
-Restart=always
-RestartSec=30
-User=nobody
-
-[Install]
-WantedBy=multi-user.target
-```
+## 8. Chạy thử trên máy (không cài service)
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now vsan-disk-health
-journalctl -u vsan-disk-health -f        # phai thay dong "OK: ... dong"
-curl -s localhost:9810/metrics | grep vsan_disk_health | head
+pip install pyvmomi
+cd exporter
+VSAN_PASS='...' python3 esxi_host_exporter.py <IP-vCenter> monitor@vsphere.local - 9811 60
+# -> http://localhost:9811/ (dashboard web), http://localhost:9811/metrics
+python3 vsan_disk_health.py <IP-vCenter> monitor@vsphere.local <cluster> result.json   # chi lay health disk ra JSON
 ```
 
-- `:9810` là port exporter (tránh 8000–8004 đang dùng). `120` = lấy dữ liệu từ vCenter mỗi 120 giây.
-- Bỏ `POOL18-XD` để lấy **tất cả** cluster vSAN của vCenter đó. Mỗi vCenter khác chạy thêm 1 service với port khác.
-- Sai mật khẩu → exporter **dừng hẳn** (không thử lại, tránh khóa tài khoản); `Restart=always` sẽ chạy lại sau 30s — sửa file env rồi `systemctl restart`.
-- Mặc định đọc **cache** của vSAN Health (nhẹ cho vCenter, cache được vCenter làm mới định kỳ). Thêm `VSAN_FRESH=1` vào file env để bắt chạy lại health check mỗi lần (nặng hơn, nên tăng interval lên ≥ 300).
+## Bảo mật
 
-## 2. Thêm vào Prometheus
-
-```yaml
-  - job_name: 'vsan_disk_health'
-    scrape_interval: 60s
-    scrape_timeout: 10s
-    static_configs:
-      - targets: ['<IP-server>:9810']
-```
-
-Reload Prometheus, kiểm tra target `vsan_disk_health` ở trạng thái **UP**.
-
-## 3. Dashboard Grafana
-
-Phần vSAN Disk Health đã **gộp vào** dashboard `esxi_host_resource_grafana.json` (mục A) — chỉ import 1 file đó.
-
-## 4. Metric
-
-Giá trị health: **0 = green, 1 = yellow, 2 = red, 3 = unknown**. vCenter hiển thị mọi giá trị khác 0 là *Unhealthy*.
-
-| Metric | Nhãn |
-|---|---|
-| `vsan_disk_health` (+ `_op_health`, `_metadata_health`, `_capacity_health`, `_congestion_health`) | cluster, host, disk |
-| `vsan_disk_info` = 1 | + uuid, diskgroup, health, op_health, metadata_health, reason |
-| `vsan_disk_congestion_value` (0–255), `vsan_disk_used_ratio` (0–1) | cluster, host, disk |
-| `vsan_host_disk_unreported` = 1 | cluster, host, reason |
-| `vsan_disk_exporter_up`, `_last_success_timestamp_seconds`, `_collect_duration_seconds` | — |
-
-Ví dụ alert rule (Prometheus):
-
-```yaml
-- alert: VsanDiskUnhealthy
-  expr: vsan_disk_health > 0
-  for: 5m
-  labels: { severity: error }
-  annotations:
-    summary: "vSAN disk {{ $labels.disk }} tren {{ $labels.host }} Unhealthy"
-- alert: VsanDiskExporterStale
-  expr: time() - vsan_disk_exporter_last_success_timestamp_seconds > 1800
-  labels: { severity: warning }
-```
-
-## 5. Chạy tay (không cần Prometheus)
-
-```bash
-python vsan_disk_health.py <IP-vCenter> monitor@vsphere.local POOL18-XD                 # in JSON
-python vsan_disk_health.py <IP-vCenter> monitor@vsphere.local POOL18-XD result.json     # ghi file JSON
-python vsan_disk_health.py <IP-vCenter> monitor@vsphere.local POOL18-XD dash.html 300   # dashboard HTML tu cap nhat
-```
+- Không commit mật khẩu: `.gitignore` đã chặn `.vsan_pass`, `*.env`, gói `.zip`.
+- Tài khoản vCenter chỉ cần Read-only. Mật khẩu đã lộ thì đổi ngay rồi chạy lại `install.sh` (cùng tên instance).
