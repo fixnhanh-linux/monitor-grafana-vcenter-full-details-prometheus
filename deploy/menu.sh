@@ -334,6 +334,12 @@ while true; do
     7|8) D=$(find_src)
        [ -n "$D" ] || read -r -p "Thu muc co install.sh (goi zip da giai nen hoac <repo>/deploy): " D
        if [ -f "$D/install.sh" ]; then
+         echo "Bo cai dung: ${B}$D${N}  (phien ban $(cat "$D/VERSION" 2>/dev/null || grep -m1 '^VERSION' "$D/../exporter/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2))"
+         if [ -d "$D/vendor" ] && [ ! -d "$D/vendor-py38" ] && ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+           echo "${R}Goi zip cu: chi co pyVmomi cho Python >= 3.10, server dang $(python3 -V 2>&1).${N}"
+           echo "${Y}Chep goi zip moi (co vendor-py38/) vao /home roi: cd /home && unzip -o esxi-host-exporter-linux.zip${N}"
+           pause; continue
+         fi
          if [ "$c" = 8 ]; then pick && (cd "$D" && NAME="$PICK" VC="$(val_of "$PICK" VC)" VC_USER="$(val_of "$PICK" VC_USER)" \
               CLUSTER="$(val_of "$PICK" CLUSTER)" PORT="$(port_of "$PICK")" INTERVAL="$(val_of "$PICK" INTERVAL)" bash install.sh)
          else (cd "$D" && bash install.sh); fi
