@@ -381,45 +381,82 @@ W=$'\e[1m'; [ -t 1 ] || W=
 rep() { local s; printf -v s '%*s' "$2" ''; printf '%s' "${s// /$1}"; }
 setpad() { local w; w=$(stty size </dev/tty 2>/dev/null | cut -d" " -f2); [[ $w =~ ^[0-9]+$ ]] || w=${COLUMNS:-80}; w=$(( (w - BW - 2) / 2 )); [ $w -lt 0 ] && w=0; printf -v PADS '%*s' $w ''; }
 bline() { printf '%s%s%s%s%s%s\n' "$PADS" "$B" "$1" "$(rep "$2" $BW)" "$3" "$N"; }
+M=$'\e[35m'; BL=$'\e[94m'; D=$'\e[2m'; RV=$'\e[7m'; [ -t 1 ] || { M=; BL=; D=; RV=; }
 bcenter() {  # bcenter "chu khong dau" [mau]
   local t="${1:0:BW}" l r; l=$(( (BW - ${#t}) / 2 )); r=$(( BW - ${#t} - l ))
   printf '%s%s║%s%*s%s%s%s%*s%s║%s\n' "$PADS" "$B" "$N" $l '' "${2:-}" "$t" "$N" $r '' "$B" "$N"
 }
-brow() {     # brow "cot trai" "cot phai"; bat dau bang # = tieu de nhom
-  local l="$1" r="$2" lc="" rc="" h=$(( BW / 2 - 1 ))
-  [[ $l == '#'* ]] && { l=${l#\#}; lc=$Y; }; [[ $r == '#'* ]] && { r=${r#\#}; rc=$Y; }
-  printf '%s%s║%s  %s%-*s%s%s%-*s%s%s║%s\n' "$PADS" "$B" "$N" "$lc" $h "$l" "$N" "$rc" $((BW - h - 2)) "$r" "$N" "$B" "$N"
+bfree() {    # bfree "chu co mau" [do dai hien thi]: 1 dong trong khung, can trai
+  set -- "$1" "${2:-$(sed 's/\x1b\[[0-9;]*m//g' <<<"$1" | wc -m | awk '{print $1-1}')}"
+  printf '%s%s║%s  %s%*s%s║%s\n' "$PADS" "$B" "$N" "$1" $(( BW - 2 - $2 )) '' "$B" "$N"
+}
+cell() {     # cell <spec> <rong> -> CELL; spec: "H|mau|TIEU DE" | "I|mau|so|chu" | ""
+  local IFS='|' k col a t plain; read -r k col a t <<<"$1"
+  case "$k" in
+    H) plain=" $a "; CELL="${!col}${RV}${W}${plain}${N}" ;;
+    I) printf -v plain '%3s) %s' "$a" "$t"; CELL="${!col}${W}$(printf '%3s)' "$a")${N} $t" ;;
+    *) plain=""; CELL="" ;;
+  esac
+  CELL+=$(printf '%*s' $(( $2 - ${#plain} )) '')
+}
+brow() {     # brow <spec trai> <spec phai>
+  local h=$(( BW / 2 - 1 )) L
+  cell "$1" $h; L=$CELL; cell "$2" $(( BW - h - 2 ))
+  printf '%s%s║%s  %s%s%s║%s\n' "$PADS" "$B" "$N" "$L" "$CELL" "$B" "$N"
 }
 draw_menu() {
   setpad
-  local tot=0 act=0 n ac
-  for n in $(instances); do tot=$((tot+1)); [ "$(systemctl is-active "$SVC@$n" 2>/dev/null)" = active ] && act=$((act+1)); done
-  ac=$G; [ $act -lt $tot ] && ac=$R
+  local tot=0 act=0 n p st ac line plain item
+  local -a ok_list
+  for n in $(instances); do
+    tot=$((tot+1)); st=$(systemctl is-active "$SVC@$n" 2>/dev/null)
+    [ "$st" = active ] && act=$((act+1))
+    ok_list+=("$n|$(port_of "$n")|$st")
+  done
+  ac=$G; [ $act -lt $tot ] && ac=$R; [ $tot -eq 0 ] && ac=$Y
   echo
   bline "╔" "═" "╗"
-  bcenter "ESXi HOST EXPORTER  -  MENU QUAN LY" "$W"
-  bcenter "$(hostname) ($(my_ip))   |   $(date '+%d/%m/%Y %H:%M')"
-  bcenter "Ban cai: $(installed_ver)   |   Instance: $act/$tot dang chay" "$ac"
+  bcenter "E S X i   H O S T   E X P O R T E R" "$W$Y"
+  bcenter "Menu quan ly  -  vCenter / vSAN monitoring" "$D"
+  bline "╟" "─" "╢"
+  bcenter "May: $(hostname) ($(my_ip))   |   $(date '+%d/%m/%Y %H:%M')" "$BL"
+  bcenter "Ban cai: $(installed_ver)   |   Instance dang chay: $act/$tot" "$ac"
+  # dai trang thai tung instance: ten:port UP (xanh) / DOWN (do), tu xuong dong
+  if [ $tot -gt 0 ]; then
+    line=""; plain=""
+    for item in "${ok_list[@]}"; do
+      IFS='|' read -r n p st <<<"$item"
+      local tag="UP" col=$G; [ "$st" = active ] || { tag="DOWN"; col=$R; }
+      local seg="$n:$p $tag"
+      if [ $(( ${#plain} + ${#seg} + 3 )) -gt $(( BW - 4 )) ]; then bfree "$line" ${#plain}; line=""; plain=""; fi
+      line+="${col}●${N} ${W}$n${N}${D}:$p${N} ${col}$tag${N}   "; plain+="* $seg   "
+    done
+    bfree "$line" ${#plain}
+  else
+    bcenter "Chua co instance nao -> chon 7 de them vCenter" "$Y"
+  fi
   bline "╠" "═" "╣"
-  brow "#XEM TRANG THAI"           "#CAP NHAT PHIEN BAN"
-  brow " 1) Trang thai chi tiet"   " 6) Tu file zip (+ sha256)"
-  brow " 2) Xem log 1 instance"    "13) Tu GitHub (git pull)"
-  brow " 5) Kiem tra phien ban"    ""
-  brow "10) Cau hinh InfluxDB"     "#CAI DAT / CAU HINH"
-  brow "12) Cac lenh hay dung"     " 7) Them vCenter / instance"
-  brow ""                          " 8) Doi mat khau / cai lai"
-  brow "#DIEU KHIEN"               " 9) Sua cau hinh .env"
-  brow " 3) Restart 1 instance"    "11) Go 1 instance"
-  brow " 4) Restart tat ca"        "14) Cau hinh Prometheus"
+  brow "H|G|XEM TRANG THAI"            "H|BL|CAI DAT / CAU HINH"
+  brow "I|G|1|Trang thai chi tiet"     "I|BL|7|Them vCenter / instance"
+  brow "I|G|2|Xem log 1 instance"      "I|BL|8|Doi mat khau / cai lai"
+  brow "I|G|5|Kiem tra phien ban"      "I|BL|9|Sua cau hinh .env"
+  brow ""                              "I|BL|11|Go 1 instance"
+  brow "H|Y|DIEU KHIEN"                ""
+  brow "I|Y|3|Restart 1 instance"      "H|M|CAP NHAT PHIEN BAN"
+  brow "I|Y|4|Restart tat ca"          "I|M|6|Tu file zip (+ sha256)"
+  brow ""                              "I|M|13|Tu GitHub (git pull)"
+  brow "H|B|TICH HOP"                  ""
+  brow "I|B|14|Cau hinh Prometheus"    "H|D|TRO GIUP"
+  brow "I|B|10|Cau hinh InfluxDB"      "I|D|12|Cac lenh hay dung"
   bline "╠" "═" "╣"
-  bcenter "0) Thoat         (Ctrl+C khi xem log = quay lai menu)"
+  bfree "${R}${W}  0)${N} Thoat        ${D}Ctrl+C khi xem log = quay lai menu${N}"
   bline "╚" "═" "╝"
 }
 
 while true; do
   clear 2>/dev/null
   draw_menu
-  printf '%s' "$PADS"; read -r -p "Chon so: " c
+  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-14):${N} " c
   echo
   case "$c" in
     1) status_all; pause ;;
