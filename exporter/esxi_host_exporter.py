@@ -252,10 +252,19 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
         try:
             obj_sys = vsan_mo(si, vc, ctx, vim.cluster.VsanObjectSystem, "vsan-cluster-object-system")
             for c in vsan_cl:
-                r = obj_sys.QuerySyncingVsanObjectsSummary(cluster=c)
-                resync[c.name] = (r.totalObjectsToSync or 0, r.totalBytesToSync or 0, r.totalRecoveryETA or 0)
+                try:
+                    r = obj_sys.QuerySyncingVsanObjectsSummary(cluster=c)
+                    resync[c.name] = (r.totalObjectsToSync or 0, r.totalBytesToSync or 0, r.totalRecoveryETA or 0)
+                except vmodl.fault.MethodNotFound:
+                    if not cache.get("resync_warned"):  # vSAN doi cu (truoc 6.7U1): khong co API resync -> bao 1 lan
+                        print("Resync: vCenter khong ho tro API QuerySyncingVsanObjectsSummary (vSAN doi cu) - bo qua.", flush=True)
+                        cache["resync_warned"] = True
+                except Exception as e:
+                    print("Khong lay duoc resync cluster %s: %s" % (c.name, getattr(e, "msg", None) or e), flush=True)
         except Exception as e:
-            print("Khong lay duoc resync: %s" % (getattr(e, "msg", None) or e), flush=True)
+            if not cache.get("resync_warned"):
+                print("Khong lay duoc resync: %s" % (getattr(e, "msg", None) or e), flush=True)
+                cache["resync_warned"] = True
 
         out = []
         for o, p in hosts:
