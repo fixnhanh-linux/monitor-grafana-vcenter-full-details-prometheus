@@ -623,7 +623,7 @@
             "uid": "${datasource}"
           },
           "refId": "I",
-          "expr": "max by (cluster, host) (esxi_host_uptime_seconds{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "expr": "(max by (cluster, host) (esxi_host_uptime_seconds{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))) / 86400",
           "legendFormat": "",
           "format": "table",
           "instant": true,
@@ -1006,7 +1006,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "s"
+                "value": "suffix: ngày"
               },
               {
                 "id": "decimals",
