@@ -358,6 +358,22 @@ if not rows: print("  chua thay (doi 30s roi xem lai: Status -> Targets)")'
   fi
 }
 
+discover_clusters() {   # phat hien tat ca cluster trong vCenter cua 1 instance, danh dau cai chua giam sat
+  pick || return
+  local vc user cl pass
+  vc=$(val_of "$PICK" VC); user=$(val_of "$PICK" VC_USER); cl=$(val_of "$PICK" CLUSTER); pass=$(val_of "$PICK" VSAN_PASS)
+  echo "${B}Phat hien cluster trong vCenter $vc  (instance $PICK)${N}"
+  if [ "$cl" = "-" ] || [ -z "$cl" ]; then echo "Instance nay giam sat: ${G}TAT CA cluster${N}"
+  else echo "Instance nay giam sat: chi cluster ${Y}$cl${N}"; fi
+  echo
+  VSAN_PASS="$pass" PYTHONPATH="$APP/vendor" python3 "$APP/esxi_host_exporter.py" --discover "$vc" "$user" \
+    || { echo "${R}Loi ket noi vCenter (sai mat khau / mang / quyen).${N}"; return; }
+  if [ "$cl" != "-" ] && [ -n "$cl" ]; then
+    echo; echo "${Y}Instance chi giam sat '$cl' - cac cluster khac o tren CHUA duoc giam sat.${N}"
+    echo "Muon giam sat tat ca: menu 9 sua CLUSTER thanh '-'; hoac menu 7 them instance cho cluster khac."
+  fi
+}
+
 cheatsheet() {
 cat <<EOF
 ${B}Lenh hay dung (thay pool18 bang ten instance)${N}
@@ -450,7 +466,7 @@ draw_menu() {
   brow "I|G|1|Trang thai chi tiet"     "I|BL|7|Them vCenter / instance"
   brow "I|G|2|Xem log 1 instance"      "I|BL|8|Doi mat khau / cai lai"
   brow "I|G|5|Kiem tra phien ban"      "I|BL|9|Sua cau hinh .env"
-  brow ""                              "I|BL|11|Go 1 instance"
+  brow "I|G|15|Phat hien cluster"      "I|BL|11|Go 1 instance"
   brow "H|Y|DIEU KHIEN"                ""
   brow "I|Y|3|Restart 1 instance"      "H|M|CAP NHAT PHIEN BAN"
   brow "I|Y|4|Restart tat ca"          "I|M|6|Tu file zip (+ sha256)"
@@ -468,7 +484,7 @@ draw_menu() {
 while true; do
   clear 2>/dev/null
   draw_menu
-  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-14):${N} " c
+  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-15):${N} " c
   echo
   case "$c" in
     1) status_all; pause ;;
@@ -501,6 +517,7 @@ while true; do
     12) cheatsheet; pause ;;
     13) update_from_git; pause ;;
     14) prom_config; pause ;;
+    15) discover_clusters; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac

@@ -567,7 +567,45 @@ def record_history(history, hosts, ts):
         del q[:-HISTORY_LEN]
 
 
+def discover(vc, user):
+    """Ket noi vCenter, liet ke TAT CA cluster: so host, host ket noi, co vSAN, DRS. De phat hien cluster chua giam sat."""
+    pwd = vdh.read_password()
+    ctx = ssl._create_unverified_context()
+    si = SmartConnect(host=vc, user=user, pwd=pwd, sslContext=ctx)
+    try:
+        cls = retrieve(si, vim.ClusterComputeResource, ["name", "configurationEx"])
+        hosts = retrieve(si, vim.HostSystem, ["parent", "runtime.connectionState"])
+        cnt, conn = {}, {}
+        for _, p in hosts:
+            pid = p["parent"]._moId
+            cnt[pid] = cnt.get(pid, 0) + 1
+            if p["runtime.connectionState"] == "connected":
+                conn[pid] = conn.get(pid, 0) + 1
+        rows = []
+        for o, p in cls:
+            cfg = p.get("configurationEx")
+            vsan = getattr(getattr(cfg, "vsanConfigInfo", None), "enabled", False)
+            drsc = getattr(cfg, "drsConfig", None)
+            drs = getattr(getattr(drsc, "defaultVmBehavior", None), "name", None) if getattr(drsc, "enabled", False) else "tat"
+            rows.append((p["name"], cnt.get(o._moId, 0), conn.get(o._moId, 0), "co" if vsan else "-", drs or "-"))
+        print("Tim thay %d cluster trong vCenter %s:" % (len(rows), vc), flush=True)
+        print("%-30s %5s %5s  %-5s  %s" % ("CLUSTER", "HOST", "CONN", "vSAN", "DRS"), flush=True)
+        print("-" * 60, flush=True)
+        for n, h, c, v, d in sorted(rows):
+            print("%-30s %5d %5d  %-5s  %s" % (n, h, c, v, d), flush=True)
+    finally:
+        try:
+            Disconnect(si)
+        except Exception:
+            pass
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--discover":
+        if len(sys.argv) < 4:
+            sys.exit("Dung: esxi_host_exporter.py --discover <vcenter> <user>")
+        discover(sys.argv[2].replace("https://", "").split("/")[0], sys.argv[3])
+        return
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     vc = sys.argv[1].replace("https://", "").split("/")[0]
