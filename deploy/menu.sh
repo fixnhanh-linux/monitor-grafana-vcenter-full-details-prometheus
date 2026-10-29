@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# ESXi Host Exporter - Menu quan ly.  (C) 2026 FIX NHANH.
 # Menu quan ly ESXi host exporter - go "esxi-menu" (can root) neu quen lenh.
 APP=/opt/esxi-host-exporter
 CONF=/etc/esxi-host-exporter
@@ -417,7 +418,8 @@ draw_menu() {
   echo
   bline "╔" "═" "╗"
   bcenter "E S X i   H O S T   E X P O R T E R" "$W$Y"
-  bcenter "Menu quan ly  -  vCenter / vSAN monitoring" "$D"
+  bcenter "F I X   N H A N H" "$W$M"
+  bcenter "Giam sat tai nguyen vCenter / vSAN" "$D"
   bline "╟" "─" "╢"
   bcenter "May: $(hostname) ($(my_ip))   |   $(date '+%d/%m/%Y %H:%M')" "$BL"
   bcenter "Ban cai: $(installed_ver)   |   Instance dang chay: $act/$tot" "$ac"
@@ -450,6 +452,8 @@ draw_menu() {
   brow "I|B|10|Cau hinh InfluxDB"      "I|D|12|Cac lenh hay dung"
   bline "╠" "═" "╣"
   bfree "${R}${W}  0)${N} Thoat        ${D}Ctrl+C khi xem log = quay lai menu${N}"
+  bline "╟" "─" "╢"
+  bcenter "Ban quyen (C) 2026 FIX NHANH  -  All rights reserved" "$D$Y"
   bline "╚" "═" "╝"
 }
 
