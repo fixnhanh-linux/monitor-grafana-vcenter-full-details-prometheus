@@ -243,6 +243,9 @@ update_from_git() {
   [ "$a" = y ] || return
   install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$APP/"
   install -m 755 "$RP/deploy/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/deploy/uninstall.sh" "$APP/uninstall.sh"
+  rm -f "$APP/.update-available"                 # vua cap nhat -> xoa co bao
+  [ -f "$RP/deploy/setup-autocheck.sh" ] && [ -f /etc/systemd/system/esxi-update-check.timer ] \
+    && install -m 755 "$RP/deploy/esxi-update-check.sh" "$APP/esxi-update-check.sh" 2>/dev/null  # cap nhat script check neu da bat
   for n in $(instances); do systemctl restart "$SVC@$n"; done
   sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done
 }
@@ -436,6 +439,11 @@ draw_menu() {
     bfree "$line" ${#plain}
   else
     bcenter "Chua co instance nao -> chon 7 de them vCenter" "$Y"
+  fi
+  if [ -s "$APP/.update-available" ]; then   # timer esxi-update-check bao co ban moi tren GitHub
+    bline "+" "-" "+"
+    bcenter ">> CO BAN MOI tren GitHub - chon 13 de cap nhat <<" "$W$Y"
+    bcenter "($(cat "$APP/.update-available"))" "$D$Y"
   fi
   bline "+" "=" "+"
   brow "H|G|XEM TRANG THAI"            "H|BL|CAI DAT / CAU HINH"

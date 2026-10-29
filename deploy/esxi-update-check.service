@@ -1,0 +1,8 @@
+[Unit]
+Description=ESXi exporter - kiem tra ban moi tren GitHub (chi bao, khong tu cai)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/esxi-host-exporter/esxi-update-check.sh

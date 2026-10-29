@@ -29,6 +29,8 @@ PY38_CACHE = os.path.join(PROJ, ".build", "pyvmomi-8.0.3.0.1")
 ENTRIES = [
     ("deploy/install.sh", "install.sh"), ("deploy/uninstall.sh", "uninstall.sh"), ("deploy/menu.sh", "menu.sh"),
     ("deploy/esxi-host-exporter@.service", "esxi-host-exporter@.service"),
+    ("deploy/setup-autocheck.sh", "setup-autocheck.sh"), ("deploy/esxi-update-check.sh", "esxi-update-check.sh"),
+    ("deploy/esxi-update-check.service", "esxi-update-check.service"), ("deploy/esxi-update-check.timer", "esxi-update-check.timer"),
     ("README.md", "README.md"), ("grafana/esxi_host_resource_grafana.json", "esxi_host_resource_grafana.json"),
     ("prometheus/alert-rules-esxi.yml", "alert-rules-esxi.yml"),
     ("prometheus/scrape-esxi-host-resource.yml", "scrape-esxi-host-resource.yml"),
