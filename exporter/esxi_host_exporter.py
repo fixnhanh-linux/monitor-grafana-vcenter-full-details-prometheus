@@ -221,6 +221,38 @@ def cluster_stats(si, cl_props, hosts, cluster_filter, vsan_overall):
     return out
 
 
+def _bytes_to_sync(o):
+    """Cong tat ca truong bytesToSync trong JSON resync cua vSAN (so hoac chuoi so)."""
+    if isinstance(o, dict):
+        n = 0
+        for k, v in o.items():
+            if k == "bytesToSync" and (isinstance(v, (int, float)) or (isinstance(v, str) and v.isdigit())):
+                n += int(v)
+            else:
+                n += _bytes_to_sync(v)
+        return n
+    if isinstance(o, list):
+        return sum(_bytes_to_sync(v) for v in o)
+    return 0
+
+
+def resync_legacy(cluster):
+    """vCenter/vSAN cu khong co QuerySyncingVsanObjectsSummary: hoi 1 host dang ket noi qua
+    vsanInternalSystem.QuerySyncingVsanObjects (method vim chuan, cach RVC vsan.resync_dashboard dung).
+    Tra ve (so object dang resync, bytes con phai resync)."""
+    last = None
+    for h in cluster.host:
+        try:
+            if h.runtime.connectionState != "connected":
+                continue
+            raw = h.configManager.vsanInternalSystem.QuerySyncingVsanObjects([])
+            dom = (json.loads(raw) or {}).get("dom_objects") or {}
+            return len(dom), _bytes_to_sync(dom)
+        except Exception as e:
+            last = e
+    raise last or RuntimeError("khong co host nao dang ket noi")
+
+
 def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
     """Lay du lieu 1 vong. cache giu phan nang (disk health, so VM) giua cac vong, lam moi moi SLOW_INTERVAL."""
     cache = cache if cache is not None else {}
@@ -256,9 +288,13 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
                     r = obj_sys.QuerySyncingVsanObjectsSummary(cluster=c)
                     resync[c.name] = (r.totalObjectsToSync or 0, r.totalBytesToSync or 0, r.totalRecoveryETA or 0)
                 except vmodl.fault.MethodNotFound:
-                    if not cache.get("resync_warned"):  # vSAN doi cu (truoc 6.7U1): khong co API resync -> bao 1 lan
-                        print("Resync: vCenter khong ho tro API QuerySyncingVsanObjectsSummary (vSAN doi cu) - bo qua.", flush=True)
-                        cache["resync_warned"] = True
+                    try:  # vSAN doi cu: dung cach cu qua vsanInternalSystem cua 1 host
+                        objs, by = resync_legacy(c)
+                        resync[c.name] = (objs, by, 0)
+                    except Exception as e:
+                        if not cache.get("resync_warned"):
+                            print("Khong lay duoc resync (ca cach cu): %s" % (getattr(e, "msg", None) or e), flush=True)
+                            cache["resync_warned"] = True
                 except Exception as e:
                     print("Khong lay duoc resync cluster %s: %s" % (c.name, getattr(e, "msg", None) or e), flush=True)
         except Exception as e:
