@@ -25,7 +25,8 @@
         "type": "datasource",
         "query": "prometheus",
         "current": {},
-        "refresh": 1
+        "refresh": 1,
+        "regex": "/^Prometheus (CMC HN|CMC-Q7|FPT HCM|FPT HN|VIETTEL HCM)$/"
       },
       {
         "name": "cluster",
