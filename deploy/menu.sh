@@ -385,11 +385,11 @@ bline() { printf '%s%s%s%s%s%s\n' "$PADS" "$B" "$1" "$(rep "$2" $BW)" "$3" "$N";
 M=$'\e[35m'; BL=$'\e[94m'; D=$'\e[2m'; RV=$'\e[7m'; [ -t 1 ] || { M=; BL=; D=; RV=; }
 bcenter() {  # bcenter "chu khong dau" [mau]
   local t="${1:0:BW}" l r; l=$(( (BW - ${#t}) / 2 )); r=$(( BW - ${#t} - l ))
-  printf '%s%s║%s%*s%s%s%s%*s%s║%s\n' "$PADS" "$B" "$N" $l '' "${2:-}" "$t" "$N" $r '' "$B" "$N"
+  printf '%s%s|%s%*s%s%s%s%*s%s|%s\n' "$PADS" "$B" "$N" $l '' "${2:-}" "$t" "$N" $r '' "$B" "$N"
 }
 bfree() {    # bfree "chu co mau" [do dai hien thi]: 1 dong trong khung, can trai
   set -- "$1" "${2:-$(sed 's/\x1b\[[0-9;]*m//g' <<<"$1" | wc -m | awk '{print $1-1}')}"
-  printf '%s%s║%s  %s%*s%s║%s\n' "$PADS" "$B" "$N" "$1" $(( BW - 2 - $2 )) '' "$B" "$N"
+  printf '%s%s|%s  %s%*s%s|%s\n' "$PADS" "$B" "$N" "$1" $(( BW - 2 - $2 )) '' "$B" "$N"
 }
 cell() {     # cell <spec> <rong> -> CELL; spec: "H|mau|TIEU DE" | "I|mau|so|chu" | ""
   local IFS='|' k col a t plain; read -r k col a t <<<"$1"
@@ -403,7 +403,7 @@ cell() {     # cell <spec> <rong> -> CELL; spec: "H|mau|TIEU DE" | "I|mau|so|chu
 brow() {     # brow <spec trai> <spec phai>
   local h=$(( BW / 2 - 1 )) L
   cell "$1" $h; L=$CELL; cell "$2" $(( BW - h - 2 ))
-  printf '%s%s║%s  %s%s%s║%s\n' "$PADS" "$B" "$N" "$L" "$CELL" "$B" "$N"
+  printf '%s%s|%s  %s%s%s|%s\n' "$PADS" "$B" "$N" "$L" "$CELL" "$B" "$N"
 }
 draw_menu() {
   setpad
@@ -416,11 +416,11 @@ draw_menu() {
   done
   ac=$G; [ $act -lt $tot ] && ac=$R; [ $tot -eq 0 ] && ac=$Y
   echo
-  bline "╔" "═" "╗"
+  bline "+" "=" "+"
   bcenter "E S X i   H O S T   E X P O R T E R" "$W$Y"
   bcenter "F I X   N H A N H" "$W$M"
   bcenter "Giam sat tai nguyen vCenter / vSAN" "$D"
-  bline "╟" "─" "╢"
+  bline "+" "-" "+"
   bcenter "May: $(hostname) ($(my_ip))   |   $(date '+%d/%m/%Y %H:%M')" "$BL"
   bcenter "Ban cai: $(installed_ver)   |   Instance dang chay: $act/$tot" "$ac"
   # dai trang thai tung instance: ten:port UP (xanh) / DOWN (do), tu xuong dong
@@ -431,13 +431,13 @@ draw_menu() {
       local tag="UP" col=$G; [ "$st" = active ] || { tag="DOWN"; col=$R; }
       local seg="$n:$p $tag"
       if [ $(( ${#plain} + ${#seg} + 3 )) -gt $(( BW - 4 )) ]; then bfree "$line" ${#plain}; line=""; plain=""; fi
-      line+="${col}●${N} ${W}$n${N}${D}:$p${N} ${col}$tag${N}   "; plain+="* $seg   "
+      line+="${col}*${N} ${W}$n${N}${D}:$p${N} ${col}$tag${N}   "; plain+="* $seg   "
     done
     bfree "$line" ${#plain}
   else
     bcenter "Chua co instance nao -> chon 7 de them vCenter" "$Y"
   fi
-  bline "╠" "═" "╣"
+  bline "+" "=" "+"
   brow "H|G|XEM TRANG THAI"            "H|BL|CAI DAT / CAU HINH"
   brow "I|G|1|Trang thai chi tiet"     "I|BL|7|Them vCenter / instance"
   brow "I|G|2|Xem log 1 instance"      "I|BL|8|Doi mat khau / cai lai"
@@ -450,11 +450,11 @@ draw_menu() {
   brow "H|B|TICH HOP"                  ""
   brow "I|B|14|Cau hinh Prometheus"    "H|D|TRO GIUP"
   brow "I|B|10|Cau hinh InfluxDB"      "I|D|12|Cac lenh hay dung"
-  bline "╠" "═" "╣"
+  bline "+" "=" "+"
   bfree "${R}${W}  0)${N} Thoat        ${D}Ctrl+C khi xem log = quay lai menu${N}"
-  bline "╟" "─" "╢"
+  bline "+" "-" "+"
   bcenter "Ban quyen (C) 2026 FIX NHANH  -  All rights reserved" "$D$Y"
-  bline "╚" "═" "╝"
+  bline "+" "=" "+"
 }
 
 while true; do
