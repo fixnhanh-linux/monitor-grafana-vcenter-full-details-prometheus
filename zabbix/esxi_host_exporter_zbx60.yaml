@@ -1,6 +1,6 @@
 zabbix_export:
   version: '6.0'
-  date: '2026-10-30T18:24:34Z'
+  date: '2026-10-30T18:36:40Z'
   groups:
   - uuid: 13d64b21b3844cc78e9bef4c47da9463
     name: Templates/Applications
@@ -289,6 +289,120 @@ zabbix_export:
         expression: 'last(/ESXi Host Exporter/esxi.vsan.resync_bytes[{#CLUSTER}])>{$ESXI_RESYNC_MIN}'
         name: 'Cluster [{#CLUSTER}]: vSAN Resync In Progress'
         priority: HIGH
+    dashboards:
+    - uuid: a1d882fc93204a25a046b94b7bdb632d
+      name: ESXi Host Overview
+      pages:
+      - name: Overview
+        widgets:
+        - type: graphprototype
+          name: Host Status
+          x: '0'
+          y: '0'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.status[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
+        - type: graphprototype
+          name: CPU Usage (%)
+          x: '12'
+          y: '0'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.cpu[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
+        - type: graphprototype
+          name: RAM Usage (%)
+          x: '0'
+          y: '6'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.ram[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
+        - type: graphprototype
+          name: vSAN Disk Health
+          x: '12'
+          y: '6'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.disk_health[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
+        - type: graphprototype
+          name: vSAN Network Latency (ms)
+          x: '0'
+          y: '12'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.net_latency[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
+        - type: graphprototype
+          name: vSAN Congestion
+          x: '12'
+          y: '12'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.congestion[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
     macros:
     - macro: '{$ESXI_EXPORTER_HOST}'
       value: 127.0.0.1
