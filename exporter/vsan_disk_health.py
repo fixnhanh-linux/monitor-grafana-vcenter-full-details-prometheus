@@ -18,6 +18,7 @@ import datetime
 import getpass
 import json
 import os
+import re
 import ssl
 import sys
 import time
@@ -117,17 +118,60 @@ def vsan_clusters(si, cluster_filter):
         view.Destroy()
 
 
-def collect_si(si, host, ctx, cluster_filter, fresh=False, overall=None):
-    """overall (dict, tuy chon): ghi them health tong cua tung cluster vSAN {ten cluster: green/yellow/red}."""
-    """Lay health tung disk vSAN tren mot session vCenter co san."""
+def _num(v):
+    m = re.search(r"-?\d+(?:\.\d+)?", str(v or ""))
+    return float(m.group()) if m else None
+
+
+def _host_name(v, names):
+    """O bang health co the la ten host hoac 'mor:...HostSystem:host-12' -> doi ra ten host."""
+    m = re.search(r"HostSystem:([\w-]+)", str(v or ""))
+    return names.get(m.group(1)) if m else str(v or "").strip()
+
+
+def _latency_rows(rows, li, parent, names, out):
+    for r in rows:
+        vals = list(r.values or [])
+        # Bang long nhau: dong cha = host, dong con = host dich -> tinh cho host cha
+        host = parent or (_host_name(vals[0], names) if vals else None)
+        ms = _num(vals[li]) if len(vals) > li else None
+        if ms is not None and host in names.values():
+            out[host] = max(out.get(host, 0.0), ms)
+        _latency_rows(getattr(r, "nestedRows", None) or [], li, host, names, out)
+
+
+def network_latency(groups, names):
+    """vSAN network latency (ms) lon nhat cua tung host, lay tu test "Network latency check" cua vSAN health.
+    names = {moId: ten host}. Tra ve {ten host: ms}; rong neu vCenter khong co test nay."""
+    out = {}
+    for g in groups or []:
+        for t in g.groupTests or []:
+            if "latency" not in (t.testId or "").lower():
+                continue
+            for tab in t.testDetails or []:
+                cols = [(c.label or "").lower() for c in getattr(tab, "columns", None) or []]
+                li = [i for i, c in enumerate(cols) if "latency" in c or "(ms)" in c]
+                if li:
+                    _latency_rows(getattr(tab, "rows", None) or [], li[0], None, names, out)
+    return out
+
+
+def collect_si(si, host, ctx, cluster_filter, fresh=False, overall=None, netlat=None):
+    """Lay health tung disk vSAN tren mot session vCenter co san.
+    overall (dict, tuy chon): ghi them health tong cua tung cluster vSAN {ten cluster: green/yellow/red}.
+    netlat (dict, tuy chon): ghi them vSAN network latency {(cluster, host): ms}."""
     hs = vsan_health_system(si, host, ctx)
     clusters = vsan_clusters(si, cluster_filter)
     out = []
     for cluster in clusters:
-        summary = hs.VsanQueryVcClusterHealthSummary(
-            cluster=cluster, fetchFromCache=not fresh, fields=["physicalDisksHealth", "overallHealth"])
+        fields = ["physicalDisksHealth", "overallHealth"] + (["groups"] if netlat is not None else [])
+        summary = hs.VsanQueryVcClusterHealthSummary(cluster=cluster, fetchFromCache=not fresh, fields=fields)
         if overall is not None:
             overall[cluster.name] = summary.overallHealth
+        if netlat is not None:
+            names = {h._moId: h.name for h in cluster.host}
+            for hn, ms in network_latency(summary.groups, names).items():
+                netlat[(cluster.name, hn)] = ms
         reported = set()
         for h in summary.physicalDisksHealth or []:
             reported.add(h.hostname)

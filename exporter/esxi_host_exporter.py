@@ -40,7 +40,7 @@ from pyVmomi import SoapStubAdapter, vim, vmodl
 import vsan_disk_health as vdh
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
-VERSION = "2026.10.28-1"
+VERSION = "2026.10.31-1"
 
 WARN = {
     "cpu": float(os.environ.get("ESXI_WARN_CPU", 60)),
@@ -270,10 +270,11 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
             for _, p in retrieve(si, vim.VirtualMachine, ["runtime.host", "runtime.powerState"]):
                 if p.get("runtime.powerState") == "poweredOn" and p.get("runtime.host") is not None:
                     running[p["runtime.host"]._moId] = running.get(p["runtime.host"]._moId, 0) + 1
-            overall = {}
-            cache.update(running=running, disks=vdh.collect_si(si, vc, ctx, cluster_filter, fresh, overall),
-                         vsan_overall=overall, slow_ts=time.time())
+            overall, netlat = {}, {}
+            cache.update(running=running, disks=vdh.collect_si(si, vc, ctx, cluster_filter, fresh, overall, netlat),
+                         vsan_overall=overall, netlat=netlat, slow_ts=time.time())
         running, disks = cache["running"], cache["disks"]
+        netlat = cache.get("netlat", {})
         cl_stats = cluster_stats(si, cl_props, hosts, cluster_filter, cache.get("vsan_overall", {}))
 
         connected = [o for o, p in hosts if p["runtime.connectionState"] == "connected"]
@@ -329,9 +330,11 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
 
             vp = vperf.get(p.get("config.vsanHostConfig.clusterInfo.nodeUuid") or "-", {})
             lat = lambda k: vp[k] / 1000 if k in vp else None  # micro-giay -> ms
+            cname = clusters.get(p["parent"]._moId, "Standalone")
             out.append({
-                "cluster": clusters.get(p["parent"]._moId, "Standalone"),
+                "cluster": cname,
                 "host": p["name"],
+                "net_lat_ms": netlat.get((cname, p["name"])),
                 "state": str(p["runtime.connectionState"]),
                 "maintenance": bool(p.get("runtime.inMaintenanceMode")),
                 "cpu_pct": (qs.overallCpuUsage or 0) / cpu_cap * 100 if cpu_cap else 0,
@@ -405,6 +408,9 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
             dict(L, nics=nic_txt, nics_up=nics_up, nics_down=nics_down, reason=reason, connection=h["state"]), 1)
         add("esxi_host_connected", "Host connected voi vCenter (1/0)", L, int(h["state"] == "connected"))
         add("esxi_host_maintenance", "Host dang maintenance mode (1/0)", L, int(h["maintenance"]))
+        if h.get("net_lat_ms") is not None:
+            add("esxi_vsan_network_latency_ms", "vSAN network latency lon nhat toi cac host khac (ms, vSAN health)",
+                L, round(h["net_lat_ms"], 3))
         if h["state"] == "connected":
             add("esxi_host_cpu_usage_percent", "CPU dang dung (%)", L, round(h["cpu_pct"], 2))
             add("esxi_host_mem_usage_percent", "RAM dang dung (%)", L, round(h["ram_pct"], 2))
