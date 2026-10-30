@@ -177,13 +177,12 @@ dashboard = {
     "pages": [{
         "name": "Overview",
         "widgets": [
-            {"type": "problems", "name": "Problems", "x": "0", "y": "0", "width": "24", "height": "5", "fields": []},
-            gp("CPU Usage (%)", H % "cpu", 0, 5),
-            gp("RAM Usage (%)", H % "ram", 12, 5),
-            gp("vSAN Network Latency (ms)", H % "net_latency", 0, 11),
-            gp("vSAN Congestion", H % "congestion", 12, 11),
-            gp("vSAN Disk Health", H % "disk_health", 0, 17),
-            gp("Host Status", H % "status", 12, 17),
+            gp("Host Status", H % "status", 0, 0),
+            gp("CPU Usage (%)", H % "cpu", 12, 0),
+            gp("RAM Usage (%)", H % "ram", 0, 6),
+            gp("vSAN Disk Health", H % "disk_health", 12, 6),
+            gp("vSAN Network Latency (ms)", H % "net_latency", 0, 12),
+            gp("vSAN Congestion", H % "congestion", 12, 12),
         ],
     }],
 }

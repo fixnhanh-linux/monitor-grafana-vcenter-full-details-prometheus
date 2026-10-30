@@ -1,6 +1,6 @@
 zabbix_export:
   version: '6.0'
-  date: '2026-10-30T18:16:58Z'
+  date: '2026-10-30T18:20:12Z'
   groups:
   - uuid: 13d64b21b3845cc78e9bef4c47da9463
     name: Templates/Applications
@@ -295,17 +295,28 @@ zabbix_export:
       pages:
       - name: Overview
         widgets:
-        - type: problems
-          name: Problems
+        - type: graphprototype
+          name: Host Status
           x: '0'
           y: '0'
-          width: '24'
-          height: '5'
-          fields: []
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.status[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
         - type: graphprototype
           name: CPU Usage (%)
-          x: '0'
-          y: '5'
+          x: '12'
+          y: '0'
           width: '12'
           height: '6'
           fields:
@@ -322,8 +333,8 @@ zabbix_export:
             value: '2'
         - type: graphprototype
           name: RAM Usage (%)
-          x: '12'
-          y: '5'
+          x: '0'
+          y: '6'
           width: '12'
           height: '6'
           fields:
@@ -339,9 +350,27 @@ zabbix_export:
             name: columns
             value: '2'
         - type: graphprototype
+          name: vSAN Disk Health
+          x: '12'
+          y: '6'
+          width: '12'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: source_type
+            value: '1'
+          - type: ITEM_PROTOTYPE
+            name: itemid
+            value:
+              host: ESXi Host Exporter
+              key: 'esxi.host.disk_health[{#CLUSTER},{#HOST}]'
+          - type: INTEGER
+            name: columns
+            value: '2'
+        - type: graphprototype
           name: vSAN Network Latency (ms)
           x: '0'
-          y: '11'
+          y: '12'
           width: '12'
           height: '6'
           fields:
@@ -359,7 +388,7 @@ zabbix_export:
         - type: graphprototype
           name: vSAN Congestion
           x: '12'
-          y: '11'
+          y: '12'
           width: '12'
           height: '6'
           fields:
@@ -371,42 +400,6 @@ zabbix_export:
             value:
               host: ESXi Host Exporter
               key: 'esxi.host.congestion[{#CLUSTER},{#HOST}]'
-          - type: INTEGER
-            name: columns
-            value: '2'
-        - type: graphprototype
-          name: vSAN Disk Health
-          x: '0'
-          y: '17'
-          width: '12'
-          height: '6'
-          fields:
-          - type: INTEGER
-            name: source_type
-            value: '1'
-          - type: ITEM_PROTOTYPE
-            name: itemid
-            value:
-              host: ESXi Host Exporter
-              key: 'esxi.host.disk_health[{#CLUSTER},{#HOST}]'
-          - type: INTEGER
-            name: columns
-            value: '2'
-        - type: graphprototype
-          name: Host Status
-          x: '12'
-          y: '17'
-          width: '12'
-          height: '6'
-          fields:
-          - type: INTEGER
-            name: source_type
-            value: '1'
-          - type: ITEM_PROTOTYPE
-            name: itemid
-            value:
-              host: ESXi Host Exporter
-              key: 'esxi.host.status[{#CLUSTER},{#HOST}]'
           - type: INTEGER
             name: columns
             value: '2'
