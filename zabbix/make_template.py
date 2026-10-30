@@ -211,7 +211,7 @@ template = {
     "groups": [{"name": "Templates/Applications"}],
     "items": [master],
     "discovery_rules": [host_lld, cluster_lld],
-    "dashboards": [dashboard],
+    # Zabbix 6.0 template dashboard khong nhan widget graph/problem -> dashboard lam tren UI
     "macros": macros,
 }
 
