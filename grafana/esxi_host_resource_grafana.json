@@ -1876,13 +1876,13 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"})",
+          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
           "format": "time_series",
-          "legendFormat": "Network latency (max cluster)",
+          "legendFormat": "Network {{host}}",
           "refId": "A"
         }
       ],
-      "title": "vSAN network latency (ms) - Max cua cluster",
+      "title": "vSAN network latency (ms) - lon nhat trong cluster",
       "type": "timeseries",
       "description": "Network latency vSAN (ms) giua cac host, tu test 'Network latency check'. Vang > 0,5ms, do > 1ms. vCenter chi cho so tong cluster nen cac host co cung gia tri."
     },
