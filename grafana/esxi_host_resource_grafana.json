@@ -1742,7 +1742,9 @@
           ],
           "displayMode": "table",
           "placement": "right",
-          "showLegend": true
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -1757,7 +1759,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_write_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "topk(10, max by (host) (esxi_vsan_write_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}))",
           "format": "time_series",
           "legendFormat": "Write {{host}}",
           "refId": "A"
@@ -1767,13 +1769,13 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_read_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "topk(10, max by (host) (esxi_vsan_read_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}))",
           "format": "time_series",
           "legendFormat": "Read {{host}}",
           "refId": "B"
         }
       ],
-      "title": "vSAN latency write / read (ms, mau 5 phut)",
+      "title": "vSAN latency write / read - top 10 host (ms, mau 5 phut)",
       "type": "timeseries"
     },
     {
@@ -1874,13 +1876,13 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"})",
           "format": "time_series",
-          "legendFormat": "Network {{host}}",
+          "legendFormat": "Network latency (max cluster)",
           "refId": "A"
         }
       ],
-      "title": "vSAN network latency (ms) - lon nhat trong cluster",
+      "title": "vSAN network latency (ms) - Max cua cluster",
       "type": "timeseries",
       "description": "Network latency vSAN (ms) giua cac host, tu test 'Network latency check'. Vang > 0,5ms, do > 1ms. vCenter chi cho so tong cluster nen cac host co cung gia tri."
     },
