@@ -40,7 +40,7 @@ from pyVmomi import SoapStubAdapter, vim, vmodl
 import vsan_disk_health as vdh
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
-VERSION = "2026.10.31-1"
+VERSION = "2026.10.31-2"
 
 WARN = {
     "cpu": float(os.environ.get("ESXI_WARN_CPU", 60)),

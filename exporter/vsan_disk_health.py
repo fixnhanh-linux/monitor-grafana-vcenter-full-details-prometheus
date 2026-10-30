@@ -129,31 +129,52 @@ def _host_name(v, names):
     return names.get(m.group(1)) if m else str(v or "").strip()
 
 
-def _latency_rows(rows, li, parent, names, out):
-    for r in rows:
+def _lat_col(cols):
+    """Chon cot latency: uu tien 'max latency', roi 'latency ... (ms)', roi bat ky '(ms)'."""
+    for i, c in enumerate(cols):
+        if "max" in c and "latency" in c:
+            return i
+    for i, c in enumerate(cols):
+        if "latency" in c and "(ms)" in c:
+            return i
+    for i, c in enumerate(cols):
+        if "(ms)" in c:
+            return i
+    return None
+
+
+def _walk_lat(rows, li, parent_host, hostset, names, per_host, summary):
+    for r in rows or []:
         vals = list(r.values or [])
-        # Bang long nhau: dong cha = host, dong con = host dich -> tinh cho host cha
-        host = parent or (_host_name(vals[0], names) if vals else None)
+        who = parent_host or (_host_name(vals[0], names) if vals else None)
         ms = _num(vals[li]) if len(vals) > li else None
-        if ms is not None and host in names.values():
-            out[host] = max(out.get(host, 0.0), ms)
-        _latency_rows(getattr(r, "nestedRows", None) or [], li, host, names, out)
+        if ms is not None:
+            if who in hostset:                       # dong cua 1 host cu the
+                per_host[who] = max(per_host.get(who, 0.0), ms)
+            else:                                    # dong tong, vd 'All Peers'
+                summary[0] = ms if summary[0] is None else max(summary[0], ms)
+        _walk_lat(getattr(r, "nestedRows", None) or [], li,
+                  who if who in hostset else None, hostset, names, per_host, summary)
 
 
 def network_latency(groups, names):
-    """vSAN network latency (ms) lon nhat cua tung host, lay tu test "Network latency check" cua vSAN health.
-    names = {moId: ten host}. Tra ve {ten host: ms}; rong neu vCenter khong co test nay."""
-    out = {}
+    """vSAN network latency (ms) lon nhat moi host, tu test "Network latency check" (hostlatencycheck).
+    names = {moId: ten host}. Ho tro ca bang per-host lan bang tong 'All Peers': khi vCenter chi cho
+    so tong (per-host rong) thi gan Max Latency do cho tat ca host. Rong neu khong co test nay."""
+    hostset = set(names.values())
+    per_host, summary = {}, [None]
     for g in groups or []:
         for t in g.groupTests or []:
             if "latency" not in (t.testId or "").lower():
                 continue
             for tab in t.testDetails or []:
                 cols = [(c.label or "").lower() for c in getattr(tab, "columns", None) or []]
-                li = [i for i, c in enumerate(cols) if "latency" in c or "(ms)" in c]
-                if li:
-                    _latency_rows(getattr(tab, "rows", None) or [], li[0], None, names, out)
-    return out
+                li = _lat_col(cols)
+                if li is not None:
+                    _walk_lat(getattr(tab, "rows", None) or [], li, None, hostset, names, per_host, summary)
+    if not per_host and summary[0] is not None:
+        per_host = {h: summary[0] for h in names.values()}
+    return per_host
 
 
 def collect_si(si, host, ctx, cluster_filter, fresh=False, overall=None, netlat=None):
