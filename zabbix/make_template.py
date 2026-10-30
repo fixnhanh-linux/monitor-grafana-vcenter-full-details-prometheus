@@ -20,7 +20,9 @@ NS = uuid.UUID("1b4e28ba-2fa1-11d2-883f-0016d3cca427")  # fixed namespace -> sta
 
 
 def U(seed):
-    return uuid.uuid5(NS, "esxi-zbx::" + seed).hex
+    # Zabbix doi UUIDv4: lay uuid5 (on dinh theo seed) roi ep nibble version=4, variant=8/9/a/b
+    h = uuid.uuid5(NS, "esxi-zbx::" + seed).hex
+    return h[:12] + "4" + h[13:16] + "89ab"[int(h[16], 16) % 4] + h[17:]
 
 
 def ref(key):
