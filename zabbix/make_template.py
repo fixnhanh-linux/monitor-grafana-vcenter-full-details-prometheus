@@ -209,7 +209,6 @@ template = {
     "groups": [{"name": "Templates/Applications"}],
     "items": [master],
     "discovery_rules": [host_lld, cluster_lld],
-    "dashboards": [dashboard],
     "macros": macros,
 }
 
