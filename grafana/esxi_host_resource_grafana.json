@@ -1,551 +1,319 @@
 {
-  "title": "MONITOR RESOURCE HOST ESXi",
-  "uid": "esxi-host-resource",
-  "description": "Tài nguyên từng host ESXi theo cluster: CPU, RAM, NIC, vSAN disk group, congestion, drop vmk vSAN",
-  "tags": [
-    "vmware",
-    "esxi",
-    "vsan"
-  ],
-  "timezone": "browser",
-  "editable": true,
-  "graphTooltip": 1,
-  "refresh": "30s",
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "schemaVersion": 39,
-  "version": 1,
-  "templating": {
+  "annotations": {
     "list": [
       {
-        "name": "datasource",
-        "label": "Prometheus",
-        "type": "datasource",
-        "query": "prometheus",
-        "current": {},
-        "refresh": 1,
-        "regex": "/^Prometheus (CMC HN|CMC-Q7|FPT HCM|FPT HN|VIETTEL HCM)$/"
-      },
-      {
-        "name": "cluster",
-        "label": "Cluster",
-        "type": "query",
+        "builtIn": 1,
         "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "query": {
-          "query": "label_values(esxi_host_status, cluster)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "definition": "label_values(esxi_host_status, cluster)",
-        "refresh": 2,
-        "includeAll": false,
-        "multi": false,
-        "sort": 1
-      },
-      {
-        "name": "status",
-        "label": "Trạng thái",
-        "type": "custom",
-        "query": "Tất cả : 0,Cảnh báo + Lỗi : 1,Lỗi : 2",
-        "current": {
-          "selected": true,
-          "text": "Tất cả",
-          "value": "0"
-        },
-        "options": [
-          {
-            "selected": true,
-            "text": "Tất cả",
-            "value": "0"
-          },
-          {
-            "selected": false,
-            "text": "Cảnh báo + Lỗi",
-            "value": "1"
-          },
-          {
-            "selected": false,
-            "text": "Lỗi",
-            "value": "2"
-          }
-        ],
-        "multi": false,
-        "includeAll": false
-      },
-      {
-        "name": "host",
-        "label": "Host (chi tiết)",
-        "type": "query",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "query": {
-          "query": "label_values(esxi_host_status{cluster=~\"$cluster\"}, host)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "definition": "label_values(esxi_host_status{cluster=~\"$cluster\"}, host)",
-        "refresh": 2,
-        "includeAll": true,
-        "multi": true,
-        "sort": 1,
-        "allValue": ".*",
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        }
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
       }
     ]
   },
-  "annotations": {
-    "list": []
-  },
+  "description": "Tài nguyên từng host ESXi theo cluster: CPU, RAM, NIC, vSAN disk group, congestion, drop vmk vSAN",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
   "panels": [
     {
-      "id": 1,
-      "type": "row",
-      "title": "Cluster $cluster — tổng quan",
       "collapsed": false,
       "gridPos": {
-        "x": 0,
-        "y": 0,
+        "h": 1,
         "w": 24,
-        "h": 1
+        "x": 0,
+        "y": 0
       },
-      "panels": []
+      "id": 1,
+      "panels": [],
+      "title": "Cluster $cluster -  Chi Tiết",
+      "type": "row"
     },
     {
-      "id": 2,
-      "type": "stat",
-      "title": "Total host",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(esxi_host_status{cluster=~\"$cluster\"})",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "",
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "blue",
-                "value": null
+                "value": 0
               }
             ]
           },
-          "noValue": "0"
+          "unit": "none"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value",
         "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
+          "fields": "",
           "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(esxi_host_status{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
-      }
+      ],
+      "title": "Total host",
+      "type": "stat"
     },
     {
-      "id": 3,
-      "type": "stat",
-      "title": "OK",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
       "gridPos": {
+        "h": 4,
+        "w": 3,
         "x": 3,
-        "y": 1,
-        "w": 3,
-        "h": 4
+        "y": 1
       },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
           "expr": "count(esxi_host_status{cluster=~\"$cluster\"} == 0)",
-          "legendFormat": "",
           "format": "time_series",
           "instant": true,
-          "range": false
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
-      "description": "",
+      "title": "OK",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
               }
             ]
           },
-          "noValue": "0"
+          "unit": "none"
         },
         "overrides": []
       },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "Cảnh báo (WARN)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
       "gridPos": {
+        "h": 4,
+        "w": 3,
         "x": 6,
-        "y": 1,
-        "w": 3,
-        "h": 4
+        "y": 1
       },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
           "expr": "count(esxi_host_status{cluster=~\"$cluster\"} == 1)",
-          "legendFormat": "",
           "format": "time_series",
           "instant": true,
-          "range": false
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
-      "description": "",
+      "title": "Cảnh báo (WARN)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
-                "color": "orange",
+                "color": "red",
                 "value": 1
               }
             ]
           },
-          "noValue": "0"
+          "unit": "none"
         },
         "overrides": []
       },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "Lỗi (ERROR)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
       "gridPos": {
+        "h": 4,
+        "w": 3,
         "x": 9,
-        "y": 1,
-        "w": 3,
-        "h": 4
+        "y": 1
       },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
           "expr": "count(esxi_host_status{cluster=~\"$cluster\"} == 2)",
-          "legendFormat": "",
           "format": "time_series",
           "instant": true,
-          "range": false
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
+      "title": "Lỗi (ERROR)",
+      "type": "stat"
     },
     {
-      "id": 6,
-      "type": "stat",
-      "title": "vSAN resync",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 18,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "sum(esxi_vsan_resync_bytes{cluster=~\"$cluster\"}) or vector(0)",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Dung lượng vSAN còn phải đồng bộ lại (resync) của các cluster đang chọn. Xanh 'Không resync' = bình thường; cam = đang resync (sau khi host reboot / maintenance / disk lỗi).",
+      "description": "So host dang o che do bao tri (Muc 3 - Canh bao).",
       "fieldConfig": {
         "defaults": {
-          "unit": "bytes",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "Không resync",
-                  "color": "green",
-                  "index": 0
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "Không resync",
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 7,
-      "type": "stat",
-      "title": "Dữ liệu cập nhật (exporter cũ nhất)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 21,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "time() - min(max by (instance) (vsan_disk_exporter_last_success_timestamp_seconds))",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Exporter lâu nhất chưa lấy được dữ liệu vCenter (trong tất cả instance). Đỏ = có exporter bị lỗi/dừng.",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 300
-              },
-              {
-                "color": "red",
-                "value": 900
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 30,
-      "type": "stat",
-      "title": "Hosts In Maintenance",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(esxi_host_maintenance{cluster=~\"$cluster\"} == 1)",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Số host đang ở chế độ bảo trì (Mức 3 - Cảnh báo).",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "yellow",
@@ -553,62 +321,69 @@
               }
             ]
           },
-          "noValue": "0"
+          "unit": "none"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 30,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value",
         "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
+          "fields": "",
           "values": false
-        }
-      }
-    },
-    {
-      "id": 31,
-      "type": "stat",
-      "title": "Network Latency Max",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
       },
-      "gridPos": {
-        "x": 15,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\"})",
-          "legendFormat": "",
+          "expr": "count(esxi_host_maintenance{cluster=~\"$cluster\"} == 1)",
           "format": "time_series",
           "instant": true,
-          "range": false
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
-      "description": "Network latency lớn nhất giữa các host vSAN (test Network latency check, mẫu 5 phút). Vàng > 0,5ms (Mức 3), đỏ > 1ms (Mức 2). N/A = vCenter không có test này.",
+      "title": "Hosts In Maintenance",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Network latency lon nhat giua cac host vSAN (test Network latency check, mau 5 phut). Vang > 0,5ms (Muc 3), do > 1ms (Muc 2). N/A = vCenter khong co test nay.",
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
+          "decimals": 2,
           "mappings": [],
+          "noValue": "N/A",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "yellow",
@@ -620,148 +395,210 @@
               }
             ]
           },
-          "noValue": "N/A",
-          "decimals": 2
+          "unit": "ms"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 31,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value",
         "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
+          "fields": "",
           "values": false
-        }
-      }
-    },
-    {
-      "id": 8,
-      "type": "table",
-      "title": "Host ESXi — cluster $cluster  (bấm tên host để xem chi tiết)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
       },
-      "gridPos": {
-        "x": 0,
-        "y": 5,
-        "w": 24,
-        "h": 14
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "max by (cluster, host) (esxi_host_status{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
+          "editorMode": "code",
+          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\"})",
+          "format": "time_series",
           "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "B",
-          "expr": "max by (cluster, host) (esxi_host_cpu_usage_percent{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
           "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "C",
-          "expr": "max by (cluster, host) (esxi_host_mem_usage_percent{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "D",
-          "expr": "max by (cluster, host, nics_up, nics_down, reason) (esxi_host_info{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "E",
-          "expr": "max by (cluster, host) (esxi_vsan_host_disk_health{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "F",
-          "expr": "max by (cluster, host) (esxi_vsan_host_congestion{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "G",
-          "expr": "max by (cluster, host) (esxi_vsan_write_latency_ms{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "H",
-          "expr": "max by (cluster, host) (esxi_host_vms_running{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "I",
-          "expr": "(max by (cluster, host) (esxi_host_uptime_seconds{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))) / 86400",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
+          "range": false,
+          "refId": "A"
         }
       ],
+      "title": "Network Latency Max",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Dung lượng vSAN còn phải resync. Bằng 0 → hiển thị '–' (không có resync).",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "index": 0,
+                  "text": "–"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(esxi_vsan_resync_bytes{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "vSAN resync",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Exporter lâu nhất chưa lấy được dữ liệu vCenter (trong tất cả instance). Đỏ = có exporter bị lỗi/dừng.",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "time() - min(max by (instance) (vsan_disk_exporter_last_success_timestamp_seconds))",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Dữ liệu cập nhật (exporter cũ nhất)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "description": "Bộ lọc: biến 'Trạng thái' trên đầu dashboard (Tất cả / Cảnh báo / Lỗi). Bấm header để sort.",
       "fieldConfig": {
         "defaults": {
@@ -770,9 +607,27 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": false
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
           },
-          "noValue": "–"
+          "mappings": [],
+          "noValue": "–",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
         },
         "overrides": [
           {
@@ -806,24 +661,24 @@
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
                     "options": {
                       "0": {
-                        "text": "OK",
                         "color": "green",
-                        "index": 0
+                        "index": 0,
+                        "text": "OK"
                       },
                       "1": {
-                        "text": "WARN",
                         "color": "orange",
-                        "index": 1
+                        "index": 1,
+                        "text": "WARN"
                       },
                       "2": {
-                        "text": "ERROR",
                         "color": "red",
-                        "index": 2
+                        "index": 2,
+                        "text": "ERROR"
                       }
-                    }
+                    },
+                    "type": "value"
                   }
                 ]
               },
@@ -834,8 +689,8 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background",
-                  "mode": "basic"
+                  "mode": "basic",
+                  "type": "color-background"
                 }
               }
             ]
@@ -869,8 +724,8 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "gauge",
                   "mode": "basic",
+                  "type": "gauge",
                   "valueDisplayMode": "text"
                 }
               }
@@ -889,15 +744,15 @@
                   "steps": [
                     {
                       "color": "green",
-                      "value": null
+                      "value": 0
                     },
                     {
                       "color": "orange",
-                      "value": 40
+                      "value": 60
                     },
                     {
                       "color": "red",
-                      "value": 60
+                      "value": 85
                     }
                   ]
                 }
@@ -917,15 +772,15 @@
                   "steps": [
                     {
                       "color": "green",
-                      "value": null
+                      "value": 0
                     },
                     {
                       "color": "orange",
-                      "value": 80
+                      "value": 90
                     },
                     {
                       "color": "red",
-                      "value": 90
+                      "value": 95
                     }
                   ]
                 }
@@ -945,21 +800,21 @@
               {
                 "id": "color",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
+                  "fixedColor": "green",
+                  "mode": "fixed"
                 }
               },
               {
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
                     "options": {
                       "-": {
-                        "text": " ",
-                        "index": 0
+                        "index": 0,
+                        "text": " "
                       }
-                    }
+                    },
+                    "type": "value"
                   }
                 ]
               },
@@ -984,21 +839,21 @@
               {
                 "id": "color",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
+                  "fixedColor": "red",
+                  "mode": "fixed"
                 }
               },
               {
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
                     "options": {
                       "-": {
-                        "text": " ",
-                        "index": 0
+                        "index": 0,
+                        "text": " "
                       }
-                    }
+                    },
+                    "type": "value"
                   }
                 ]
               },
@@ -1020,29 +875,29 @@
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
                     "options": {
                       "0": {
-                        "text": "healthy",
                         "color": "green",
-                        "index": 0
+                        "index": 0,
+                        "text": "healthy"
                       },
                       "1": {
-                        "text": "unhealthy (yellow)",
                         "color": "orange",
-                        "index": 1
+                        "index": 1,
+                        "text": "unhealthy (yellow)"
                       },
                       "2": {
-                        "text": "unhealthy (red)",
                         "color": "red",
-                        "index": 2
+                        "index": 2,
+                        "text": "unhealthy (red)"
                       },
                       "3": {
-                        "text": "không rõ",
                         "color": "#8e8e8e",
-                        "index": 3
+                        "index": 3,
+                        "text": "không rõ"
                       }
-                    }
+                    },
+                    "type": "value"
                   }
                 ]
               },
@@ -1067,7 +922,7 @@
                   "steps": [
                     {
                       "color": "green",
-                      "value": null
+                      "value": 0
                     },
                     {
                       "color": "orange",
@@ -1109,7 +964,7 @@
                   "steps": [
                     {
                       "color": "green",
-                      "value": null
+                      "value": 0
                     },
                     {
                       "color": "orange",
@@ -1155,27 +1010,146 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "auto",
-                  "wrapText": true
+                  "type": "auto"
                 }
+              },
+              {
+                "id": "custom.wrapText",
+                "value": true
               }
             ]
           }
         ]
       },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 8,
       "options": {
-        "showHeader": true,
         "cellHeight": "sm",
-        "footer": {
-          "show": false
-        },
+        "showHeader": true,
         "sortBy": [
           {
-            "displayName": "Status",
-            "desc": true
+            "desc": false,
+            "displayName": "Alerts"
           }
         ]
       },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_host_status{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_host_cpu_usage_percent{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_host_mem_usage_percent{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host, nics_up, nics_down, reason) (esxi_host_info{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_vsan_host_disk_health{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_vsan_host_congestion{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_vsan_write_latency_ms{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_host_vms_running{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(max by (cluster, host) (esxi_host_uptime_seconds{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))) / 86400",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "I"
+        }
+      ],
+      "title": "Host ESXi — cluster $cluster  (bấm tên host để xem chi tiết)",
       "transformations": [
         {
           "id": "merge",
@@ -1188,203 +1162,322 @@
               "Time": true,
               "Value #D": true,
               "__name__": true,
-              "job": true,
-              "instance": true,
+              "cluster": true,
               "connection": true,
-              "cluster": true
+              "instance": true,
+              "job": true
             },
+            "includeByName": {},
             "indexByName": {
-              "host": 0,
+              "Value #A": 10,
               "Value #B": 1,
               "Value #C": 2,
-              "nics_up": 3,
-              "nics_down": 4,
               "Value #E": 5,
               "Value #F": 6,
               "Value #G": 7,
               "Value #H": 8,
               "Value #I": 9,
-              "Value #A": 10,
+              "host": 0,
+              "nics_down": 4,
+              "nics_up": 3,
               "reason": 11
             },
             "renameByName": {
-              "host": "Host",
               "Value #A": "Status",
               "Value #B": "CPU%",
               "Value #C": "RAM%",
-              "nics_up": "NIC UP",
-              "nics_down": "NIC DOWN",
               "Value #E": "DiskGroup vSAN",
               "Value #F": "vSAN congestion",
               "Value #G": "Write latency",
               "Value #H": "VMs",
               "Value #I": "Uptime",
-              "reason": "Lý do"
+              "host": "Host",
+              "nics_down": "NIC DOWN",
+              "nics_up": "NIC UP",
+              "reason": "Alerts"
             }
           }
         }
-      ]
+      ],
+      "type": "table"
     },
     {
-      "id": 9,
-      "type": "row",
-      "title": "Network — vmnic & vmk vSAN (host: $host)",
       "collapsed": false,
       "gridPos": {
-        "x": 0,
-        "y": 19,
+        "h": 1,
         "w": 24,
-        "h": 1
+        "x": 0,
+        "y": 19
       },
-      "panels": []
+      "id": 9,
+      "panels": [],
+      "title": "Network — vmnic & vmk vSAN (host: $host)",
+      "type": "row"
     },
     {
-      "id": 10,
-      "type": "timeseries",
-      "title": "vmnic — bandwidth TX (Mb/s) — top 10",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 20,
-        "w": 12,
-        "h": 9
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "topk(10, max by (host, nic) (esxi_host_nic_transmit_mbps{cluster=~\"$cluster\",host=~\"$host\"}))",
-          "legendFormat": "{{host}} {{nic}}",
-          "format": "time_series"
-        }
-      ],
       "description": "Băng thông gửi của vmnic uplink, giống cột MbTX/s trong esxtop (phím n). Hiện 10 vmnic cao nhất — chọn biến Host để xem host cụ thể.",
       "fieldConfig": {
         "defaults": {
-          "unit": "Mbits",
-          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
             "fillOpacity": 8,
-            "lineWidth": 1
-          }
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Mbits"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 10,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
           "calcs": [
             "lastNotNull",
             "max"
           ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "vmnic — bandwidth RX (Mb/s) — top 10",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 20,
-        "w": 12,
-        "h": 9
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "topk(10, max by (host, nic) (esxi_host_nic_receive_mbps{cluster=~\"$cluster\",host=~\"$host\"}))",
+          "expr": "topk(10, max by (host, nic) (esxi_host_nic_transmit_mbps{cluster=~\"$cluster\",host=~\"$host\"}))",
+          "format": "time_series",
           "legendFormat": "{{host}} {{nic}}",
-          "format": "time_series"
+          "refId": "A"
         }
       ],
+      "title": "vmnic — bandwidth TX (Mb/s) — top 10",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "Mbits",
-          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
             "fillOpacity": 8,
-            "lineWidth": 1
-          }
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Mbits"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 11,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
           "calcs": [
             "lastNotNull",
             "max"
           ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
-      }
-    },
-    {
-      "id": 12,
-      "type": "timeseries",
-      "title": "vmk vSAN — Packet Drop/Discard rate (%)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 29,
-        "w": 12,
-        "h": 9
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "max by (host, vmk) (esxi_host_vmk_drop_percent{cluster=~\"$cluster\",host=~\"$host\", vsan=\"true\"})",
-          "legendFormat": "{{host}} {{vmk}}",
-          "format": "time_series"
+          "expr": "topk(10, max by (host, nic) (esxi_host_nic_receive_mbps{cluster=~\"$cluster\",host=~\"$host\"}))",
+          "format": "time_series",
+          "legendFormat": "{{host}} {{nic}}",
+          "refId": "A"
         }
       ],
+      "title": "vmnic — bandwidth RX (Mb/s) — top 10",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "description": "Thước đo nghẽn quan trọng nhất của mạng vSAN (max của RX/TX). Luôn bằng 0 là tốt; > 0.1% kéo dài là có nghẽn/QoS. Legend xếp theo Max giảm dần.",
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 1,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
           "decimals": 2,
+          "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "transparent",
-                "value": null
+                "value": 0
               },
               {
                 "color": "orange",
@@ -1396,172 +1489,117 @@
               }
             ]
           },
-          "custom": {
-            "thresholdsStyle": {
-              "mode": "dashed"
-            },
-            "fillOpacity": 0,
-            "axisSoftMax": 1,
-            "lineWidth": 1
-          }
+          "unit": "percent"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 12,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
           "calcs": [
             "lastNotNull",
             "max"
           ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
           "sortBy": "Max",
           "sortDesc": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
-      }
-    },
-    {
-      "id": 13,
-      "type": "state-timeline",
-      "title": "vmnic DOWN (chỉ hiện vmnic từng bị down)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 29,
-        "w": 12,
-        "h": 9
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "(max by (host, nic) (esxi_host_nic_up{cluster=~\"$cluster\",host=~\"$host\"}) == 0) or on() label_replace(count(max by (host, nic) (esxi_host_nic_up{cluster=~\"$cluster\",host=~\"$host\"})) > bool 0, \"host\", \"✓ Tất cả vmnic\", \"\", \"\")",
-          "legendFormat": "{{host}} {{nic}}",
-          "format": "time_series"
+          "expr": "max by (host, vmk) (esxi_host_vmk_drop_percent{cluster=~\"$cluster\",host=~\"$host\", vsan=\"true\"})",
+          "format": "time_series",
+          "legendFormat": "{{host}} {{vmk}}",
+          "refId": "A"
         }
       ],
-      "description": "Chỉ liệt kê vmnic uplink bị mất link trong khoảng thời gian đang xem (đỏ = DOWN). Dòng xanh '✓ Tất cả vmnic' = lúc đó không có vmnic nào down.",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "▼ DOWN",
-                  "color": "red",
-                  "index": 0
-                },
-                "1": {
-                  "text": "UP",
-                  "color": "green",
-                  "index": 1
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "rowHeight": 0.8,
-        "legend": {
-          "showLegend": false
-        }
-      }
+      "title": "vmk vSAN — Packet Drop/Discard rate (%)",
+      "type": "timeseries"
     },
     {
-      "id": 14,
-      "type": "row",
-      "title": "Chi tiết host: $host",
       "collapsed": false,
       "gridPos": {
-        "x": 0,
-        "y": 38,
+        "h": 1,
         "w": 24,
-        "h": 1
+        "x": 0,
+        "y": 38
       },
-      "panels": []
+      "id": 14,
+      "panels": [],
+      "title": "Chi tiết host: $host",
+      "type": "row"
     },
     {
-      "id": 15,
-      "type": "timeseries",
-      "title": "CPU & RAM (%)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 39,
-        "w": 12,
-        "h": 9
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "esxi_host_cpu_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}",
-          "legendFormat": "CPU {{host}}",
-          "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "B",
-          "expr": "esxi_host_mem_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}",
-          "legendFormat": "RAM {{host}}",
-          "format": "time_series"
-        }
-      ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "mappings": [],
           "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "transparent",
-                "value": null
+                "value": 0
               },
               {
                 "color": "orange",
@@ -1573,86 +1611,111 @@
               }
             ]
           },
-          "custom": {
-            "thresholdsStyle": {
-              "mode": "dashed"
-            },
-            "fillOpacity": 5
-          }
+          "unit": "percent"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "id": 15,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
-      }
-    },
-    {
-      "id": 16,
-      "type": "timeseries",
-      "title": "vSAN latency write / read / network (ms, mẫu 5 phút)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 39,
-        "w": 12,
-        "h": 9
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "esxi_vsan_write_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
-          "legendFormat": "Write {{host}}",
-          "format": "time_series"
+          "expr": "esxi_host_cpu_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}",
+          "format": "time_series",
+          "legendFormat": "CPU {{host}}",
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "B",
-          "expr": "esxi_vsan_read_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
-          "legendFormat": "Read {{host}}",
-          "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "C",
-          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
-          "legendFormat": "Network {{host}}",
-          "format": "time_series"
+          "expr": "esxi_host_mem_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}",
+          "format": "time_series",
+          "legendFormat": "RAM {{host}}",
+          "refId": "B"
         }
       ],
+      "title": "CPU & RAM (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "mappings": [],
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "transparent",
-                "value": null
+                "value": 0
               },
               {
                 "color": "orange",
@@ -1660,844 +1723,135 @@
               }
             ]
           },
-          "custom": {
-            "thresholdsStyle": {
-              "mode": "dashed"
-            },
-            "fillOpacity": 5
-          }
+          "unit": "ms"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "id": 16,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
-      }
-    },
-    {
-      "id": 17,
-      "type": "table",
-      "title": "Disk vSAN của host",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 48,
-        "w": 24,
-        "h": 9
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "max by (cluster, host, disk, diskgroup, health, op_health, metadata_health, reason) (vsan_disk_info{cluster=~\"$cluster\",host=~\"$host\"})",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
+          "expr": "esxi_vsan_write_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "format": "time_series",
+          "legendFormat": "Write {{host}}",
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "B",
-          "expr": "max by (cluster, host, disk) (vsan_disk_congestion_value{cluster=~\"$cluster\",host=~\"$host\"})",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
+          "expr": "esxi_vsan_read_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "format": "time_series",
+          "legendFormat": "Read {{host}}",
+          "refId": "B"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "C",
-          "expr": "max by (cluster, host, disk) (vsan_disk_used_ratio{cluster=~\"$cluster\",host=~\"$host\"})",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
+          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "format": "time_series",
+          "legendFormat": "Network {{host}}",
+          "refId": "C"
         }
       ],
-      "description": "Từng disk của host: disk group, health, operational, metadata, congestion, dung lượng.",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "left",
-            "cellOptions": {
-              "type": "auto"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^(Health|Operational|Metadata)$"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "green": {
-                        "text": "Healthy",
-                        "color": "green",
-                        "index": 0
-                      },
-                      "yellow": {
-                        "text": "Unhealthy (yellow)",
-                        "color": "orange",
-                        "index": 1
-                      },
-                      "red": {
-                        "text": "Unhealthy (red)",
-                        "color": "red",
-                        "index": 2
-                      },
-                      "unknown": {
-                        "text": "Không có dữ liệu",
-                        "color": "#8e8e8e",
-                        "index": 3
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "basic"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Dung lượng"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percentunit"
-              },
-              {
-                "id": "min",
-                "value": 0
-              },
-              {
-                "id": "max",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "blue",
-                      "value": null
-                    },
-                    {
-                      "color": "orange",
-                      "value": 0.7
-                    },
-                    {
-                      "color": "red",
-                      "value": 0.85
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "gauge",
-                  "mode": "basic"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      },
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "Value #A": true,
-              "__name__": true,
-              "job": true,
-              "instance": true,
-              "cluster": true,
-              "uuid": true
-            },
-            "indexByName": {
-              "host": 0,
-              "diskgroup": 1,
-              "disk": 2,
-              "health": 3,
-              "op_health": 4,
-              "metadata_health": 5,
-              "Value #B": 6,
-              "Value #C": 7,
-              "reason": 8
-            },
-            "renameByName": {
-              "host": "Host",
-              "diskgroup": "Disk group",
-              "disk": "Disk",
-              "health": "Health",
-              "op_health": "Operational",
-              "metadata_health": "Metadata",
-              "Value #B": "Congestion",
-              "Value #C": "Dung lượng",
-              "reason": "Lý do"
-            }
-          }
-        }
-      ]
+      "title": "vSAN latency write / read / network (ms, mẫu 5 phút)",
+      "type": "timeseries"
     },
     {
-      "id": 18,
-      "type": "state-timeline",
-      "title": "Lịch sử trạng thái host (chỉ hiện host từng WARN/ERROR)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 57,
-        "w": 24,
-        "h": 10
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "(max by (host) (esxi_host_status{cluster=~\"$cluster\",host=~\"$host\"}) > 0) or on() label_replace(count(max by (host) (esxi_host_status{cluster=~\"$cluster\",host=~\"$host\"})) * 0, \"host\", \"✓ Tất cả host OK\", \"\", \"\")",
-          "legendFormat": "{{host}}",
-          "format": "time_series"
-        }
-      ],
-      "description": "Host chuyển WARN/ERROR lúc nào — đối chiếu với cảnh báo đã gửi. Dòng xanh '✓ Tất cả host OK' = lúc đó không có host nào WARN/ERROR; trống = không có dữ liệu.",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "OK",
-                  "color": "green",
-                  "index": 0
-                },
-                "1": {
-                  "text": "WARN",
-                  "color": "orange",
-                  "index": 1
-                },
-                "2": {
-                  "text": "ERROR",
-                  "color": "red",
-                  "index": 2
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 2
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "rowHeight": 0.8,
-        "legend": {
-          "showLegend": false
-        }
-      }
-    },
-    {
-      "id": 19,
-      "type": "row",
-      "title": "vSAN Disk Health — cluster $cluster",
       "collapsed": false,
       "gridPos": {
-        "x": 0,
-        "y": 67,
+        "h": 1,
         "w": 24,
-        "h": 1
-      },
-      "panels": []
-    },
-    {
-      "id": 20,
-      "type": "stat",
-      "title": "Disks",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
         "x": 0,
-        "y": 68,
-        "w": 6,
-        "h": 4
+        "y": 48
       },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(vsan_disk_health{cluster=~\"$cluster\"})",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
+      "id": 19,
+      "panels": [],
+      "title": "vSAN Disk Health — cluster $cluster",
+      "type": "row"
     },
     {
-      "id": 21,
-      "type": "stat",
-      "title": "Disk Healthy",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 6,
-        "y": 68,
-        "w": 6,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(vsan_disk_health{cluster=~\"$cluster\"} == 0)",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 22,
-      "type": "stat",
-      "title": "Disk Unhealthy",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 68,
-        "w": 6,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(vsan_disk_health{cluster=~\"$cluster\"} > 0)",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Disk có health khác green (yellow/red/unknown) — giống cột Health ở vCenter > vSAN > Disk Management",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 23,
-      "type": "stat",
-      "title": "Host không có dữ liệu disk",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 18,
-        "y": 68,
-        "w": 6,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(vsan_host_disk_unreported{cluster=~\"$cluster\"})",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Host có trong cluster nhưng vSAN Health không trả về disk (disconnected / not responding)",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 24,
-      "type": "table",
-      "title": "Disk Unhealthy",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 72,
-        "w": 24,
-        "h": 7
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "max by (cluster, host, disk, diskgroup, health, op_health, metadata_health, reason) (vsan_disk_info{cluster=~\"$cluster\", health!=\"green\"})",
-          "legendFormat": "",
-          "format": "table",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Danh sách disk có health khác green. Trống = tất cả disk đều Healthy.",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "left",
-            "cellOptions": {
-              "type": "auto"
-            }
-          },
-          "noValue": "Tất cả disk đều Healthy"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^(Health|Operational|Metadata)$"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "green": {
-                        "text": "Healthy",
-                        "color": "green",
-                        "index": 0
-                      },
-                      "yellow": {
-                        "text": "Unhealthy (yellow)",
-                        "color": "orange",
-                        "index": 1
-                      },
-                      "red": {
-                        "text": "Unhealthy (red)",
-                        "color": "red",
-                        "index": 2
-                      },
-                      "unknown": {
-                        "text": "Không có dữ liệu",
-                        "color": "#8e8e8e",
-                        "index": 3
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "basic"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "Value": true,
-              "__name__": true,
-              "job": true,
-              "instance": true,
-              "uuid": true
-            },
-            "indexByName": {
-              "cluster": 0,
-              "host": 1,
-              "disk": 2,
-              "health": 3,
-              "op_health": 4,
-              "metadata_health": 5,
-              "reason": 6,
-              "diskgroup": 7
-            },
-            "renameByName": {
-              "cluster": "Cluster",
-              "host": "Host",
-              "disk": "Disk",
-              "health": "Health",
-              "op_health": "Operational",
-              "metadata_health": "Metadata",
-              "reason": "Lý do",
-              "diskgroup": "Disk group"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 25,
-      "type": "state-timeline",
-      "title": "Lịch sử health disk (chỉ hiện host từng có disk Unhealthy)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 79,
-        "w": 24,
-        "h": 12
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "(max by (host) (vsan_disk_health{cluster=~\"$cluster\"}) > 0) or on() label_replace(count(max by (host) (vsan_disk_health{cluster=~\"$cluster\"})) * 0, \"host\", \"✓ Tất cả disk healthy\", \"\", \"\")",
-          "legendFormat": "{{host}}",
-          "format": "time_series"
-        }
-      ],
-      "description": "Health xấu nhất của các disk trên host theo thời gian — disk bắt đầu lỗi từ lúc nào. Dòng xanh = không có disk nào Unhealthy; trống = không có dữ liệu.",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "healthy",
-                  "color": "green",
-                  "index": 0
-                },
-                "1": {
-                  "text": "unhealthy (yellow)",
-                  "color": "orange",
-                  "index": 1
-                },
-                "2": {
-                  "text": "unhealthy (red)",
-                  "color": "red",
-                  "index": 2
-                },
-                "3": {
-                  "text": "không rõ",
-                  "color": "#8e8e8e",
-                  "index": 3
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 2
-              },
-              {
-                "color": "#8e8e8e",
-                "value": 3
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "rowHeight": 0.85,
-        "legend": {
-          "showLegend": false
-        }
-      }
-    },
-    {
-      "id": 26,
-      "type": "timeseries",
-      "title": "Congestion — top 10 disk",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 91,
-        "w": 12,
-        "h": 9
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "topk(10, vsan_disk_congestion_value{cluster=~\"$cluster\"})",
-          "legendFormat": "{{host}} {{disk}}",
-          "format": "time_series"
-        }
-      ],
       "description": "Chỉ số congestion của vSAN (0–255). Trên ~60 là disk bắt đầu bị nghẽn.",
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "mappings": [],
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "transparent",
-                "value": null
+                "value": 0
               },
               {
                 "color": "orange",
@@ -2509,69 +1863,65 @@
               }
             ]
           },
-          "custom": {
-            "thresholdsStyle": {
-              "mode": "line+area"
-            },
-            "fillOpacity": 0
-          }
+          "unit": "none"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "id": 26,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
-      }
-    },
-    {
-      "id": 27,
-      "type": "bargauge",
-      "title": "Dung lượng đã dùng — top 10 disk",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 91,
-        "w": 12,
-        "h": 9
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "topk(10, vsan_disk_used_ratio{cluster=~\"$cluster\"})",
-          "legendFormat": "{{host}} {{disk}}",
+          "expr": "topk(10, vsan_disk_congestion_value{cluster=~\"$cluster\"})",
           "format": "time_series",
-          "instant": true,
-          "range": false
+          "legendFormat": "{{host}} {{disk}}",
+          "refId": "A"
         }
       ],
+      "title": "Congestion — top 10 disk",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
-          "min": 0,
+          "mappings": [],
           "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "blue",
-                "value": null
+                "value": 0
               },
               {
                 "color": "orange",
@@ -2582,154 +1932,155 @@
                 "value": 0.85
               }
             ]
-          }
+          },
+          "unit": "percentunit"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "id": 27,
       "options": {
-        "orientation": "horizontal",
         "displayMode": "basic",
-        "showUnfilled": true,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
+          "fields": "",
           "values": false
-        }
-      }
-    },
-    {
-      "id": 28,
-      "type": "state-timeline",
-      "title": "Exporter theo pool — lấy dữ liệu vCenter",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 100,
-        "w": 12,
-        "h": 8
-      },
+      "pluginVersion": "13.2.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "refId": "A",
-          "expr": "vsan_disk_exporter_up{pool!=\"\"} or label_replace(vsan_disk_exporter_up{pool=\"\"}, \"pool\", \"$1\", \"instance\", \"(.*)\")",
-          "legendFormat": "{{pool}}",
-          "format": "time_series"
+          "expr": "topk(10, vsan_disk_used_ratio{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "{{host}} {{disk}}",
+          "range": false,
+          "refId": "A"
         }
       ],
-      "description": "Xanh = lần lấy dữ liệu vCenter gần nhất thành công, đỏ = lỗi. Tên pool lấy từ nhãn 'pool' trong scrape config Prometheus (chưa đặt thì hiện IP:port).",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "1": {
-                  "text": "OK",
-                  "color": "green",
-                  "index": 0
-                },
-                "0": {
-                  "text": "LỖI",
-                  "color": "red",
-                  "index": 1
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "rowHeight": 0.8,
-        "legend": {
-          "showLegend": false
-        }
-      }
-    },
-    {
-      "id": 29,
-      "type": "timeseries",
-      "title": "Exporter theo pool — thời gian lấy dữ liệu (s)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 100,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "vsan_disk_exporter_collect_duration_seconds{pool!=\"\"} or label_replace(vsan_disk_exporter_collect_duration_seconds{pool=\"\"}, \"pool\", \"$1\", \"instance\", \"(.*)\")",
-          "legendFormat": "{{pool}}",
-          "format": "time_series"
-        }
-      ],
-      "description": "Mỗi vòng exporter mất bao lâu để lấy dữ liệu vCenter. Tăng vọt = vCenter đang chậm.",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "min": 0,
-          "custom": {
-            "fillOpacity": 8,
-            "lineWidth": 1
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "sortBy": "Max",
-          "sortDesc": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
+      "title": "Dung lượng đã dùng — top 10 disk",
+      "type": "bargauge"
     }
-  ]
+  ],
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "vmware",
+    "esxi",
+    "vsan"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Prometheus FPT HCM",
+          "value": "mq7JSiz4k"
+        },
+        "description": "",
+        "label": "Prometheus",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "/^Prometheus (CMC HN|CMC-Q7|FPT HCM|FPT HN|VIETTEL HCM)$/",
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "POOL18-XD",
+          "value": "POOL18-XD"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(esxi_host_status, cluster)",
+        "includeAll": false,
+        "label": "Cluster",
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "query": "label_values(esxi_host_status, cluster)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "0",
+          "value": "0"
+        },
+        "includeAll": false,
+        "label": "Trạng thái",
+        "name": "status",
+        "options": [],
+        "query": "Tất cả : 0,Cảnh báo + Lỗi : 1,Lỗi : 2",
+        "type": "custom",
+        "valuesFormat": "csv"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(esxi_host_status{cluster=~\"$cluster\"}, host)",
+        "includeAll": true,
+        "label": "Host (chi tiết)",
+        "multi": true,
+        "name": "host",
+        "options": [],
+        "query": {
+          "query": "label_values(esxi_host_status{cluster=~\"$cluster\"}, host)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "MONITOR RESOURCE HOST ESXi",
+  "uid": "esxi-host-resource",
+  "version": 44,
+  "weekStart": ""
 }
