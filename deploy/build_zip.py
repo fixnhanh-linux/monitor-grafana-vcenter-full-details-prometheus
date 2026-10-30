@@ -34,6 +34,8 @@ ENTRIES = [
     ("README.md", "README.md"), ("grafana/esxi_host_resource_grafana.json", "esxi_host_resource_grafana.json"),
     ("prometheus/alert-rules-esxi.yml", "alert-rules-esxi.yml"),
     ("prometheus/scrape-esxi-host-resource.yml", "scrape-esxi-host-resource.yml"),
+    ("zabbix/esxi_host_exporter_zbx60.yaml", "zabbix/esxi_host_exporter_zbx60.yaml"),
+    ("zabbix/README.md", "zabbix/README.md"),
     ("docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
     ("docs/Huong-Dan-Cai-Dat-ESXi-Exporter.docx", "Huong-Dan-Cai-Dat-ESXi-Exporter.docx"),
     ("exporter/esxi_host_exporter.py", "app/esxi_host_exporter.py"), ("exporter/vsan_disk_health.py", "app/vsan_disk_health.py"),

@@ -1,0 +1,322 @@
+zabbix_export:
+  version: '6.0'
+  date: '2026-10-30T18:11:40Z'
+  groups:
+  - uuid: 13d64b21b3845cc78e9bef4c47da9463
+    name: Templates/Applications
+  templates:
+  - uuid: 5ccd3b52023c5080a2839d3fcd02bef5
+    template: ESXi Host Exporter
+    name: ESXi Host Exporter
+    description: 'Giam sat ESXi / vSAN qua ESXi Host Exporter (/metrics). LLD theo host + cluster. Muc 2 = High, Muc 3 = Warning; nguong la macro {$ESXI_*}.'
+    groups:
+    - name: Templates/Applications
+    items:
+    - uuid: 2be09c706d595e13ac9e0dd02064444e
+      name: 'ESXi exporter: raw metrics (/metrics)'
+      type: HTTP_AGENT
+      key: esxi.metrics.raw
+      delay: 1m
+      history: '0'
+      trends: '0'
+      value_type: TEXT
+      url: 'http://{$ESXI_EXPORTER_HOST}:{$ESXI_EXPORTER_PORT}/metrics'
+      timeout: 30s
+      tags:
+      - tag: component
+        value: raw
+    discovery_rules:
+    - uuid: 000cc6124c33524dac110b04678af3dd
+      name: ESXi host discovery
+      type: DEPENDENT
+      key: esxi.host.discovery
+      delay: '0'
+      master_item:
+        key: esxi.metrics.raw
+      preprocessing:
+      - type: PROMETHEUS_TO_JSON
+        parameters:
+        - esxi_host_status
+      lld_macro_paths:
+      - lld_macro: '{#HOST}'
+        path: $.labels['host']
+      - lld_macro: '{#CLUSTER}'
+        path: $.labels['cluster']
+      item_prototypes:
+      - uuid: e691eb68f2f054a38a7f59c1b65617ae
+        name: 'Host [{#HOST}] {#CLUSTER}: Trang thai (0=OK,1=WARN,2=ERROR)'
+        type: DEPENDENT
+        key: 'esxi.host.status[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_host_status{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+      - uuid: 8a1a91dc843856ad892d99aaab14d843
+        name: 'Host [{#HOST}] {#CLUSTER}: Ket noi vCenter (1/0)'
+        type: DEPENDENT
+        key: 'esxi.host.connected[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_host_connected{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+      - uuid: f08e9c54fb9d5b899f4a3690f9f46a64
+        name: 'Host [{#HOST}] {#CLUSTER}: Maintenance mode (1/0)'
+        type: DEPENDENT
+        key: 'esxi.host.maintenance[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_host_maintenance{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+      - uuid: dd78a07d8b2b5742ba8a2d373bda5a2f
+        name: 'Host [{#HOST}] {#CLUSTER}: CPU dung (%)'
+        type: DEPENDENT
+        key: 'esxi.host.cpu[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_host_cpu_usage_percent{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+        units: '%'
+      - uuid: 1a95c7911b105f6a881cec8a9833b63a
+        name: 'Host [{#HOST}] {#CLUSTER}: RAM dung (%)'
+        type: DEPENDENT
+        key: 'esxi.host.ram[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_host_mem_usage_percent{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+        units: '%'
+      - uuid: a2429c922a8a55b18ae2c474d9865ca1
+        name: 'Host [{#HOST}] {#CLUSTER}: Disk vSAN health (0=green,1=yellow,2=red,3=unknown)'
+        type: DEPENDENT
+        key: 'esxi.host.disk_health[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_vsan_host_disk_health{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+      - uuid: 41ad4544b29c5a73bfb0d746c528412a
+        name: 'Host [{#HOST}] {#CLUSTER}: vSAN congestion'
+        type: DEPENDENT
+        key: 'esxi.host.congestion[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_vsan_host_congestion{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+      - uuid: 9c56a3a99169536e8dbe64b7bb293222
+        name: 'Host [{#HOST}] {#CLUSTER}: vSAN network latency (ms)'
+        type: DEPENDENT
+        key: 'esxi.host.net_latency[{#CLUSTER},{#HOST}]'
+        value_type: FLOAT
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_vsan_network_latency_ms{cluster="{#CLUSTER}",host="{#HOST}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+        - tag: host
+          value: '{#HOST}'
+        units: ms
+      trigger_prototypes:
+      - uuid: 4cc175d8a6ac5938904d4fd5d9645849
+        expression: 'last(/ESXi Host Exporter/esxi.host.status[{#CLUSTER},{#HOST}])=2'
+        name: 'Host [{#HOST}] {#CLUSTER}: Loi (ERROR) - host down / service / NIC / phan cung [Muc 2]'
+        priority: HIGH
+      - uuid: 1083a6382ed45db78d7fbca362c02476
+        expression: 'last(/ESXi Host Exporter/esxi.host.status[{#CLUSTER},{#HOST}])=1'
+        name: 'Host [{#HOST}] {#CLUSTER}: Canh bao (WARN) [Muc 3]'
+        priority: WARNING
+      - uuid: 34c28bb367015015bd1212a6d93682ef
+        expression: 'last(/ESXi Host Exporter/esxi.host.connected[{#CLUSTER},{#HOST}])=0'
+        name: 'Host [{#HOST}] {#CLUSTER}: Mat ket noi vCenter [Muc 2]'
+        priority: HIGH
+      - uuid: 6376b88ccd0f518db368f5ec80fd6ab8
+        expression: 'min(/ESXi Host Exporter/esxi.host.cpu[{#CLUSTER},{#HOST}],5m)>{$ESXI_CPU_HIGH}'
+        name: 'Host [{#HOST}] {#CLUSTER}: CPU > {$ESXI_CPU_HIGH}% [Muc 2]'
+        priority: HIGH
+      - uuid: 0d731748dcfb536eb5ff48f41a41aaab
+        expression: 'min(/ESXi Host Exporter/esxi.host.cpu[{#CLUSTER},{#HOST}],5m)>{$ESXI_CPU_WARN} and min(/ESXi Host Exporter/esxi.host.cpu[{#CLUSTER},{#HOST}],5m)<={$ESXI_CPU_HIGH}'
+        name: 'Host [{#HOST}] {#CLUSTER}: CPU > {$ESXI_CPU_WARN}% [Muc 3]'
+        priority: WARNING
+      - uuid: 223517e92398555183ac8c3b7ee14850
+        expression: 'min(/ESXi Host Exporter/esxi.host.ram[{#CLUSTER},{#HOST}],5m)>{$ESXI_RAM_HIGH}'
+        name: 'Host [{#HOST}] {#CLUSTER}: RAM > {$ESXI_RAM_HIGH}% [Muc 2]'
+        priority: HIGH
+      - uuid: e5dd2b05b5b35378972ae512efa2d46f
+        expression: 'min(/ESXi Host Exporter/esxi.host.ram[{#CLUSTER},{#HOST}],5m)>{$ESXI_RAM_WARN} and min(/ESXi Host Exporter/esxi.host.ram[{#CLUSTER},{#HOST}],5m)<={$ESXI_RAM_HIGH}'
+        name: 'Host [{#HOST}] {#CLUSTER}: RAM > {$ESXI_RAM_WARN}% [Muc 3]'
+        priority: WARNING
+      - uuid: b7f454a07ce85418878445587e6c83df
+        expression: 'last(/ESXi Host Exporter/esxi.host.disk_health[{#CLUSTER},{#HOST}])>=2 and last(/ESXi Host Exporter/esxi.host.disk_health[{#CLUSTER},{#HOST}])<=2'
+        name: 'Host [{#HOST}] {#CLUSTER}: Disk vSAN Unhealthy (red) [Muc 2]'
+        priority: HIGH
+      - uuid: 287ee98c5e9d510ab2c67f28b253f037
+        expression: 'last(/ESXi Host Exporter/esxi.host.disk_health[{#CLUSTER},{#HOST}])=1'
+        name: 'Host [{#HOST}] {#CLUSTER}: Disk vSAN Unhealthy (yellow) [Muc 3]'
+        priority: WARNING
+      - uuid: 956a4b7c9b705c1282930fb43002c3bb
+        expression: 'last(/ESXi Host Exporter/esxi.host.net_latency[{#CLUSTER},{#HOST}])>{$ESXI_NETLAT_HIGH}'
+        name: 'Host [{#HOST}] {#CLUSTER}: vSAN network latency > {$ESXI_NETLAT_HIGH}ms [Muc 2]'
+        priority: HIGH
+      - uuid: 511dcda1b40f5de289feebd88fc118c0
+        expression: 'last(/ESXi Host Exporter/esxi.host.net_latency[{#CLUSTER},{#HOST}])>{$ESXI_NETLAT_WARN} and last(/ESXi Host Exporter/esxi.host.net_latency[{#CLUSTER},{#HOST}])<={$ESXI_NETLAT_HIGH}'
+        name: 'Host [{#HOST}] {#CLUSTER}: vSAN network latency > {$ESXI_NETLAT_WARN}ms [Muc 3]'
+        priority: WARNING
+      - uuid: f19c3bc099115444964e1696ccb1a9c7
+        expression: 'min(/ESXi Host Exporter/esxi.host.congestion[{#CLUSTER},{#HOST}],5m)>{$ESXI_CONGESTION}'
+        name: 'Host [{#HOST}] {#CLUSTER}: vSAN congestion > {$ESXI_CONGESTION} [Muc 2]'
+        priority: HIGH
+      - uuid: 875e96f6498456ed8ef0ded18359cdbc
+        expression: 'last(/ESXi Host Exporter/esxi.host.maintenance[{#CLUSTER},{#HOST}])=1'
+        name: 'Host [{#HOST}] {#CLUSTER}: dang o che do bao tri [Muc 3]'
+        priority: WARNING
+    - uuid: f8e93a8619f254008704bd4a67f321a4
+      name: ESXi cluster discovery (resync)
+      type: DEPENDENT
+      key: esxi.cluster.discovery
+      delay: '0'
+      master_item:
+        key: esxi.metrics.raw
+      preprocessing:
+      - type: PROMETHEUS_TO_JSON
+        parameters:
+        - esxi_vsan_resync_bytes
+      lld_macro_paths:
+      - lld_macro: '{#CLUSTER}'
+        path: $.labels['cluster']
+      item_prototypes:
+      - uuid: fdf2b567f30c53dc84a42be437a93c73
+        name: 'Cluster [{#CLUSTER}]: vSAN resync con lai (bytes)'
+        type: DEPENDENT
+        key: 'esxi.vsan.resync_bytes[{#CLUSTER}]'
+        value_type: FLOAT
+        units: B
+        master_item:
+          key: esxi.metrics.raw
+        preprocessing:
+        - type: PROMETHEUS_PATTERN
+          parameters:
+          - 'esxi_vsan_resync_bytes{cluster="{#CLUSTER}"}'
+          - value
+          - ''
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: cluster
+          value: '{#CLUSTER}'
+      trigger_prototypes:
+      - uuid: 0274d26f36d9523d949e3b0de59ad766
+        expression: 'last(/ESXi Host Exporter/esxi.vsan.resync_bytes[{#CLUSTER}])>{$ESXI_RESYNC_MIN}'
+        name: 'Cluster [{#CLUSTER}]: vSAN dang resync [Muc 2]'
+        priority: HIGH
+    macros:
+    - macro: '{$ESXI_EXPORTER_HOST}'
+      value: 127.0.0.1
+      description: IP may chay exporter
+    - macro: '{$ESXI_EXPORTER_PORT}'
+      value: '9811'
+      description: Port instance exporter
+    - macro: '{$ESXI_CPU_HIGH}'
+      value: '60'
+      description: 'CPU % -> Muc 2 (High)'
+    - macro: '{$ESXI_CPU_WARN}'
+      value: '40'
+      description: 'CPU % -> Muc 3 (Warning)'
+    - macro: '{$ESXI_RAM_HIGH}'
+      value: '90'
+      description: 'RAM % -> Muc 2 (High)'
+    - macro: '{$ESXI_RAM_WARN}'
+      value: '80'
+      description: 'RAM % -> Muc 3 (Warning)'
+    - macro: '{$ESXI_NETLAT_HIGH}'
+      value: '1'
+      description: 'vSAN network latency ms -> Muc 2'
+    - macro: '{$ESXI_NETLAT_WARN}'
+      value: '0.5'
+      description: 'vSAN network latency ms -> Muc 3'
+    - macro: '{$ESXI_CONGESTION}'
+      value: '60'
+      description: 'vSAN congestion -> Muc 2'
+    - macro: '{$ESXI_RESYNC_MIN}'
+      value: '0'
+      description: 'Resync bytes vuot nguong -> Muc 2'
