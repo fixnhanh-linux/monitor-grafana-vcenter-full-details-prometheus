@@ -18,7 +18,8 @@ cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **a
 | [`exporter/`](exporter/) | Chạy exporter (server hoặc thử trên máy) | `esxi_host_exporter.py` (chính), `vsan_disk_health.py`, `esxi_dashboard.html`, `dashboard_template.html` |
 | [`deploy/`](deploy/) | Cài / gỡ / quản lý trên Linux, đóng gói offline | `install.sh`, `uninstall.sh`, `menu.sh` (lệnh `esxi-menu`), `esxi-host-exporter@.service`, `build_zip.py` |
 | [`grafana/`](grafana/) | Import vào Grafana | `esxi_host_resource_grafana.json` |
-| [`prometheus/`](prometheus/) | Cấu hình Prometheus | `scrape-esxi-host-resource.yml` (mẫu scrape), `alert-rules-esxi.yml` (12 rule) |
+| [`prometheus/`](prometheus/) | Cấu hình Prometheus | `scrape-esxi-host-resource.yml` (mẫu scrape), `alert-rules-esxi.yml` (22 rule, Mức 2 / Mức 3) |
+| [`zabbix/`](zabbix/) | Dùng Zabbix thay / cùng Prometheus | `esxi_host_exporter_zbx60.yaml` (template Zabbix 6.0), `make_template.py` |
 | [`docs/`](docs/) | Đọc / in / gửi | `Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx` (hướng dẫn A–Z), `so-do-kien-truc.svg` (sơ đồ) |
 
 ## 1. Chuẩn bị
@@ -82,18 +83,27 @@ Kiểm tra phiên bản đang chạy: `curl -s localhost:9811/metrics | grep bui
 3. `promtool check config /etc/prometheus/prometheus.yml && systemctl reload prometheus`
    → Status → Targets: job `esxi_host_resource` **UP**.
 
-| Tình huống | Rule | Severity | for |
-|---|---|---|---|
-| vmnic down | `EsxiVmnicDown` | critical | 0s |
-| Disk vSAN lỗi | `VsanDiskError` | error | 0s |
-| DiskGroup vSAN Unhealthy | `VsanDiskGroupUnhealthy` | unhealthy | 0s |
-| Host disconnected | `EsxiHostDisconnected` | critical | 30s |
-| vSAN resync > 0 | `VsanResyncInProgress` | warning | 2m |
-| CPU > 60% / RAM > 90% | `EsxiCpuHigh` / `EsxiRamHigh` | warning | 5m |
-| vSAN write latency > 15ms | `VsanWriteLatencyHigh` | warning | 10m |
-| vSAN congestion > 60 | `VsanCongestion` | warning | 30s |
-| Drop vmk vSAN > 0,1% | `VsanVmkPacketDrop` | warning | 5m |
-| Exporter mất dữ liệu | `EsxiExporterStale` / `EsxiExporterDown` | warning | 15m / 2m |
+Cảnh báo theo bảng "Chi tiết từng host trong cluster": **Mức 2 – Cao** = `severity: critical`, **Mức 3 – Cảnh báo** = `severity: warning` (thêm nhãn `muc: "2"` / `"3"`).
+
+| Chỉ số | Điều kiện | Rule | Mức | for |
+|---|---|---|---|---|
+| Host Status / ESXi service | Host mất kết nối vCenter | `EsxiHostDisconnected` | 2 | 30s |
+| | Hardware Health có thành phần RED | `EsxiHostHardwareError` | 2 | 0s |
+| NIC | vmnic down | `EsxiVmnicDown` | 2 | 0s |
+| CPU từng host | > 60% / > 40% | `EsxiCpuHigh` / `EsxiCpuWarning` | 2 / 3 | 5m |
+| RAM từng host | > 90% / > 80% | `EsxiRamHigh` / `EsxiRamWarning` | 2 / 3 | 5m |
+| Disk Group / Disk Health | Disk failed (RED) · DiskGroup RED | `VsanDiskFailed` · `VsanDiskGroupUnhealthy` | 2 | 0s |
+| | % disk healthy < 70% / 70–80% | `VsanDiskHealthLow` / `VsanDiskHealthWarning` | 2 / 3 | 0s |
+| | Disk YELLOW | `VsanDiskDegraded` | 3 | 0s |
+| Disk latency | write > 30ms / > 15ms (**tạm**, chờ chốt ngưỡng theo Disk Class) | `VsanDiskLatencyHigh` / `VsanDiskLatencyWarning` | 2 / 3 | 10m |
+| vSAN network latency | > 1ms / 0,5–1ms | `VsanNetworkLatencyHigh` / `VsanNetworkLatencyWarning` | 2 / 3 | 0s |
+| vSAN congestion / Resync | congestion > 60 · resync > 0 | `VsanCongestion` · `VsanResyncInProgress` | 2 | 30s / 2m |
+| Host maintenance | Host vào chế độ bảo trì | `EsxiHostMaintenance` | 3 | 0s |
+| (khác) | Drop vmk vSAN > 0,1% | `VsanVmkPacketDrop` | 3 | 5m |
+| (khác) | Exporter mất dữ liệu | `EsxiExporterStale` / `EsxiExporterDown` | 3 | 15m / 2m |
+
+`esxi_vsan_network_latency_ms` lấy từ test "Network latency check" của vSAN health (cache vSAN health, lấy mỗi 5 phút);
+vCenter không có test này thì metric không xuất hiện và 2 rule network latency không bao giờ bắn.
 
 Gửi sang Element: route `alertname=~"Esxi.*|Vsan.*"` trong Alertmanager tới receiver Element đang dùng.
 
@@ -102,15 +112,24 @@ Gửi sang Element: route `alertname=~"Esxi.*|Vsan.*"` trong Alertmanager tới 
 Dashboards → New → Import → upload [`grafana/esxi_host_resource_grafana.json`](grafana/esxi_host_resource_grafana.json)
 → chọn Prometheus → chọn Cluster. Đã có bản cũ thì chọn **Overwrite**.
 
-- **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / vSAN resync / độ mới dữ liệu.
+- **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / Host maintenance / vSAN network latency max / vSAN resync / độ mới dữ liệu.
 - **Bảng host**: CPU% · RAM% · **NIC UP (xanh) / NIC DOWN (đỏ)** · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Lý do.
 - **Network**: bandwidth vmnic top 10, drop/discard vmk vSAN, vmnic DOWN.
 - **Chi tiết host** và **vSAN Disk Health**: từng disk, lịch sử trạng thái, exporter theo pool.
 
-**Status host**: ERROR khi host mất kết nối · vmnic ≥ 10Gb down · có disk vSAN không green;
-WARN khi maintenance · CPU > 60% · RAM > 90% · write latency > 15ms · congestion > 60 · drop vmk vSAN > 0,1%.
-Đổi ngưỡng trong file `.env`: `ESXI_WARN_CPU`, `ESXI_WARN_RAM`, `ESXI_WARN_LATENCY_MS`, `ESXI_WARN_CONGESTION`,
-`ESXI_WARN_VMK_DROP_PCT`, `ESXI_NIC_MIN_MBPS` (mặc định chỉ theo dõi vmnic ≥ 10000 Mb/s).
+**Status host** (khớp Mức 2 / Mức 3): ERROR khi host mất kết nối · phần cứng RED · vmnic ≥ 10Gb down · disk RED hoặc % disk healthy < 70%
+· CPU > 60% · RAM > 90% · write latency > 30ms · network latency > 1ms · congestion > 60;
+WARN khi maintenance · disk YELLOW · CPU > 40% · RAM > 80% · write latency > 15ms · network latency > 0,5ms · drop vmk vSAN > 0,1%.
+Đổi ngưỡng trong file `.env` (WARN = Mức 3, ERR = Mức 2): `ESXI_WARN_CPU` / `ESXI_ERR_CPU`, `ESXI_WARN_RAM` / `ESXI_ERR_RAM`,
+`ESXI_WARN_LATENCY_MS` / `ESXI_ERR_LATENCY_MS`, `ESXI_WARN_NET_LATENCY_MS` / `ESXI_ERR_NET_LATENCY_MS`,
+`ESXI_WARN_DISK_HEALTH_PCT` / `ESXI_ERR_DISK_HEALTH_PCT`, `ESXI_WARN_CONGESTION`, `ESXI_WARN_VMK_DROP_PCT`,
+`ESXI_NIC_MIN_MBPS` (mặc định chỉ theo dõi vmnic ≥ 10000 Mb/s). Đổi ngưỡng ở `.env` thì sửa luôn số trong `alert-rules-esxi.yml`.
+
+### Zabbix 6.0
+
+Import [`zabbix/esxi_host_exporter_zbx60.yaml`](zabbix/esxi_host_exporter_zbx60.yaml) → tạo host Zabbix trỏ IP máy exporter
+→ gắn template **ESXi & vSAN Command Center** (port khác 9811 thì sửa macro `{$ESXI.EXPORTER.URL}`).
+Trigger giống bảng ở mục 4 (Mức 2 = High, Mức 3 = Warning), ngưỡng là macro. Chi tiết: [`zabbix/README.md`](zabbix/README.md).
 
 ## 6. InfluxDB (tuỳ chọn)
 
@@ -131,10 +150,10 @@ Không muốn sửa exporter: dùng Telegraf `[[inputs.prometheus]]` đọc `/me
 
 | Nhóm | Metric (nhãn) |
 |---|---|
-| Host | `esxi_host_status` (0 OK/1 WARN/2 ERROR), `esxi_host_info` (nics_up, nics_down, reason), `esxi_host_cpu_usage_percent`, `esxi_host_mem_usage_percent`, `esxi_host_uptime_seconds`, `esxi_host_vms_running`, `esxi_host_connected`, `esxi_host_maintenance` |
+| Host | `esxi_host_status` (0 OK/1 WARN/2 ERROR), `esxi_host_info` (nics_up, nics_down, reason), `esxi_host_cpu_usage_percent`, `esxi_host_mem_usage_percent`, `esxi_host_uptime_seconds`, `esxi_host_vms_running`, `esxi_host_connected`, `esxi_host_maintenance`, `esxi_host_hardware_health` |
 | NIC (`nic`) | `esxi_host_nic_up`, `esxi_host_nic_speed_mbps`, `esxi_host_nic_transmit_mbps`, `esxi_host_nic_receive_mbps` |
 | vmk (`vmk`, `vsan`, `direction`) | `esxi_host_vmk_drop_percent`, `esxi_host_vmk_dropped_packets` |
-| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion` |
+| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_network_latency_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_host_disk_health_percent`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion` |
 | Cluster | `esxi_cluster_status`, `esxi_cluster_vsan_health`, `esxi_cluster_drs_mode`, `esxi_cluster_hosts`, `esxi_cluster_vms_total`, `esxi_cluster_cpu_total_hz`, `esxi_cluster_mem_total_bytes`, `esxi_cluster_vsan_capacity_bytes`, `esxi_vsan_resync_bytes` |
 | Disk (`disk`) | `vsan_disk_health`, `vsan_disk_info` (reason), `vsan_disk_congestion_value`, `vsan_disk_used_ratio` |
 | Exporter | `esxi_exporter_build_info` (version), `vsan_disk_exporter_up`, `vsan_disk_exporter_last_success_timestamp_seconds` |
