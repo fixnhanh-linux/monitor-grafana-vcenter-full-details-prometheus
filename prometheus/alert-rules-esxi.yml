@@ -1,174 +1,85 @@
-# Alert rules cho esxi_host_exporter.py - theo bang "Chi tiet tung host trong cluster":
-#   Muc 2 - Cao      -> severity: critical, muc: "2"
-#   Muc 3 - Canh bao -> severity: warning,  muc: "3"
-# Them vao prometheus.yml:
+# Alert rules cho esxi_host_exporter.py - theo bang "Mapping day du alert -> kenh thong bao"
+# (file MONITOR RESOURCE HOST ESXi.docx). Them vao prometheus.yml:
 #   rule_files:
 #     - /etc/prometheus/rules/alert-rules-esxi.yml
 #
 # Luu y ve "Delay": Prometheus chi thay doi trang thai sau moi lan scrape + evaluation_interval,
-# va exporter lay du lieu vCenter moi 60s (disk health / network latency / phan cung: moi 5 phut).
+# va exporter lay du lieu vCenter moi 60s. Delay 0s/5s trong bang thuc te ~ 1-2 phut.
 # Can nhanh hon -> dung them alarm cua vCenter (SNMP trap / webhook), xem README.
-#
-# Cap Muc 2 / Muc 3 cung chi so dung khoang tach roi (vd CPU > 40 va <= 60) de khong ban 2 canh bao cung luc.
 
 groups:
   - name: esxi-host-resource
     rules:
-      # ---------- Host Status / ESXi service ----------
-      - alert: EsxiHostDisconnected
-        expr: esxi_host_connected == 0
-        for: 30s
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "Host {{ $labels.host }} mat ket noi voi vCenter ({{ $labels.cluster }})"
-          description: "Host down / notResponding / ESXi service (hostd, vpxa) loi."
-
-      - alert: EsxiHostHardwareError
-        expr: esxi_host_hardware_health == 2
-        for: 0s
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "Phan cung host {{ $labels.host }} loi ({{ $labels.cluster }})"
-          description: "Hardware Health co thanh phan RED (cam bien / CPU / RAM / storage). Xem cot Ly do o dashboard."
-
-      # ---------- NIC ----------
       - alert: EsxiVmnicDown
         expr: esxi_host_nic_up == 0
         for: 0s
-        labels: { severity: critical, muc: "2" }
+        labels: { severity: critical }
         annotations:
           summary: "vmnic {{ $labels.nic }} DOWN tren host {{ $labels.host }} ({{ $labels.cluster }})"
           description: "Uplink {{ $labels.nic }} mat link. Kiem tra cap / switch / port."
 
-      # ---------- CPU ----------
-      - alert: EsxiCpuHigh
-        expr: esxi_host_cpu_usage_percent > 60
-        for: 5m
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "CPU host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 60% trong 5 phut)"
-
-      - alert: EsxiCpuWarning
-        expr: esxi_host_cpu_usage_percent > 40 and esxi_host_cpu_usage_percent <= 60
-        for: 5m
-        labels: { severity: warning, muc: "3" }
-        annotations:
-          summary: "CPU host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 40% trong 5 phut)"
-
-      # ---------- RAM ----------
-      - alert: EsxiRamHigh
-        expr: esxi_host_mem_usage_percent > 90
-        for: 5m
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "RAM host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 90% trong 5 phut)"
-
-      - alert: EsxiRamWarning
-        expr: esxi_host_mem_usage_percent > 80 and esxi_host_mem_usage_percent <= 90
-        for: 5m
-        labels: { severity: warning, muc: "3" }
-        annotations:
-          summary: "RAM host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 80% trong 5 phut)"
-
-      # ---------- Disk Group / Disk Health ----------
-      - alert: VsanDiskFailed
-        expr: vsan_disk_health == 2
+      - alert: VsanDiskError
+        expr: vsan_disk_health > 0
         for: 0s
-        labels: { severity: critical, muc: "2" }
+        labels: { severity: error }
         annotations:
-          summary: "Disk vSAN failed tren host {{ $labels.host }} ({{ $labels.cluster }})"
-          description: "Disk {{ $labels.disk }} health RED. Xem ly do o dashboard MONITOR RESOURCE HOST ESXi."
+          summary: "Disk vSAN loi tren host {{ $labels.host }} ({{ $labels.cluster }})"
+          description: "Disk {{ $labels.disk }} health = {{ $value }} (1=yellow, 2=red, 3=unknown). Xem ly do o dashboard MONITOR RESOURCE HOST ESXi."
 
       - alert: VsanDiskGroupUnhealthy
-        expr: esxi_vsan_diskgroup_health == 2
+        expr: esxi_vsan_diskgroup_health > 0
         for: 0s
-        labels: { severity: critical, muc: "2" }
+        labels: { severity: unhealthy }
         annotations:
           summary: "DiskGroup vSAN Unhealthy tren host {{ $labels.host }} ({{ $labels.cluster }})"
-          description: "Disk group {{ $labels.diskgroup }} co disk RED."
+          description: "Disk group {{ $labels.diskgroup }} co disk khong healthy (muc {{ $value }})."
 
-      - alert: VsanDiskHealthLow
-        expr: esxi_vsan_host_disk_health_percent < 70
-        for: 0s
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "Disk health host {{ $labels.host }} = {{ $value }}% (< 70%) ({{ $labels.cluster }})"
-          description: "Ti le disk vSAN healthy cua host duoi 70%."
-
-      - alert: VsanDiskHealthWarning
-        expr: esxi_vsan_host_disk_health_percent >= 70 and esxi_vsan_host_disk_health_percent < 80
-        for: 0s
-        labels: { severity: warning, muc: "3" }
-        annotations:
-          summary: "Disk health host {{ $labels.host }} = {{ $value }}% (70% - 80%) ({{ $labels.cluster }})"
-
-      - alert: VsanDiskDegraded
-        expr: vsan_disk_health == 1
-        for: 0s
-        labels: { severity: warning, muc: "3" }
-        annotations:
-          summary: "Disk vSAN {{ $labels.disk }} YELLOW tren host {{ $labels.host }} ({{ $labels.cluster }})"
-
-      # ---------- Disk latency ----------
-      # Yeu cau chua chot nguong theo Disk Class (SSD / NVMe / HDD / USB) -> TAM dat 15ms / 30ms, sua khi co nguong.
-      - alert: VsanDiskLatencyHigh
-        expr: esxi_vsan_write_latency_ms > 30
-        for: 10m
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "Write latency host {{ $labels.host }} = {{ $value | printf \"%.1f\" }}ms (> 30ms trong 10 phut)"
-
-      - alert: VsanDiskLatencyWarning
-        expr: esxi_vsan_write_latency_ms > 15 and esxi_vsan_write_latency_ms <= 30
-        for: 10m
-        labels: { severity: warning, muc: "3" }
-        annotations:
-          summary: "Write latency host {{ $labels.host }} = {{ $value | printf \"%.1f\" }}ms (> 15ms trong 10 phut)"
-
-      # ---------- vSAN network latency ----------
-      - alert: VsanNetworkLatencyHigh
-        expr: esxi_vsan_network_latency_ms > 1
-        for: 0s
-        labels: { severity: critical, muc: "2" }
-        annotations:
-          summary: "vSAN network latency host {{ $labels.host }} = {{ $value | printf \"%.2f\" }}ms (> 1ms)"
-
-      - alert: VsanNetworkLatencyWarning
-        expr: esxi_vsan_network_latency_ms > 0.5 and esxi_vsan_network_latency_ms <= 1
-        for: 0s
-        labels: { severity: warning, muc: "3" }
-        annotations:
-          summary: "vSAN network latency host {{ $labels.host }} = {{ $value | printf \"%.2f\" }}ms (0,5 - 1ms)"
-
-      # ---------- vSAN congestion / Resync ----------
-      - alert: VsanCongestion
-        expr: esxi_vsan_host_congestion > 60
+      - alert: EsxiHostDisconnected
+        expr: esxi_host_connected == 0
         for: 30s
-        labels: { severity: critical, muc: "2" }
+        labels: { severity: critical }
         annotations:
-          summary: "vSAN congestion host {{ $labels.host }} = {{ $value }} (> 60)"
+          summary: "Host {{ $labels.host }} mat ket noi voi vCenter ({{ $labels.cluster }})"
 
       - alert: VsanResyncInProgress
         expr: esxi_vsan_resync_objects > 0
         for: 2m
-        labels: { severity: critical, muc: "2" }
+        labels: { severity: warning }
         annotations:
           summary: "vSAN dang resync {{ $value }} object tren cluster {{ $labels.cluster }}"
 
-      # ---------- Host maintenance ----------
-      - alert: EsxiHostMaintenance
-        expr: esxi_host_maintenance == 1
-        for: 0s
-        labels: { severity: warning, muc: "3" }
+      - alert: EsxiCpuHigh
+        expr: esxi_host_cpu_usage_percent > 60
+        for: 5m
+        labels: { severity: warning }
         annotations:
-          summary: "Host {{ $labels.host }} chuyen sang maintenance mode ({{ $labels.cluster }})"
-          description: "Host dang o che do bao tri. Neu khong co lich bao tri -> kiem tra ai dua host vao maintenance."
+          summary: "CPU host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 60% trong 5 phut)"
 
-      # ---------- Khac (khong co trong bang, giu lai) ----------
+      - alert: EsxiRamHigh
+        expr: esxi_host_mem_usage_percent > 90
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "RAM host {{ $labels.host }} = {{ $value | printf \"%.0f\" }}% (> 90% trong 5 phut)"
+
+      - alert: VsanWriteLatencyHigh
+        expr: esxi_vsan_write_latency_ms > 15
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Write latency host {{ $labels.host }} = {{ $value | printf \"%.1f\" }}ms (> 15ms trong 10 phut)"
+
+      - alert: VsanCongestion
+        expr: esxi_vsan_host_congestion > 60
+        for: 30s
+        labels: { severity: warning }
+        annotations:
+          summary: "vSAN congestion host {{ $labels.host }} = {{ $value }} (> 60)"
+
       - alert: VsanVmkPacketDrop
         expr: esxi_host_vmk_drop_percent{vsan="true"} > 0.1
         for: 5m
-        labels: { severity: warning, muc: "3" }
+        labels: { severity: warning }
         annotations:
           summary: "vmk vSAN {{ $labels.vmk }} ({{ $labels.direction }}) tren {{ $labels.host }} drop {{ $value | printf \"%.2f\" }}%"
           description: "Packet drop/discard tren mang vSAN > 0 keo dai -> nghen hoac QoS."
@@ -177,12 +88,12 @@ groups:
     rules:
       - alert: EsxiExporterStale
         expr: time() - vsan_disk_exporter_last_success_timestamp_seconds > 900
-        labels: { severity: warning, muc: "3" }
+        labels: { severity: warning }
         annotations:
           summary: "Exporter {{ $labels.instance }} khong lay duoc du lieu vCenter > 15 phut"
       - alert: EsxiExporterDown
         expr: up{job=~"esxi_host_resource.*"} == 0
         for: 2m
-        labels: { severity: warning, muc: "3" }
+        labels: { severity: warning }
         annotations:
           summary: "Prometheus khong scrape duoc exporter {{ $labels.instance }}"

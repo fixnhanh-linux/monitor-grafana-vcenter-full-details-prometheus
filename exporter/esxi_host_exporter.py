@@ -6,11 +6,8 @@ Cach dung:
   Mat khau: bien moi truong VSAN_PASS, hoac dong dau file .vsan_pass canh script, neu khong co se hoi khi chay.
   cluster = "-" -> lay tat ca cluster cua vCenter.
 
-Nguong trang thai (doi bang bien moi truong) - WARN = Muc 3, ERR = Muc 2:
-  ESXI_WARN_CPU=40  ESXI_ERR_CPU=60  ESXI_WARN_RAM=80  ESXI_ERR_RAM=90
-  ESXI_WARN_LATENCY_MS=15  ESXI_ERR_LATENCY_MS=30  ESXI_WARN_NET_LATENCY_MS=0.5  ESXI_ERR_NET_LATENCY_MS=1
-  ESXI_WARN_DISK_HEALTH_PCT=80  ESXI_ERR_DISK_HEALTH_PCT=70  (% disk vSAN healthy cua host, duoi nguong -> canh bao)
-  ESXI_WARN_CONGESTION=60  ESXI_WARN_VMK_DROP_PCT=0.1
+Nguong trang thai (doi bang bien moi truong):
+  ESXI_WARN_CPU=60  ESXI_WARN_RAM=90  ESXI_WARN_LATENCY_MS=15  ESXI_WARN_CONGESTION=60  ESXI_WARN_VMK_DROP_PCT=0.1
   ESXI_NIC_MIN_MBPS=10000  (chi theo doi vmnic >= 10GB; 0 = tat ca)
 
 Day len InfluxDB (tuy chon) sau moi vong lay du lieu:
@@ -43,24 +40,14 @@ from pyVmomi import SoapStubAdapter, vim, vmodl
 import vsan_disk_health as vdh
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
-VERSION = "2026.10.30-1"
+VERSION = "2026.10.28-1"
 
-# WARN = Muc 3 (canh bao), ERR = Muc 2 (cao). Disk health % la nguong DUOI (thap hon -> canh bao).
 WARN = {
-    "cpu": float(os.environ.get("ESXI_WARN_CPU", 40)),
-    "ram": float(os.environ.get("ESXI_WARN_RAM", 80)),
+    "cpu": float(os.environ.get("ESXI_WARN_CPU", 60)),
+    "ram": float(os.environ.get("ESXI_WARN_RAM", 90)),
     "latency": float(os.environ.get("ESXI_WARN_LATENCY_MS", 15)),
-    "net_latency": float(os.environ.get("ESXI_WARN_NET_LATENCY_MS", 0.5)),
-    "disk_pct": float(os.environ.get("ESXI_WARN_DISK_HEALTH_PCT", 80)),
     "congestion": float(os.environ.get("ESXI_WARN_CONGESTION", 60)),
     "vmk_drop": float(os.environ.get("ESXI_WARN_VMK_DROP_PCT", 0.1)),
-}
-ERR = {
-    "cpu": float(os.environ.get("ESXI_ERR_CPU", 60)),
-    "ram": float(os.environ.get("ESXI_ERR_RAM", 90)),
-    "latency": float(os.environ.get("ESXI_ERR_LATENCY_MS", 30)),
-    "net_latency": float(os.environ.get("ESXI_ERR_NET_LATENCY_MS", 1)),
-    "disk_pct": float(os.environ.get("ESXI_ERR_DISK_HEALTH_PCT", 70)),
 }
 
 # Chi theo doi vmnic uplink co toc do toi da >= nguong nay (mac dinh 10GB). 0 = theo doi tat ca.
@@ -234,26 +221,6 @@ def cluster_stats(si, cl_props, hosts, cluster_filter, vsan_overall):
     return out
 
 
-def host_hardware(si):
-    """Health phan cung tung host (cam bien + CPU/RAM/storage, giong tab Monitor > Hardware Health).
-    Tra ve {moId: (0=green,1=yellow,2=red,3=khong co du lieu, [ten thanh phan loi])}."""
-    out = {}
-    for o, p in retrieve(si, vim.HostSystem, ["runtime.healthSystemRuntime"]):
-        hs = p.get("runtime.healthSystemRuntime")
-        items = []
-        if hs is not None:
-            for s in getattr(hs.systemHealthInfo, "numericSensorInfo", None) or []:
-                items.append((s.name, s.healthState.key if s.healthState else ""))
-            hw = hs.hardwareStatusInfo
-            for s in (getattr(hw, "memoryStatusInfo", None) or []) + (getattr(hw, "cpuStatusInfo", None) or []) \
-                    + (getattr(hw, "storageStatusInfo", None) or []):
-                items.append((s.name, s.status.key if s.status else ""))
-        codes = [(n, COLOR_CODE[k.lower()]) for n, k in items if (k or "").lower() in COLOR_CODE]
-        worst = max([c for _, c in codes] or [3])
-        out[o._moId] = (worst, [n for n, c in codes if c == worst and c > 0])
-    return out
-
-
 def _bytes_to_sync(o):
     """Cong tat ca truong bytesToSync trong JSON resync cua vSAN (so hoac chuoi so)."""
     if isinstance(o, dict):
@@ -303,16 +270,10 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
             for _, p in retrieve(si, vim.VirtualMachine, ["runtime.host", "runtime.powerState"]):
                 if p.get("runtime.powerState") == "poweredOn" and p.get("runtime.host") is not None:
                     running[p["runtime.host"]._moId] = running.get(p["runtime.host"]._moId, 0) + 1
-            overall, netlat = {}, {}
-            try:
-                hardware = host_hardware(si)
-            except Exception as e:
-                print("Khong lay duoc health phan cung host: %s" % (getattr(e, "msg", None) or e), flush=True)
-                hardware = {}
-            cache.update(running=running, disks=vdh.collect_si(si, vc, ctx, cluster_filter, fresh, overall, netlat),
-                         vsan_overall=overall, netlat=netlat, hardware=hardware, slow_ts=time.time())
+            overall = {}
+            cache.update(running=running, disks=vdh.collect_si(si, vc, ctx, cluster_filter, fresh, overall),
+                         vsan_overall=overall, slow_ts=time.time())
         running, disks = cache["running"], cache["disks"]
-        netlat, hardware = cache.get("netlat", {}), cache.get("hardware", {})
         cl_stats = cluster_stats(si, cl_props, hosts, cluster_filter, cache.get("vsan_overall", {}))
 
         connected = [o for o, p in hosts if p["runtime.connectionState"] == "connected"]
@@ -368,14 +329,9 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
 
             vp = vperf.get(p.get("config.vsanHostConfig.clusterInfo.nodeUuid") or "-", {})
             lat = lambda k: vp[k] / 1000 if k in vp else None  # micro-giay -> ms
-            cname = clusters.get(p["parent"]._moId, "Standalone")
-            hw_code, hw_bad = hardware.get(o._moId, (3, []))
             out.append({
-                "cluster": cname,
+                "cluster": clusters.get(p["parent"]._moId, "Standalone"),
                 "host": p["name"],
-                "hw_health": hw_code,
-                "hw_bad": hw_bad,
-                "net_lat_ms": netlat.get((cname, p["name"])),
                 "state": str(p["runtime.connectionState"]),
                 "maintenance": bool(p.get("runtime.inMaintenanceMode")),
                 "cpu_pct": (qs.overallCpuUsage or 0) / cpu_cap * 100 if cpu_cap else 0,
@@ -393,43 +349,28 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
         Disconnect(si)
 
 
-def disk_health_pct(host_disks):
-    """% disk vSAN green cua host (100 neu host khong co disk)."""
-    return 100.0 * sum(1 for d in host_disks if d["health"] == "green") / len(host_disks) if host_disks else 100.0
-
-
 def evaluate(h, host_disks):
-    """Trang thai tong hop cua host: 0=OK, 1=WARN (Muc 3), 2=ERROR (Muc 2), kem ly do."""
+    """Trang thai tong hop cua host: 0=OK, 1=WARN, 2=ERROR, kem ly do."""
     err, warn = [], []
-
-    def level(v, key, txt):
-        if v is not None and v > ERR[key]:
-            err.append(txt)
-        elif v is not None and v > WARN[key]:
-            warn.append(txt)
-
     if h["state"] != "connected":
         err.append("Host %s" % h["state"])
-    if h.get("hw_health") == 2:
-        err.append("Phan cung loi: " + ", ".join(h.get("hw_bad") or []))
     down = [n for n, v in sorted(h["nics"].items()) if not v["up"]]
     if down:
         err.append("NIC down: " + ", ".join(down))
     bad = [d for d in host_disks if d["health"] != "green"]
-    pct = disk_health_pct(host_disks)
     if bad:
-        txt = "Disk Unhealthy: " + ", ".join("%s (%s)" % (d["disk"], d["reason"] or d["health"]) for d in bad)
-        failed = any(d["health"] == "red" for d in bad)
-        (err if failed or pct < ERR["disk_pct"] else warn).append(txt)
+        err.append("Disk Unhealthy: " + ", ".join("%s (%s)" % (d["disk"], d["reason"] or d["health"]) for d in bad))
     if h["maintenance"]:
         warn.append("Maintenance mode")
-    level(h["cpu_pct"], "cpu", "CPU %.0f%%" % h["cpu_pct"])
-    level(h["ram_pct"], "ram", "RAM %.0f%%" % h["ram_pct"])
-    level(h["lat_write_ms"], "latency", "vSAN write latency %.0fms" % (h["lat_write_ms"] or 0))
-    level(h.get("net_lat_ms"), "net_latency", "vSAN network latency %.2fms" % (h.get("net_lat_ms") or 0))
+    if h["cpu_pct"] > WARN["cpu"]:
+        warn.append("CPU %.0f%%" % h["cpu_pct"])
+    if h["ram_pct"] > WARN["ram"]:
+        warn.append("RAM %.0f%%" % h["ram_pct"])
+    if (h["lat_write_ms"] or 0) > WARN["latency"]:
+        warn.append("vSAN write latency %.0fms" % h["lat_write_ms"])
     cong = max([d.get("congestion_value") or 0 for d in host_disks] + [h.get("vsan_congestion") or 0])
     if cong > WARN["congestion"] or any(d["congestion_health"] not in ("green", None, "") for d in host_disks):
-        err.append("vSAN congestion %d" % cong)
+        warn.append("vSAN congestion %d" % cong)
     drops = ["%s %.2f%%" % (n, max(v["drop_pct_rx"], v["drop_pct_tx"])) for n, v in sorted(h["vmks"].items())
              if v["vsan"] and max(v["drop_pct_rx"], v["drop_pct_tx"]) > WARN["vmk_drop"]]
     if drops:
@@ -464,12 +405,6 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
             dict(L, nics=nic_txt, nics_up=nics_up, nics_down=nics_down, reason=reason, connection=h["state"]), 1)
         add("esxi_host_connected", "Host connected voi vCenter (1/0)", L, int(h["state"] == "connected"))
         add("esxi_host_maintenance", "Host dang maintenance mode (1/0)", L, int(h["maintenance"]))
-        if h.get("hw_health", 3) != 3:
-            add("esxi_host_hardware_health", "Health phan cung host - cam bien, CPU, RAM, storage (0=green,1=yellow,2=red)",
-                L, h["hw_health"])
-        if h.get("net_lat_ms") is not None:
-            add("esxi_vsan_network_latency_ms", "vSAN network latency lon nhat toi cac host khac (ms, vSAN health)",
-                L, round(h["net_lat_ms"], 3))
         if h["state"] == "connected":
             add("esxi_host_cpu_usage_percent", "CPU dang dung (%)", L, round(h["cpu_pct"], 2))
             add("esxi_host_mem_usage_percent", "RAM dang dung (%)", L, round(h["ram_pct"], 2))
@@ -499,7 +434,6 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
                 L, max(vdh._code(d["health"]) for d in hd))
             add("esxi_vsan_host_disks", "So disk vSAN dang dung", L, len(hd))
             add("esxi_vsan_host_disks_healthy", "So disk vSAN healthy", L, sum(1 for d in hd if d["health"] == "green"))
-            add("esxi_vsan_host_disk_health_percent", "% disk vSAN healthy cua host", L, round(disk_health_pct(hd), 1))
             add("esxi_vsan_host_congestion", "Congestion cao nhat cac disk cua host (0-255)", L, cong)
             groups = {}
             for d in hd:
@@ -738,7 +672,7 @@ def main():
                         "version": VERSION,
                         "vcenter": vc, "cluster": cluster or "", "interval": interval, "slow_interval": SLOW_INTERVAL,
                         "now": int(time.time()), "up": state["up"], "last_success": state["last_success"],
-                        "duration": state["duration"], "error": state["error"], "warn": WARN, "err": ERR,
+                        "duration": state["duration"], "error": state["error"], "warn": WARN,
                         "resync": {c: {"objects": o, "bytes": b, "eta": e} for c, (o, b, e) in state["resync"].items()},
                         "hosts": host_views(state["hosts"], state["disks"]), "history": history,
                     }, ensure_ascii=False)

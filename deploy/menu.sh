@@ -236,19 +236,9 @@ update_from_git() {
   fi
   [ -d "$RP/.git" ] || { echo "${R}Chua clone: git clone https://github.com/fixnhanh-linux/$REPO_NAME.git${N}"; return; }
   echo "Ban dang cai : $(grep -m1 '^VERSION' "$APP/esxi_host_exporter.py" | cut -d'"' -f2)"
-  local old; old=$(git -C "$RP" rev-parse HEAD 2>/dev/null)
   git -C "$RP" pull --ff-only || { echo "${R}git pull loi${N}"; return; }
   local E="$RP/exporter"
   echo "Ban tren git : ${B}$(grep -m1 '^VERSION' "$E/esxi_host_exporter.py" | cut -d'"' -f2)${N}"
-  # File cau hinh ngoai exporter (Prometheus / Grafana / Zabbix) khong tu cai -> bao de chep / import lai
-  local cfg; cfg=$(git -C "$RP" diff --name-only "$old" HEAD -- prometheus grafana zabbix 2>/dev/null)
-  if [ -n "$cfg" ]; then
-    echo "${Y}File cau hinh moi tren git (can ap dung tay):${N}"
-    echo "$cfg" | sed "s|^|  $RP/|"
-    echo "  - prometheus/alert-rules-esxi.yml : menu muc 14 (chep vao rules + reload Prometheus)"
-    echo "  - grafana/*.json                  : Grafana > Dashboards > Import > Overwrite"
-    echo "  - zabbix/*.yaml                   : Zabbix > Configuration > Templates > Import (tick Delete missing)"
-  fi
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   [ "$a" = y ] || return
   install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$APP/"

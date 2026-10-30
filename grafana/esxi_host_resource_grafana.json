@@ -130,7 +130,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 3,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -187,9 +187,9 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 3,
+        "x": 4,
         "y": 1,
-        "w": 3,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -246,9 +246,9 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 6,
+        "x": 8,
         "y": 1,
-        "w": 3,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -309,9 +309,9 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 9,
+        "x": 12,
         "y": 1,
-        "w": 3,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -372,9 +372,9 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 18,
+        "x": 16,
         "y": 1,
-        "w": 3,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -449,9 +449,9 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 21,
+        "x": 20,
         "y": 1,
-        "w": 3,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -491,137 +491,6 @@
             ]
           },
           "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 30,
-      "type": "stat",
-      "title": "Hosts In Maintenance",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "count(esxi_host_maintenance{cluster=~\"$cluster\"} == 1)",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Số host đang ở chế độ bảo trì (Mức 3 - Cảnh báo).",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 31,
-      "type": "stat",
-      "title": "Network Latency Max",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 15,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "A",
-          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\"})",
-          "legendFormat": "",
-          "format": "time_series",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "description": "Network latency lớn nhất giữa các host vSAN (test Network latency check, mẫu 5 phút). Vàng > 0,5ms (Mức 3), đỏ > 1ms (Mức 2). N/A = vCenter không có test này.",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.5
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "N/A",
-          "decimals": 2
         },
         "overrides": []
       },
@@ -893,11 +762,11 @@
                     },
                     {
                       "color": "orange",
-                      "value": 40
+                      "value": 60
                     },
                     {
                       "color": "red",
-                      "value": 60
+                      "value": 85
                     }
                   ]
                 }
@@ -921,11 +790,11 @@
                     },
                     {
                       "color": "orange",
-                      "value": 80
+                      "value": 90
                     },
                     {
                       "color": "red",
-                      "value": 90
+                      "value": 95
                     }
                   ]
                 }
@@ -1600,7 +1469,7 @@
     {
       "id": 16,
       "type": "timeseries",
-      "title": "vSAN latency write / read / network (ms, mẫu 5 phút)",
+      "title": "vSAN latency (ms, mẫu 5 phút)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1630,16 +1499,6 @@
           "refId": "B",
           "expr": "esxi_vsan_read_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
           "legendFormat": "Read {{host}}",
-          "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "refId": "C",
-          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
-          "legendFormat": "Network {{host}}",
           "format": "time_series"
         }
       ],
