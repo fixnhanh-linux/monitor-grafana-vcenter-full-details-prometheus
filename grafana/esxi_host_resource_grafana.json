@@ -1630,7 +1630,9 @@
           ],
           "displayMode": "table",
           "placement": "right",
-          "showLegend": true
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -1645,23 +1647,122 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_host_cpu_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "topk(10, max by (host) (esxi_host_cpu_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}))",
           "format": "time_series",
           "legendFormat": "CPU {{host}}",
           "refId": "A"
+        }
+      ],
+      "title": "CPU (%) - top 10 host",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
         },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_host_mem_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "topk(10, max by (host) (esxi_host_mem_usage_percent{cluster=~\"$cluster\",host=~\"$host\"}))",
           "format": "time_series",
           "legendFormat": "RAM {{host}}",
-          "refId": "B"
+          "refId": "A"
         }
       ],
-      "title": "CPU & RAM (%)",
+      "title": "RAM (%) - top 10 host",
       "type": "timeseries"
     },
     {
@@ -1730,8 +1831,8 @@
       "gridPos": {
         "h": 9,
         "w": 12,
-        "x": 12,
-        "y": 39
+        "x": 0,
+        "y": 48
       },
       "id": 16,
       "options": {
@@ -1848,8 +1949,8 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
-        "x": 0,
+        "w": 12,
+        "x": 12,
         "y": 48
       },
       "id": 32,
