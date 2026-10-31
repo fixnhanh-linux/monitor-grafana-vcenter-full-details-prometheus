@@ -9,15 +9,19 @@ const ACC = "1F4E79", GREY = "F2F3F5", LINE = "C9D1D9";
 function H1(t){return new Paragraph({heading:HeadingLevel.HEADING_1, spacing:{before:260,after:120}, children:[new TextRun({text:t,bold:true,color:ACC})]});}
 function H2(t){return new Paragraph({heading:HeadingLevel.HEADING_2, spacing:{before:180,after:80}, children:[new TextRun({text:t,bold:true})]});}
 function P(t,o){o=o||{};return new Paragraph({spacing:{after:o.after==null?90:o.after}, children:[new TextRun({text:t,bold:o.bold,italics:o.italics,color:o.color})]});}
-function runs(arr){return new Paragraph({spacing:{after:90}, children:arr.map(x=>Array.isArray(x)?new TextRun({text:x[0],font:MONO,size:19,shading:{type:ShadingType.CLEAR,fill:GREY}}):new TextRun({text:x}))});}
+function runs(arr){return new Paragraph({spacing:{after:90}, children:arr.map(x=>Array.isArray(x)?new TextRun({text:x[0],font:MONO,size:19,color:"103D63",shading:{type:ShadingType.CLEAR,fill:"EAF2FB"}}):new TextRun({text:x}))});}
 function bullet(t){return new Paragraph({numbering:{reference:"bl",level:0}, spacing:{after:60}, children:[new TextRun(t)]});}
 function num(t){return new Paragraph({numbering:{reference:"nm",level:0}, spacing:{after:60}, children:[new TextRun(t)]});}
 function code(lines){
   return lines.map((ln,i)=>new Paragraph({
-    spacing:{after: i===lines.length-1?120:0, before:i===0?40:0, line:240},
-    shading:{type:ShadingType.CLEAR,fill:"1E1E1E"},
-    border:{left:{style:BorderStyle.SINGLE,size:18,color:ACC,space:6}},
-    children:[new TextRun({text:ln||" ",font:MONO,size:18,color:"E6EDF3"})]}));
+    spacing:{after: i===lines.length-1?150:0, before:i===0?60:0, line:252},
+    shading:{type:ShadingType.CLEAR,fill:"EAF2FB"},
+    border:{
+      left:{style:BorderStyle.SINGLE,size:24,color:"2F6FB3",space:10},
+      top:    i===0 ? {style:BorderStyle.SINGLE,size:6,color:"C9DDF2",space:3} : undefined,
+      bottom: i===lines.length-1 ? {style:BorderStyle.SINGLE,size:6,color:"C9DDF2",space:3} : undefined,
+      right:{style:BorderStyle.SINGLE,size:6,color:"C9DDF2",space:3}},
+    children:[new TextRun({text:ln||" ",font:MONO,size:18,color:"103D63"})]}));
 }
 function cell(text,{w,bold,fill,mono,color}={}){
   return new TableCell({width:{size:w,type:WidthType.DXA}, shading:fill?{type:ShadingType.CLEAR,fill}:undefined,
