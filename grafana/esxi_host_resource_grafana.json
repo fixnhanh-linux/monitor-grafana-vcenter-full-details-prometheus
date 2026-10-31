@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Tài nguyên từng host ESXi theo cluster: CPU, RAM, NIC, vSAN disk group, congestion, drop vmk vSAN",
+  "description": "Tài Nguyên Từng Host ESXi Theo Cluster: CPU, RAM, NIC, vSAN Disk Group, Congestion, Drop vmk vSAN",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
