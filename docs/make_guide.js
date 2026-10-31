@@ -45,7 +45,7 @@ children.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:40},
 children.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:40},
   children:[new TextRun({text:"Prometheus · Grafana · Cảnh báo",size:24,color:"666666"})]}));
 children.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:400},
-  children:[new TextRun({text:"Phiên bản 2026.10.28  ·  Cài tự động và thủ công",italics:true,size:22})]}));
+  children:[new TextRun({text:"Phiên bản 2026.10.31  ·  Cài tự động và thủ công",italics:true,size:22})]}));
 children.push(new Paragraph({children:[new PageBreak()]}));
 
 // Muc luc
@@ -121,7 +121,8 @@ children.push(table(
    ["11","Gỡ 1 instance"],
    ["12","Các lệnh hay dùng"],
    ["13","Cập nhật bản mới từ GitHub (git pull)"],
-   ["14","Sinh / cài cấu hình Prometheus từ các instance đã cài"]]));
+   ["14","Sinh / cài cấu hình Prometheus từ các instance đã cài"],
+   ["15","Phát hiện cluster — liệt kê cluster/vSAN/DRS, đánh dấu cluster chưa giám sát"]]));
 
 // ============ B. THU CONG
 children.push(new Paragraph({children:[new PageBreak()]}));
@@ -234,14 +235,31 @@ children.push(table(
 
 // ============ Grafana
 children.push(H1("6. Grafana"));
-children.push(P("Dashboards → New → Import → upload grafana/esxi_host_resource_grafana.json → chọn datasource Prometheus → chọn Cluster. Đã có bản cũ thì chọn Overwrite."));
-children.push(bullet("Tổng quan: Total host / OK / Cảnh báo / Lỗi / vSAN resync / độ mới dữ liệu."));
-children.push(bullet("Bảng host: CPU% · RAM% · NIC UP (xanh) / NIC DOWN (đỏ) · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Lý do."));
-children.push(bullet("Network: bandwidth vmnic top 10, drop/discard vmk vSAN, vmnic DOWN."));
-children.push(bullet("Chi tiết host và vSAN Disk Health: từng disk, lịch sử trạng thái."));
+children.push(P("Import dashboard: Dashboards → New → Import → Upload JSON → chọn file grafana/esxi_host_resource_grafana.json → chọn datasource Prometheus → Overwrite nếu đã có bản cũ. Chọn Cluster ở đầu trang."));
+children.push(P("Ví dụ dashboard đang chạy:", {bold:true, after:40}));
+children.push(...code(["https://42.117.4.233:3000/d/esxi-host-resource/"]));
+children.push(bullet("Tổng quan (8 ô): Total Hosts · OK · Warning (WARN) · Error (ERROR) · Hosts In Maintenance · Network Latency Max · vSAN Resync · Data Freshness."));
+children.push(bullet("Bảng host: CPU% · RAM% · NIC UP (xanh) / NIC DOWN (đỏ) · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Alerts. Bấm tên host để lọc phần chi tiết."));
+children.push(bullet("Network: bandwidth vmnic TX/RX top 10, drop/discard vmk vSAN."));
+children.push(bullet("Chi tiết host (top 10 host): CPU, RAM, vSAN write / read / network latency — mỗi loại một biểu đồ riêng."));
+children.push(bullet("vSAN Disk Health: congestion, dung lượng, health từng disk."));
+
+// ============ Zabbix
+children.push(H1("7. Zabbix (tùy chọn — thay / cùng Prometheus)"));
+children.push(P("Zabbix lấy thẳng /metrics của exporter bằng HTTP agent rồi tự phát hiện cluster/host/disk/nic/vmk (LLD) và tạo item + trigger + graph."));
+children.push(num("Data collection → Templates → Import → chọn zabbix/esxi_vsan_command_center.yaml (Zabbix 6.2)."));
+children.push(num("Tạo 1 host Zabbix cho mỗi instance exporter, gán template ESXi Host Exporter by HTTP."));
+children.push(num("Sửa macro trên host:"));
+children.push(table(
+  [{t:"Macro",w:3400,mono:true},{t:"Giá trị",w:5400,mono:true}],
+  [["{$ESXI.EXPORTER.URL}","http://<IP-server>:<port>/metrics"],
+   ["{$ESXI.CLUSTER.MATCHES}",".*   (regex lọc cluster, vd ^POOL18-XD$)"],
+   ["{$ESXI.HOST.MATCHES}",".*   (regex lọc host)"]]));
+children.push(P("Có sẵn dashboard 3 trang (Hosts / vSAN / Network) trong template. Mức 2 = High, Mức 3 = Warning; ngưỡng đổi bằng macro {$ESXI.*} trên host/template, không cần sửa trigger."));
 
 // ============ Van hanh
-children.push(H1("7. Vận hành & cập nhật"));
+children.push(new Paragraph({children:[new PageBreak()]}));
+children.push(H1("8. Vận hành & cập nhật"));
 children.push(table(
   [{t:"Việc",w:3200},{t:"Lệnh / cách làm",w:5600,mono:true}],
   [["Trạng thái","systemctl status esxi-host-exporter@pool18"],
@@ -255,7 +273,7 @@ children.push(table(
    ["Gỡ 1 instance","/opt/esxi-host-exporter/uninstall.sh pool18"]]));
 
 // ============ Su co
-children.push(H1("8. Xử lý sự cố"));
+children.push(H1("9. Xử lý sự cố"));
 children.push(table(
   [{t:"Hiện tượng",w:3400},{t:"Nguyên nhân / cách xử lý",w:5400}],
   [["Service active nhưng không restart được, log 'Dang nhap that bai'","Sai user/mật khẩu vCenter. Sửa esxi-menu → 8 rồi restart."],
@@ -266,7 +284,7 @@ children.push(table(
    ["Grafana bảng trống","Prometheus chưa scrape; kiểm tra Targets UP và chọn đúng Cluster."]]));
 
 // ============ Bao mat
-children.push(H1("9. Bảo mật"));
+children.push(H1("10. Bảo mật"));
 children.push(bullet("Tài khoản vCenter chỉ cần Read-only. Mật khẩu lưu ở .env quyền 600, chạy dưới user esxi-exporter."));
 children.push(bullet("Không commit/chia sẻ file .env và .vsan_pass (đã chặn trong .gitignore)."));
 children.push(bullet("Mật khẩu đã lộ thì đổi ngay rồi chạy lại install.sh (cùng tên instance)."));
