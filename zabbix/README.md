@@ -4,12 +4,12 @@ Template Zabbix 6.0 giam sat ESXi / vSAN qua **ESXi Host Exporter** (lay thang `
 
 | File | Ghi chu |
 |---|---|
-| `esxi_host_exporter_zbx60.yaml` | Template import vao Zabbix 6.0 |
+| `esxi_vsan_command_center.yaml` | Template import vao Zabbix 6.0 |
 | `make_template.py` | Script sinh ra file YAML tren (chay `python make_template.py`) |
 
 ## Cai dat
 
-1. Zabbix: **Data collection > Templates > Import** → chon `esxi_host_exporter_zbx60.yaml`.
+1. Zabbix: **Data collection > Templates > Import** → chon `esxi_vsan_command_center.yaml`.
 2. Tao 1 **host Zabbix cho moi instance exporter** (moi vCenter/pool 1 port), gan template **ESXi Host Exporter**.
 3. Sua macro tren host:
    - `{$ESXI_EXPORTER_HOST}` = IP may chay exporter (vd `10.16.16.38`)
