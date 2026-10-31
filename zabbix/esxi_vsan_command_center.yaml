@@ -11,8 +11,8 @@ zabbix_export:
       template: 'ESXi Host Exporter by HTTP'
       name: 'ESXi & vSAN Command Center'
       description: |
-        ESXi host + vSAN monitoring via esxi_host_exporter (/metrics). Level 2 = High, Level 3 = Warning.
-        Link this template to a Zabbix host that represents the exporter machine; change macro {$ESXI.EXPORTER.URL} if the port is not 9811.
+        Giam sat ESXi host + vSAN qua esxi_host_exporter (/metrics). Muc 2 = High (Cao), Muc 3 = Warning (Canh bao).
+        Gan template nay vao 1 host Zabbix dai dien cho may chay exporter; doi macro {$ESXI.EXPORTER.URL} neu port khong phai 9811.
       groups:
         -
           name: Templates/Virtualization
@@ -68,7 +68,7 @@ zabbix_export:
           history: '0'
           trends: '0'
           value_type: TEXT
-          description: 'Fetches all esxi_host_exporter metrics; other items are extracted from this one.'
+          description: 'Lay toan bo metric cua esxi_host_exporter; cac item khac deu tach ra tu item nay.'
           timeout: 15s
           url: '{$ESXI.EXPORTER.URL}'
           tags:
@@ -105,7 +105,7 @@ zabbix_export:
               expression: 'nodata(/ESXi Host Exporter by HTTP/esxi.exporter.up,5m)=1'
               name: 'Exporter Metrics Unavailable For 5 Min'
               priority: WARNING
-              description: 'Exporter is stopped, wrong IP/port in macro {$ESXI.EXPORTER.URL}, or blocked by firewall.'
+              description: 'Exporter da dung, sai IP/port trong macro {$ESXI.EXPORTER.URL}, hoac bi firewall chan.'
               tags:
                 -
                   tag: level
@@ -115,7 +115,7 @@ zabbix_export:
               expression: 'nodata(/ESXi Host Exporter by HTTP/esxi.exporter.up,5m)=1'
               name: 'Exporter Metrics Unavailable For 5 Min (Level 3)'
               priority: WARNING
-              description: 'Exporter is stopped, wrong IP/port in macro {$ESXI.EXPORTER.URL}, or blocked by firewall.'
+              description: 'Exporter da dung, sai IP/port trong macro {$ESXI.EXPORTER.URL}, hoac bi firewall chan.'
               tags:
                 -
                   tag: level
@@ -682,7 +682,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: B
           lifetime: 7d
-          description: 'Discovered from exporter metric esxi_vsan_resync_objects.'
+          description: 'Phat hien tu metric esxi_vsan_resync_objects cua exporter.'
           item_prototypes:
             -
               uuid: 795a20abab154dffac9b7753b51148e6
@@ -788,7 +788,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: D
           lifetime: 7d
-          description: 'Discovered from exporter metric esxi_vsan_diskgroup_health.'
+          description: 'Phat hien tu metric esxi_vsan_diskgroup_health cua exporter.'
           item_prototypes:
             -
               uuid: 495910ff09254ea5840614d6d190d2bb
@@ -869,7 +869,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: D
           lifetime: 7d
-          description: 'Discovered from exporter metric esxi_host_connected.'
+          description: 'Phat hien tu metric esxi_host_connected cua exporter.'
           item_prototypes:
             -
               uuid: 740ce864c5dc4c5da5feb1a086d6cfdb
@@ -933,7 +933,7 @@ zabbix_export:
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.connected["{#CLUSTER}","{#HOST}"])=0'
                   name: 'Host {#HOST} Disconnected From vCenter ({#CLUSTER})'
                   priority: HIGH
-                  description: 'Host is down / not responding, or an ESXi service (hostd, vpxa) has failed.'
+                  description: 'Host bi tat / khong phan hoi, hoac dich vu ESXi (hostd, vpxa) bi loi.'
                   tags:
                     -
                       tag: level
@@ -1062,7 +1062,7 @@ zabbix_export:
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.hardware["{#CLUSTER}","{#HOST}"])=2'
                   name: 'Hardware Failure On Host {#HOST} ({#CLUSTER})'
                   priority: HIGH
-                  description: 'Hardware Health reports a RED component (sensor / CPU / memory / storage). Check Monitor > Hardware Health of the host in vCenter.'
+                  description: 'Hardware Health bao 1 thanh phan mau DO (cam bien / CPU / RAM / storage). Kiem tra Monitor > Hardware Health cua host trong vCenter.'
                   tags:
                     -
                       tag: level
@@ -1121,7 +1121,7 @@ zabbix_export:
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.lat.write["{#CLUSTER}","{#HOST}"],10m)>{$ESXI.LAT.HIGH}'
                   name: 'Disk Write Latency On {#HOST} > {$ESXI.LAT.HIGH}ms For 10 Min'
                   priority: HIGH
-                  description: 'Temporary thresholds 15ms / 30ms - not yet finalized per disk class (SSD / NVMe / HDD / USB).'
+                  description: 'Nguong tam 15ms / 30ms - chua chot theo loai dia (SSD / NVMe / HDD / USB).'
                   tags:
                     -
                       tag: level
@@ -1131,7 +1131,7 @@ zabbix_export:
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.lat.write["{#CLUSTER}","{#HOST}"],10m)>{$ESXI.LAT.WARN}'
                   name: 'Disk Write Latency On {#HOST} > {$ESXI.LAT.WARN}ms For 10 Min'
                   priority: WARNING
-                  description: 'Temporary thresholds 15ms / 30ms - not yet finalized per disk class (SSD / NVMe / HDD / USB).'
+                  description: 'Nguong tam 15ms / 30ms - chua chot theo loai dia (SSD / NVMe / HDD / USB).'
                   dependencies:
                     -
                       name: 'Disk Write Latency On {#HOST} > {$ESXI.LAT.HIGH}ms For 10 Min'
@@ -1170,7 +1170,7 @@ zabbix_export:
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.maintenance["{#CLUSTER}","{#HOST}"])=1'
                   name: 'Host {#HOST} Entered Maintenance Mode ({#CLUSTER})'
                   priority: WARNING
-                  description: 'Host is in maintenance mode. If no maintenance is scheduled, check who put the host into maintenance.'
+                  description: 'Host dang o che do bao tri. Neu khong co lich bao tri, kiem tra ai da dua host vao bao tri.'
                   tags:
                     -
                       tag: level
@@ -1185,7 +1185,7 @@ zabbix_export:
               trends: 90d
               value_type: FLOAT
               units: ms
-              description: 'From the vSAN health ''Network latency check'' test (every 5 minutes).'
+              description: 'Lay tu test ''Network latency check'' cua vSAN health (mau 5 phut).'
               preprocessing:
                 -
                   type: PROMETHEUS_PATTERN
@@ -1408,7 +1408,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: D
           lifetime: 7d
-          description: 'Discovered from exporter metric esxi_host_nic_up.'
+          description: 'Phat hien tu metric esxi_host_nic_up cua exporter.'
           item_prototypes:
             -
               uuid: d6c4c971468d4f8385cfda7deea0b9d3
@@ -1523,7 +1523,7 @@ zabbix_export:
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.nic.up["{#CLUSTER}","{#HOST}","{#NIC}"])=0'
                   name: 'vmnic {#NIC} Down On Host {#HOST} ({#CLUSTER})'
                   priority: HIGH
-                  description: 'Uplink lost link. Check cable / switch / port.'
+                  description: 'Uplink mat link. Kiem tra cap / switch / cong.'
                   tags:
                     -
                       tag: level
@@ -1589,7 +1589,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: D
           lifetime: 7d
-          description: 'Discovered from exporter metric esxi_host_vmk_drop_percent{vsan="true"}.'
+          description: 'Phat hien tu metric esxi_host_vmk_drop_percent{vsan="true"} cua exporter.'
           item_prototypes:
             -
               uuid: 3164b0c2b1a5438c9f8df9dc74e48e47
@@ -1621,7 +1621,7 @@ zabbix_export:
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.vmk.drop["{#CLUSTER}","{#HOST}","{#VMK}","{#DIRECTION}"],5m)>{$ESXI.VMKDROP.WARN}'
                   name: 'vSAN vmk {#VMK} ({#DIRECTION}) Packet Drop On {#HOST} > {$ESXI.VMKDROP.WARN}%'
                   priority: WARNING
-                  description: 'Sustained packet drop/discard on the vSAN network - congestion or QoS.'
+                  description: 'Rot / huy goi keo dai tren mang vSAN - nghen hoac QoS.'
                   tags:
                     -
                       tag: level
@@ -1674,7 +1674,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: D
           lifetime: 7d
-          description: 'Discovered from exporter metric vsan_disk_health.'
+          description: 'Phat hien tu metric vsan_disk_health cua exporter.'
           item_prototypes:
             -
               uuid: 7a455fc13c09451ab816467e44c2acb6
@@ -1741,7 +1741,7 @@ zabbix_export:
                   expression: 'last(/ESXi Host Exporter by HTTP/vsan.disk.health["{#CLUSTER}","{#HOST}","{#DISK}"])=2'
                   name: 'vSAN Disk {#DISK} Failed On Host {#HOST} ({#CLUSTER})'
                   priority: HIGH
-                  description: 'Disk health is RED. See the disk Status Reason item.'
+                  description: 'Health cua dia mau DO. Xem item Status Reason cua dia.'
                   tags:
                     -
                       tag: level
@@ -1829,75 +1829,75 @@ zabbix_export:
         -
           macro: '{$ESXI.CLUSTER.MATCHES}'
           value: '.*'
-          description: 'Regex: only discover these clusters (one pool per Zabbix host, e.g. ^Pool18$)'
+          description: 'Regex: chi phat hien cac cluster nay (moi pool 1 host Zabbix, vd ^Pool18$)'
         -
           macro: '{$ESXI.CLUSTER.NOT_MATCHES}'
           value: CHANGE_IF_NEEDED
-          description: 'Regex: skip these clusters'
+          description: 'Regex: bo qua cac cluster nay'
         -
           macro: '{$ESXI.CONG.HIGH}'
           value: '60'
-          description: 'vSAN congestion - Level 2'
+          description: 'vSAN congestion - Muc 2 (High)'
         -
           macro: '{$ESXI.CPU.HIGH}'
           value: '60'
-          description: 'CPU % - Level 2'
+          description: 'CPU % - Muc 2 (High)'
         -
           macro: '{$ESXI.CPU.WARN}'
           value: '40'
-          description: 'CPU % - Level 3'
+          description: 'CPU % - Muc 3 (Warning)'
         -
           macro: '{$ESXI.DISKPCT.HIGH}'
           value: '70'
-          description: 'Healthy vSAN disk % below this - Level 2'
+          description: '% dia vSAN healthy duoi muc nay - Muc 2 (High)'
         -
           macro: '{$ESXI.DISKPCT.WARN}'
           value: '80'
-          description: 'Healthy vSAN disk % below this - Level 3'
+          description: '% dia vSAN healthy duoi muc nay - Muc 3 (Warning)'
         -
           macro: '{$ESXI.EXPORTER.URL}'
           value: 'http://{HOST.CONN}:9811/metrics'
-          description: 'Exporter /metrics URL (one port per instance / pool)'
+          description: 'URL /metrics cua exporter (moi instance / pool 1 port)'
         -
           macro: '{$ESXI.HOST.MATCHES}'
           value: '.*'
-          description: 'Regex: only discover these ESXi hosts (e.g. ^10\.2\.156\.2[1-5]$)'
+          description: 'Regex: chi phat hien cac host ESXi nay (vd ^10\.2\.156\.2[1-5]$)'
         -
           macro: '{$ESXI.HOST.NOT_MATCHES}'
           value: CHANGE_IF_NEEDED
-          description: 'Regex: skip these ESXi hosts'
+          description: 'Regex: bo qua cac host ESXi nay'
         -
           macro: '{$ESXI.LAT.HIGH}'
           value: '30'
-          description: 'Disk write latency ms - Level 2 (temporary)'
+          description: 'Disk write latency ms - Muc 2 (tam)'
         -
           macro: '{$ESXI.LAT.WARN}'
           value: '15'
-          description: 'Disk write latency ms - Level 3 (temporary)'
+          description: 'Disk write latency ms - Muc 3 (tam)'
         -
           macro: '{$ESXI.NETLAT.HIGH}'
           value: '1'
-          description: 'vSAN network latency ms - Level 2'
+          description: 'vSAN network latency ms - Muc 2 (High)'
         -
           macro: '{$ESXI.NETLAT.WARN}'
           value: '0.5'
-          description: 'vSAN network latency ms - Level 3'
+          description: 'vSAN network latency ms - Muc 3 (Warning)'
         -
           macro: '{$ESXI.RAM.HIGH}'
           value: '90'
-          description: 'Memory % - Level 2'
+          description: 'RAM % - Muc 2 (High)'
         -
           macro: '{$ESXI.RAM.WARN}'
           value: '80'
-          description: 'Memory % - Level 3'
+          description: 'RAM % - Muc 3 (Warning)'
         -
           macro: '{$ESXI.STALE}'
           value: '900'
-          description: 'Seconds without vCenter data'
+          description: 'So giay khong co du lieu vCenter'
         -
           macro: '{$ESXI.VMKDROP.WARN}'
           value: '0.1'
-          description: 'vSAN vmk drop % - Level 3'
+          description: 'vSAN vmk drop % - Muc 3 (Warning)'
       dashboards:
         -
           uuid: 1b50d453e8d84013ad50404bd62e69d3
