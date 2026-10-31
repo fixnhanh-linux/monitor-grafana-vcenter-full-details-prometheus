@@ -1,6 +1,7 @@
 const d = require("docx");
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell,
-  WidthType, BorderStyle, ShadingType, AlignmentType, TableOfContents, PageBreak, LevelFormat } = d;
+  WidthType, BorderStyle, ShadingType, AlignmentType, TableOfContents, PageBreak, LevelFormat, ImageRun } = d;
+const path = require("path");
 const fs = require("fs");
 
 const MONO = "Consolas";
@@ -39,6 +40,14 @@ function table(cols, rows){
     rows:[head,...body]});
 }
 const SP = ()=>new Paragraph({spacing:{after:80},children:[]});
+function img(file,w,h,cap){
+  const p=path.join(__dirname,"img",file);
+  const out=[new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:120,after:cap?20:150},
+    children:[new ImageRun({data:fs.readFileSync(p), transformation:{width:w,height:h}})]})];
+  if(cap) out.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:160},
+    children:[new TextRun({text:cap,italics:true,size:18,color:"666666"})]}));
+  return out;
+}
 
 const children = [];
 const MODE = (process.argv[3]||"full").toLowerCase();   // auto | manual | full
@@ -257,6 +266,8 @@ children.push(bullet("Bảng host: CPU% · RAM% · NIC UP (xanh) / NIC DOWN (đ�
 children.push(bullet("Network: bandwidth vmnic TX/RX top 10, drop/discard vmk vSAN."));
 children.push(bullet("Chi tiết host (top 10 host): CPU, RAM, vSAN write / read / network latency — mỗi loại một biểu đồ riêng."));
 children.push(bullet("vSAN Disk Health: congestion, dung lượng, health từng disk."));
+children.push(...img("grafana-overview.jpg", 624, 297, "Hình 1 — Tổng quan: 8 ô trạng thái + bảng host (Cluster POOL18-XD)."));
+children.push(...img("grafana-latency.jpg", 624, 297, "Hình 2 — Chi tiết latency (write / read / network) và vSAN Disk Health."));
 
 // ============ Zabbix
 children.push(H1(N()+"Zabbix (tùy chọn — thay / cùng Prometheus)"));
