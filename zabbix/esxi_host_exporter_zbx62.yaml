@@ -1,0 +1,2477 @@
+zabbix_export:
+  version: '6.2'
+  date: '2026-10-30T18:43:22Z'
+  template_groups:
+    -
+      uuid: 34eb7516ed4043e980e4010c8cf2bb07
+      name: Templates/Virtualization
+  templates:
+    -
+      uuid: a27f32e83ec24bc499a022d68dfc9a3f
+      template: 'ESXi Host Exporter by HTTP'
+      name: 'ESXi & vSAN Command Center'
+      description: |
+        ESXi host + vSAN monitoring via esxi_host_exporter (/metrics). Level 2 = High, Level 3 = Warning.
+        Link this template to a Zabbix host that represents the exporter machine; change macro {$ESXI.EXPORTER.URL} if the port is not 9811.
+      groups:
+        -
+          name: Templates/Virtualization
+      items:
+        -
+          uuid: 4c1de388b0ed485fa43a9d525e17a97f
+          name: 'Exporter: Last Successful Collection'
+          type: DEPENDENT
+          key: esxi.exporter.last_success
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: unixtime
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - vsan_disk_exporter_last_success_timestamp_seconds
+                - value
+                - ''
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: exporter
+          triggers:
+            -
+              uuid: a89bb25ed9a149b1ad79a279d459c827
+              expression: 'now()-last(/ESXi Host Exporter by HTTP/esxi.exporter.last_success)>{$ESXI.STALE}'
+              name: 'Exporter Has No vCenter Data For > {$ESXI.STALE}s'
+              priority: WARNING
+              tags:
+                -
+                  tag: level
+                  value: '3'
+            -
+              uuid: dea7831a49764fafae3f5bc78dea8cb3
+              expression: 'now()-last(/ESXi Host Exporter by HTTP/esxi.exporter.last_success)>{$ESXI.STALE}'
+              name: 'Exporter Has No vCenter Data For > {$ESXI.STALE}s (Level 3)'
+              priority: WARNING
+              tags:
+                -
+                  tag: level
+                  value: '3'
+        -
+          uuid: 33005b871527442d82bdc4110794ae08
+          name: 'Exporter: Metrics'
+          type: HTTP_AGENT
+          key: esxi.exporter.metrics
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          description: 'Fetches all esxi_host_exporter metrics; other items are extracted from this one.'
+          timeout: 15s
+          url: '{$ESXI.EXPORTER.URL}'
+          tags:
+            -
+              tag: component
+              value: exporter
+        -
+          uuid: e9cbf1dc36aa490cba45b031714a9563
+          name: 'Exporter: vCenter Collection Status'
+          type: DEPENDENT
+          key: esxi.exporter.up
+          delay: '0'
+          history: 7d
+          trends: 90d
+          valuemap:
+            name: 'Yes / No'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - vsan_disk_exporter_up
+                - value
+                - ''
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: exporter
+          triggers:
+            -
+              uuid: 2497599aeef4425cbab551cc2f643ee4
+              expression: 'nodata(/ESXi Host Exporter by HTTP/esxi.exporter.up,5m)=1'
+              name: 'Exporter Metrics Unavailable For 5 Min'
+              priority: WARNING
+              description: 'Exporter is stopped, wrong IP/port in macro {$ESXI.EXPORTER.URL}, or blocked by firewall.'
+              tags:
+                -
+                  tag: level
+                  value: '3'
+            -
+              uuid: fc4720abf4984b978ded44c7be954488
+              expression: 'nodata(/ESXi Host Exporter by HTTP/esxi.exporter.up,5m)=1'
+              name: 'Exporter Metrics Unavailable For 5 Min (Level 3)'
+              priority: WARNING
+              description: 'Exporter is stopped, wrong IP/port in macro {$ESXI.EXPORTER.URL}, or blocked by firewall.'
+              tags:
+                -
+                  tag: level
+                  value: '3'
+        -
+          uuid: e851c7eaa7824c85a43abd584561eac6
+          name: 'Exporter: Version'
+          type: DEPENDENT
+          key: esxi.exporter.version
+          delay: '0'
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - esxi_exporter_build_info
+                - label
+                - version
+              error_handler: DISCARD_VALUE
+            -
+              type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: exporter
+        -
+          uuid: fee8a644fa3545c593b82d5c6bb14b65
+          name: 'Summary: vSAN Congestion Max'
+          type: DEPENDENT
+          key: esxi.summary.congestion.max
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_vsan_host_congestion{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - max
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: 1ae209356a004b9891af6d725926c982
+          name: 'Summary: CPU Usage Avg'
+          type: DEPENDENT
+          key: esxi.summary.cpu.avg
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_cpu_usage_percent{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - avg
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: 93a0cac1e964473c86e469c0f448f451
+          name: 'Summary: CPU Usage Max'
+          type: DEPENDENT
+          key: esxi.summary.cpu.max
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_cpu_usage_percent{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - max
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: f7904b2ce79648cb80018145c0c73003
+          name: 'Summary: Degraded vSAN Disks'
+          type: DEPENDENT
+          key: esxi.summary.disks.degraded
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'vsan_disk_health{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"} == 1'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: c9864776d2434fdf95b85e4f29c2132c
+          name: 'Summary: Failed vSAN Disks'
+          type: DEPENDENT
+          key: esxi.summary.disks.failed
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'vsan_disk_health{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"} == 2'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: 6565571b5b5f4d86b284ca9b32248041
+          name: 'Summary: Lowest Healthy vSAN Disks'
+          type: DEPENDENT
+          key: esxi.summary.disks.pct.min
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_vsan_host_disk_health_percent{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - min
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: 057b238a638d4fd4a9968d36bf6a57b9
+          name: 'Summary: ESXi Hosts'
+          type: DEPENDENT
+          key: esxi.summary.hosts
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_connected{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: 53c29d3191a04ffd9a3900a0e2bd99dc
+          name: 'Summary: Hosts Disconnected'
+          type: DEPENDENT
+          key: esxi.summary.hosts.disconnected
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_connected{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"} == 0'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: 907fd4442e844c24a8ad52426a8e255b
+          name: 'Summary: Hosts With Hardware Error'
+          type: DEPENDENT
+          key: esxi.summary.hosts.hw_error
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_hardware_health{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"} == 2'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: a857d046811546a6b60f73ced2008a8b
+          name: 'Summary: Hosts In Maintenance'
+          type: DEPENDENT
+          key: esxi.summary.hosts.maintenance
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_maintenance{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"} == 1'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: edcb419cfb6b40faa20351fd60c1247d
+          name: 'Summary: vSAN Write Latency Max'
+          type: DEPENDENT
+          key: esxi.summary.lat.write.max
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: ms
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_vsan_write_latency_ms{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - max
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: 4ba46cc15f884ba8846c4924ffc34188
+          name: 'Summary: vSAN Network Latency Max'
+          type: DEPENDENT
+          key: esxi.summary.netlat.max
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: ms
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_vsan_network_latency_ms{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - max
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: 5ef95955ccda407a855de74121696355
+          name: 'Summary: Total Bits Received'
+          type: DEPENDENT
+          key: esxi.summary.nic.rx
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: bps
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_nic_receive_mbps{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - sum
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+            -
+              type: MULTIPLIER
+              parameters:
+                - '1000000'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: network
+        -
+          uuid: f2de071e58884ca7985154e512f26146
+          name: 'Summary: Total Bits Sent'
+          type: DEPENDENT
+          key: esxi.summary.nic.tx
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: bps
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_nic_transmit_mbps{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - sum
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+            -
+              type: MULTIPLIER
+              parameters:
+                - '1000000'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: network
+        -
+          uuid: bd2f1765738d46c4988515f9f570334b
+          name: 'Summary: vmnic Uplinks'
+          type: DEPENDENT
+          key: esxi.summary.nics
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_nic_up{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: network
+        -
+          uuid: e099661a41c04422b80a7b78959f29d0
+          name: 'Summary: vmnic Down'
+          type: DEPENDENT
+          key: esxi.summary.nics.down
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_nic_up{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"} == 0'
+                - function
+                - count
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: network
+        -
+          uuid: a444e2e2cad649839edb6dd9d8576e83
+          name: 'Summary: Memory Usage Avg'
+          type: DEPENDENT
+          key: esxi.summary.ram.avg
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_mem_usage_percent{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - avg
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: b0bf76022f7943c1b45c2e8c1c9d4a2b
+          name: 'Summary: Memory Usage Max'
+          type: DEPENDENT
+          key: esxi.summary.ram.max
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_mem_usage_percent{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - max
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+        -
+          uuid: bef68b936f4c4fc3b25ab15bd9f19dd0
+          name: 'Summary: vSAN Resync Objects'
+          type: DEPENDENT
+          key: esxi.summary.resync.objects
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_vsan_resync_objects{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}"}'
+                - function
+                - sum
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: vsan
+        -
+          uuid: aa0363cc279d4b4396a93df87ffed046
+          name: 'Summary: vSAN vmk Drop Max'
+          type: DEPENDENT
+          key: esxi.summary.vmk.drop.max
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          units: '%'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_vmk_drop_percent{vsan="true",cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - max
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: network
+        -
+          uuid: c971b5c026da4cb2b0fcc7189952b4c8
+          name: 'Summary: Running VMs'
+          type: DEPENDENT
+          key: esxi.summary.vms
+          delay: '0'
+          history: 7d
+          trends: 90d
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - 'esxi_host_vms_running{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - function
+                - sum
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: esxi.exporter.metrics
+          tags:
+            -
+              tag: component
+              value: summary
+      discovery_rules:
+        -
+          uuid: bb7941a10eb3460ebe30ced34582f790
+          name: 'vSAN Cluster Discovery'
+          type: DEPENDENT
+          key: esxi.cluster.discovery
+          delay: '0'
+          filter:
+            evaltype: AND
+            conditions:
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.MATCHES}'
+                formulaid: A
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+          lifetime: 7d
+          description: 'Discovered from exporter metric esxi_vsan_resync_objects.'
+          item_prototypes:
+            -
+              uuid: 795a20abab154dffac9b7753b51148e6
+              name: '[{#CLUSTER}] vSAN Resync Remaining'
+              type: DEPENDENT
+              key: 'esxi.resync.bytes["{#CLUSTER}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              units: B
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_resync_bytes{cluster="{#CLUSTER}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+            -
+              uuid: e8e5457be8d2405399620ad7d6bf89d3
+              name: '[{#CLUSTER}] vSAN Resync Objects'
+              type: DEPENDENT
+              key: 'esxi.resync.objects["{#CLUSTER}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_resync_objects{cluster="{#CLUSTER}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+              trigger_prototypes:
+                -
+                  uuid: ef09cb1f030747629e1ab871f820441b
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.resync.objects["{#CLUSTER}"],2m)>0'
+                  name: 'vSAN Resync In Progress On Cluster {#CLUSTER}'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+          graph_prototypes:
+            -
+              uuid: 5a247b96784d40ba8fbbe0d1572f44ca
+              name: '[{#CLUSTER}] vSAN Resync'
+              graph_items:
+                -
+                  color: 1E88E5
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.resync.objects["{#CLUSTER}"]'
+          master_item:
+            key: esxi.exporter.metrics
+          lld_macro_paths:
+            -
+              lld_macro: '{#CLUSTER}'
+              path: '$.labels[''cluster'']'
+          preprocessing:
+            -
+              type: PROMETHEUS_TO_JSON
+              parameters:
+                - esxi_vsan_resync_objects
+        -
+          uuid: 41c0ccb6a575418f8154b496e5d8c4b7
+          name: 'vSAN Disk Group Discovery'
+          type: DEPENDENT
+          key: esxi.diskgroup.discovery
+          delay: '0'
+          filter:
+            evaltype: AND
+            conditions:
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.MATCHES}'
+                formulaid: A
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.MATCHES}'
+                formulaid: C
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: D
+          lifetime: 7d
+          description: 'Discovered from exporter metric esxi_vsan_diskgroup_health.'
+          item_prototypes:
+            -
+              uuid: 495910ff09254ea5840614d6d190d2bb
+              name: '[{#CLUSTER} / {#HOST}] Disk Group {#DISKGROUP} Health'
+              type: DEPENDENT
+              key: 'esxi.diskgroup.health["{#CLUSTER}","{#HOST}","{#DISKGROUP}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              valuemap:
+                name: 'vSAN Health'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_diskgroup_health{cluster="{#CLUSTER}",host="{#HOST}",diskgroup="{#DISKGROUP}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan-disk
+              trigger_prototypes:
+                -
+                  uuid: 9ab0312494494a028c174489818b24e3
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.diskgroup.health["{#CLUSTER}","{#HOST}","{#DISKGROUP}"])=2'
+                  name: 'vSAN Disk Group {#DISKGROUP} Unhealthy On Host {#HOST} ({#CLUSTER})'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+          master_item:
+            key: esxi.exporter.metrics
+          lld_macro_paths:
+            -
+              lld_macro: '{#CLUSTER}'
+              path: '$.labels[''cluster'']'
+            -
+              lld_macro: '{#DISKGROUP}'
+              path: '$.labels[''diskgroup'']'
+            -
+              lld_macro: '{#HOST}'
+              path: '$.labels[''host'']'
+          preprocessing:
+            -
+              type: PROMETHEUS_TO_JSON
+              parameters:
+                - esxi_vsan_diskgroup_health
+        -
+          uuid: 926e0fd5c33945c7b00443226414dd9c
+          name: 'ESXi Host Discovery'
+          type: DEPENDENT
+          key: esxi.host.discovery
+          delay: '0'
+          filter:
+            evaltype: AND
+            conditions:
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.MATCHES}'
+                formulaid: A
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.MATCHES}'
+                formulaid: C
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: D
+          lifetime: 7d
+          description: 'Discovered from exporter metric esxi_host_connected.'
+          item_prototypes:
+            -
+              uuid: 740ce864c5dc4c5da5feb1a086d6cfdb
+              name: '[{#CLUSTER} / {#HOST}] vSAN Congestion'
+              type: DEPENDENT
+              key: 'esxi.host.congestion["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_host_congestion{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+              trigger_prototypes:
+                -
+                  uuid: 9d3e224b89c64ff49728beca13fe8c41
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.congestion["{#CLUSTER}","{#HOST}"])>{$ESXI.CONG.HIGH}'
+                  name: 'vSAN Congestion On {#HOST} > {$ESXI.CONG.HIGH}'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+            -
+              uuid: 937e9e5e4c3247cd9abef73bd8dc661e
+              name: '[{#CLUSTER} / {#HOST}] vCenter Connection'
+              type: DEPENDENT
+              key: 'esxi.host.connected["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              valuemap:
+                name: 'Yes / No'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_connected{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: host
+              trigger_prototypes:
+                -
+                  uuid: c4e2d1323bea43eca3cc6c705497dc86
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.connected["{#CLUSTER}","{#HOST}"])=0'
+                  name: 'Host {#HOST} Disconnected From vCenter ({#CLUSTER})'
+                  priority: HIGH
+                  description: 'Host is down / not responding, or an ESXi service (hostd, vpxa) has failed.'
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+            -
+              uuid: 29b4a2d1d81e477ba9cada1db925d777
+              name: '[{#CLUSTER} / {#HOST}] CPU Usage'
+              type: DEPENDENT
+              key: 'esxi.host.cpu["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_cpu_usage_percent{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: cpu
+              trigger_prototypes:
+                -
+                  uuid: bd3907b0c01d4066832a4732a9ce6d1c
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.cpu["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.CPU.HIGH}'
+                  name: 'CPU Usage On {#HOST} > {$ESXI.CPU.HIGH}% For 5 Min'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+                -
+                  uuid: c405aef4db9740e0a84b86ccb76b26a1
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.cpu["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.CPU.WARN}'
+                  name: 'CPU Usage On {#HOST} > {$ESXI.CPU.WARN}% For 5 Min'
+                  priority: WARNING
+                  dependencies:
+                    -
+                      name: 'CPU Usage On {#HOST} > {$ESXI.CPU.HIGH}% For 5 Min'
+                      expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.cpu["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.CPU.HIGH}'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+            -
+              uuid: 830dcddff1c9452c90646ec88d43bf91
+              name: '[{#CLUSTER} / {#HOST}] Healthy vSAN Disks'
+              type: DEPENDENT
+              key: 'esxi.host.disk.pct["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_host_disk_health_percent{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+              trigger_prototypes:
+                -
+                  uuid: c148f5297bb24061a0e0140cfe4eddbc
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.disk.pct["{#CLUSTER}","{#HOST}"])<{$ESXI.DISKPCT.HIGH}'
+                  name: 'Healthy vSAN Disks On {#HOST} < {$ESXI.DISKPCT.HIGH}%'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+                -
+                  uuid: be884781aadd4572969c1bfeffe261cb
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.disk.pct["{#CLUSTER}","{#HOST}"])<{$ESXI.DISKPCT.WARN}'
+                  name: 'Healthy vSAN Disks On {#HOST} < {$ESXI.DISKPCT.WARN}%'
+                  priority: WARNING
+                  dependencies:
+                    -
+                      name: 'Healthy vSAN Disks On {#HOST} < {$ESXI.DISKPCT.HIGH}%'
+                      expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.disk.pct["{#CLUSTER}","{#HOST}"])<{$ESXI.DISKPCT.HIGH}'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+            -
+              uuid: c7b9a756d9c64d82be4ce6b61ea0e82a
+              name: '[{#CLUSTER} / {#HOST}] Hardware Health'
+              type: DEPENDENT
+              key: 'esxi.host.hardware["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              valuemap:
+                name: 'vSAN Health'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_hardware_health{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: host
+              trigger_prototypes:
+                -
+                  uuid: 0df6c149f4574de993ef5b1273423b4e
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.hardware["{#CLUSTER}","{#HOST}"])=2'
+                  name: 'Hardware Failure On Host {#HOST} ({#CLUSTER})'
+                  priority: HIGH
+                  description: 'Hardware Health reports a RED component (sensor / CPU / memory / storage). Check Monitor > Hardware Health of the host in vCenter.'
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+            -
+              uuid: 69aadf91b84146d390bfc2cd038ca6c1
+              name: '[{#CLUSTER} / {#HOST}] vSAN Read Latency'
+              type: DEPENDENT
+              key: 'esxi.host.lat.read["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: ms
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_read_latency_ms{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+            -
+              uuid: c1ff1e86a3094749bd2a6f05eee73486
+              name: '[{#CLUSTER} / {#HOST}] vSAN Write Latency'
+              type: DEPENDENT
+              key: 'esxi.host.lat.write["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: ms
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_write_latency_ms{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+              trigger_prototypes:
+                -
+                  uuid: c0bdccb0da2b43cfa5bd1f10d06cc10b
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.lat.write["{#CLUSTER}","{#HOST}"],10m)>{$ESXI.LAT.HIGH}'
+                  name: 'Disk Write Latency On {#HOST} > {$ESXI.LAT.HIGH}ms For 10 Min'
+                  priority: HIGH
+                  description: 'Temporary thresholds 15ms / 30ms - not yet finalized per disk class (SSD / NVMe / HDD / USB).'
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+                -
+                  uuid: dba53ad6e5094644a25b1f0d19972e9f
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.lat.write["{#CLUSTER}","{#HOST}"],10m)>{$ESXI.LAT.WARN}'
+                  name: 'Disk Write Latency On {#HOST} > {$ESXI.LAT.WARN}ms For 10 Min'
+                  priority: WARNING
+                  description: 'Temporary thresholds 15ms / 30ms - not yet finalized per disk class (SSD / NVMe / HDD / USB).'
+                  dependencies:
+                    -
+                      name: 'Disk Write Latency On {#HOST} > {$ESXI.LAT.HIGH}ms For 10 Min'
+                      expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.lat.write["{#CLUSTER}","{#HOST}"],10m)>{$ESXI.LAT.HIGH}'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+            -
+              uuid: 97a00d4c271f47c8aa6f2eda8f3f8519
+              name: '[{#CLUSTER} / {#HOST}] Maintenance Mode'
+              type: DEPENDENT
+              key: 'esxi.host.maintenance["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              valuemap:
+                name: 'Yes / No'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_maintenance{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: host
+              trigger_prototypes:
+                -
+                  uuid: 689b6bc4c1df40fbabab80050471f8f6
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.maintenance["{#CLUSTER}","{#HOST}"])=1'
+                  name: 'Host {#HOST} Entered Maintenance Mode ({#CLUSTER})'
+                  priority: WARNING
+                  description: 'Host is in maintenance mode. If no maintenance is scheduled, check who put the host into maintenance.'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+            -
+              uuid: c940915457f84f84870d8dfa82df4da9
+              name: '[{#CLUSTER} / {#HOST}] vSAN Network Latency'
+              type: DEPENDENT
+              key: 'esxi.host.netlat["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: ms
+              description: 'From the vSAN health ''Network latency check'' test (every 5 minutes).'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_network_latency_ms{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+              trigger_prototypes:
+                -
+                  uuid: d560a41a827141e1b90d378458c22e58
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.HIGH}'
+                  name: 'vSAN Network Latency On {#HOST} > {$ESXI.NETLAT.HIGH}ms'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+                -
+                  uuid: 0da96b66e4ff4cff81b264535400e064
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.WARN}'
+                  name: 'vSAN Network Latency On {#HOST} > {$ESXI.NETLAT.WARN}ms'
+                  priority: WARNING
+                  dependencies:
+                    -
+                      name: 'vSAN Network Latency On {#HOST} > {$ESXI.NETLAT.HIGH}ms'
+                      expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.HIGH}'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+            -
+              uuid: c5d5b16a3c634e5f95123d01831f0fbb
+              name: '[{#CLUSTER} / {#HOST}] Memory Usage'
+              type: DEPENDENT
+              key: 'esxi.host.ram["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_mem_usage_percent{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: memory
+              trigger_prototypes:
+                -
+                  uuid: 7b0043b124e644f1a081c6ea2d4ac916
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.ram["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.RAM.HIGH}'
+                  name: 'Memory Usage On {#HOST} > {$ESXI.RAM.HIGH}% For 5 Min'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+                -
+                  uuid: a5bf991de498464abe5571a7d7862150
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.ram["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.RAM.WARN}'
+                  name: 'Memory Usage On {#HOST} > {$ESXI.RAM.WARN}% For 5 Min'
+                  priority: WARNING
+                  dependencies:
+                    -
+                      name: 'Memory Usage On {#HOST} > {$ESXI.RAM.HIGH}% For 5 Min'
+                      expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.ram["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.RAM.HIGH}'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+            -
+              uuid: c275787448d64d27983c0dda8da61ed9
+              name: '[{#CLUSTER} / {#HOST}] Uptime'
+              type: DEPENDENT
+              key: 'esxi.host.uptime["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              units: uptime
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_uptime_seconds{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: host
+            -
+              uuid: 93e0858160a44aa69b1f1e2c6c7e794c
+              name: '[{#CLUSTER} / {#HOST}] Running VMs'
+              type: DEPENDENT
+              key: 'esxi.host.vms["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_vms_running{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: host
+          graph_prototypes:
+            -
+              uuid: 7c40190b19f246748bb6291dab5a9df9
+              name: '[{#CLUSTER} / {#HOST}] CPU & Memory Usage'
+              ymin_type_1: FIXED
+              ymax_type_1: FIXED
+              graph_items:
+                -
+                  color: 1E88E5
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.host.cpu["{#CLUSTER}","{#HOST}"]'
+                -
+                  sortorder: '1'
+                  color: 8E24AA
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.host.ram["{#CLUSTER}","{#HOST}"]'
+            -
+              uuid: 3563dd703ca54065b3f4c8ad2d258558
+              name: '[{#CLUSTER} / {#HOST}] Healthy vSAN Disks'
+              ymin_type_1: FIXED
+              ymax_type_1: FIXED
+              graph_items:
+                -
+                  drawtype: GRADIENT_LINE
+                  color: 1E88E5
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.host.disk.pct["{#CLUSTER}","{#HOST}"]'
+            -
+              uuid: 5b8de4c9f67448539b09ab2e1d3391f5
+              name: '[{#CLUSTER} / {#HOST}] vSAN Latency'
+              graph_items:
+                -
+                  color: 1E88E5
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.host.lat.write["{#CLUSTER}","{#HOST}"]'
+                -
+                  sortorder: '1'
+                  color: 8E24AA
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.host.lat.read["{#CLUSTER}","{#HOST}"]'
+                -
+                  sortorder: '2'
+                  color: 43A047
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.host.netlat["{#CLUSTER}","{#HOST}"]'
+          master_item:
+            key: esxi.exporter.metrics
+          lld_macro_paths:
+            -
+              lld_macro: '{#CLUSTER}'
+              path: '$.labels[''cluster'']'
+            -
+              lld_macro: '{#HOST}'
+              path: '$.labels[''host'']'
+          preprocessing:
+            -
+              type: PROMETHEUS_TO_JSON
+              parameters:
+                - esxi_host_connected
+        -
+          uuid: 7700b257f24443e2947b1b683ad0f535
+          name: 'vmnic Uplink Discovery'
+          type: DEPENDENT
+          key: esxi.nic.discovery
+          delay: '0'
+          filter:
+            evaltype: AND
+            conditions:
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.MATCHES}'
+                formulaid: A
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.MATCHES}'
+                formulaid: C
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: D
+          lifetime: 7d
+          description: 'Discovered from exporter metric esxi_host_nic_up.'
+          item_prototypes:
+            -
+              uuid: d6c4c971468d4f8385cfda7deea0b9d3
+              name: '[{#CLUSTER} / {#HOST}] {#NIC} Bits Received'
+              type: DEPENDENT
+              key: 'esxi.nic.rx["{#CLUSTER}","{#HOST}","{#NIC}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: bps
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_nic_receive_mbps{cluster="{#CLUSTER}",host="{#HOST}",nic="{#NIC}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: network
+            -
+              uuid: b0453c180cf94734915958602a269764
+              name: '[{#CLUSTER} / {#HOST}] {#NIC} Link Speed'
+              type: DEPENDENT
+              key: 'esxi.nic.speed["{#CLUSTER}","{#HOST}","{#NIC}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              units: bps
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_nic_speed_mbps{cluster="{#CLUSTER}",host="{#HOST}",nic="{#NIC}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: network
+            -
+              uuid: 8480afd6c41644d186864925b311909e
+              name: '[{#CLUSTER} / {#HOST}] {#NIC} Bits Sent'
+              type: DEPENDENT
+              key: 'esxi.nic.tx["{#CLUSTER}","{#HOST}","{#NIC}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: bps
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_nic_transmit_mbps{cluster="{#CLUSTER}",host="{#HOST}",nic="{#NIC}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: network
+            -
+              uuid: 3ca5f7df338847b3a8a0d2b974a2a3aa
+              name: '[{#CLUSTER} / {#HOST}] {#NIC} Link Status'
+              type: DEPENDENT
+              key: 'esxi.nic.up["{#CLUSTER}","{#HOST}","{#NIC}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              valuemap:
+                name: 'Link Status'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_nic_up{cluster="{#CLUSTER}",host="{#HOST}",nic="{#NIC}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: network
+              trigger_prototypes:
+                -
+                  uuid: 4b405ddce8264dd4aebe343e1b195504
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.nic.up["{#CLUSTER}","{#HOST}","{#NIC}"])=0'
+                  name: 'vmnic {#NIC} Down On Host {#HOST} ({#CLUSTER})'
+                  priority: HIGH
+                  description: 'Uplink lost link. Check cable / switch / port.'
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+          graph_prototypes:
+            -
+              uuid: 6d975f6c09c14d08926ad6146d366769
+              name: '[{#CLUSTER} / {#HOST}] {#NIC} Traffic'
+              graph_items:
+                -
+                  color: 1E88E5
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.nic.tx["{#CLUSTER}","{#HOST}","{#NIC}"]'
+                -
+                  sortorder: '1'
+                  color: 8E24AA
+                  item:
+                    host: 'ESXi Host Exporter by HTTP'
+                    key: 'esxi.nic.rx["{#CLUSTER}","{#HOST}","{#NIC}"]'
+          master_item:
+            key: esxi.exporter.metrics
+          lld_macro_paths:
+            -
+              lld_macro: '{#CLUSTER}'
+              path: '$.labels[''cluster'']'
+            -
+              lld_macro: '{#HOST}'
+              path: '$.labels[''host'']'
+            -
+              lld_macro: '{#NIC}'
+              path: '$.labels[''nic'']'
+          preprocessing:
+            -
+              type: PROMETHEUS_TO_JSON
+              parameters:
+                - esxi_host_nic_up
+        -
+          uuid: 4cd5a4f49eba471ea5854f6ea8833a5b
+          name: 'vSAN vmk Discovery'
+          type: DEPENDENT
+          key: esxi.vmk.discovery
+          delay: '0'
+          filter:
+            evaltype: AND
+            conditions:
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.MATCHES}'
+                formulaid: A
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.MATCHES}'
+                formulaid: C
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: D
+          lifetime: 7d
+          description: 'Discovered from exporter metric esxi_host_vmk_drop_percent{vsan="true"}.'
+          item_prototypes:
+            -
+              uuid: 3164b0c2b1a5438c9f8df9dc74e48e47
+              name: '[{#CLUSTER} / {#HOST}] {#VMK} vSAN Packet Drop {#DIRECTION}'
+              type: DEPENDENT
+              key: 'esxi.vmk.drop["{#CLUSTER}","{#HOST}","{#VMK}","{#DIRECTION}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_host_vmk_drop_percent{cluster="{#CLUSTER}",host="{#HOST}",vmk="{#VMK}",vsan="true",direction="{#DIRECTION}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: network
+              trigger_prototypes:
+                -
+                  uuid: 578e2092b4004ab69c62ab86bc1a7f43
+                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.vmk.drop["{#CLUSTER}","{#HOST}","{#VMK}","{#DIRECTION}"],5m)>{$ESXI.VMKDROP.WARN}'
+                  name: 'vSAN vmk {#VMK} ({#DIRECTION}) Packet Drop On {#HOST} > {$ESXI.VMKDROP.WARN}%'
+                  priority: WARNING
+                  description: 'Sustained packet drop/discard on the vSAN network - congestion or QoS.'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+          master_item:
+            key: esxi.exporter.metrics
+          lld_macro_paths:
+            -
+              lld_macro: '{#CLUSTER}'
+              path: '$.labels[''cluster'']'
+            -
+              lld_macro: '{#DIRECTION}'
+              path: '$.labels[''direction'']'
+            -
+              lld_macro: '{#HOST}'
+              path: '$.labels[''host'']'
+            -
+              lld_macro: '{#VMK}'
+              path: '$.labels[''vmk'']'
+          preprocessing:
+            -
+              type: PROMETHEUS_TO_JSON
+              parameters:
+                - 'esxi_host_vmk_drop_percent{vsan="true"}'
+        -
+          uuid: 23cf8d41afea46c98816a254cec5c8a4
+          name: 'vSAN Disk Discovery'
+          type: DEPENDENT
+          key: vsan.disk.discovery
+          delay: '0'
+          filter:
+            evaltype: AND
+            conditions:
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.MATCHES}'
+                formulaid: A
+              -
+                macro: '{#CLUSTER}'
+                value: '{$ESXI.CLUSTER.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.MATCHES}'
+                formulaid: C
+              -
+                macro: '{#HOST}'
+                value: '{$ESXI.HOST.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: D
+          lifetime: 7d
+          description: 'Discovered from exporter metric vsan_disk_health.'
+          item_prototypes:
+            -
+              uuid: 7a455fc13c09451ab816467e44c2acb6
+              name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Congestion'
+              type: DEPENDENT
+              key: 'vsan.disk.congestion["{#CLUSTER}","{#HOST}","{#DISK}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'vsan_disk_congestion_value{cluster="{#CLUSTER}",host="{#HOST}",disk="{#DISK}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan-disk
+            -
+              uuid: 731a7aa20c004344b5761ce7f5fa9e60
+              name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Health'
+              type: DEPENDENT
+              key: 'vsan.disk.health["{#CLUSTER}","{#HOST}","{#DISK}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              valuemap:
+                name: 'vSAN Health'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'vsan_disk_health{cluster="{#CLUSTER}",host="{#HOST}",disk="{#DISK}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan-disk
+              trigger_prototypes:
+                -
+                  uuid: e2f318ff831d4100a2cb8902398cbd90
+                  expression: 'last(/ESXi Host Exporter by HTTP/vsan.disk.health["{#CLUSTER}","{#HOST}","{#DISK}"])=1'
+                  name: 'vSAN Disk {#DISK} Degraded On Host {#HOST} ({#CLUSTER})'
+                  priority: WARNING
+                  dependencies:
+                    -
+                      name: 'vSAN Disk {#DISK} Failed On Host {#HOST} ({#CLUSTER})'
+                      expression: 'last(/ESXi Host Exporter by HTTP/vsan.disk.health["{#CLUSTER}","{#HOST}","{#DISK}"])=2'
+                  tags:
+                    -
+                      tag: level
+                      value: '3'
+                -
+                  uuid: 2e46aefb02db446d978413206aa2b24b
+                  expression: 'last(/ESXi Host Exporter by HTTP/vsan.disk.health["{#CLUSTER}","{#HOST}","{#DISK}"])=2'
+                  name: 'vSAN Disk {#DISK} Failed On Host {#HOST} ({#CLUSTER})'
+                  priority: HIGH
+                  description: 'Disk health is RED. See the disk Status Reason item.'
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+            -
+              uuid: f1171b3ad5514bf5a1f75023dad96b22
+              name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Status Reason'
+              type: DEPENDENT
+              key: 'vsan.disk.reason["{#CLUSTER}","{#HOST}","{#DISK}"]'
+              delay: '0'
+              history: 7d
+              trends: '0'
+              value_type: CHAR
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'vsan_disk_info{cluster="{#CLUSTER}",host="{#HOST}",disk="{#DISK}"}'
+                    - label
+                    - reason
+                  error_handler: DISCARD_VALUE
+                -
+                  type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1h
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan-disk
+            -
+              uuid: 751dfbfa7a6347c6bf4375e185ffa433
+              name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Used Capacity'
+              type: DEPENDENT
+              key: 'vsan.disk.used["{#CLUSTER}","{#HOST}","{#DISK}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'vsan_disk_used_ratio{cluster="{#CLUSTER}",host="{#HOST}",disk="{#DISK}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '100'
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan-disk
+          master_item:
+            key: esxi.exporter.metrics
+          lld_macro_paths:
+            -
+              lld_macro: '{#CLUSTER}'
+              path: '$.labels[''cluster'']'
+            -
+              lld_macro: '{#DISK}'
+              path: '$.labels[''disk'']'
+            -
+              lld_macro: '{#HOST}'
+              path: '$.labels[''host'']'
+          preprocessing:
+            -
+              type: PROMETHEUS_TO_JSON
+              parameters:
+                - vsan_disk_health
+      tags:
+        -
+          tag: class
+          value: virtualization
+        -
+          tag: target
+          value: esxi
+      macros:
+        -
+          macro: '{$ESXI.CLUSTER.MATCHES}'
+          value: '.*'
+          description: 'Regex: only discover these clusters (one pool per Zabbix host, e.g. ^Pool18$)'
+        -
+          macro: '{$ESXI.CLUSTER.NOT_MATCHES}'
+          value: CHANGE_IF_NEEDED
+          description: 'Regex: skip these clusters'
+        -
+          macro: '{$ESXI.CONG.HIGH}'
+          value: '60'
+          description: 'vSAN congestion - Level 2'
+        -
+          macro: '{$ESXI.CPU.HIGH}'
+          value: '60'
+          description: 'CPU % - Level 2'
+        -
+          macro: '{$ESXI.CPU.WARN}'
+          value: '40'
+          description: 'CPU % - Level 3'
+        -
+          macro: '{$ESXI.DISKPCT.HIGH}'
+          value: '70'
+          description: 'Healthy vSAN disk % below this - Level 2'
+        -
+          macro: '{$ESXI.DISKPCT.WARN}'
+          value: '80'
+          description: 'Healthy vSAN disk % below this - Level 3'
+        -
+          macro: '{$ESXI.EXPORTER.URL}'
+          value: 'http://{HOST.CONN}:9811/metrics'
+          description: 'Exporter /metrics URL (one port per instance / pool)'
+        -
+          macro: '{$ESXI.HOST.MATCHES}'
+          value: '.*'
+          description: 'Regex: only discover these ESXi hosts (e.g. ^10\.2\.156\.2[1-5]$)'
+        -
+          macro: '{$ESXI.HOST.NOT_MATCHES}'
+          value: CHANGE_IF_NEEDED
+          description: 'Regex: skip these ESXi hosts'
+        -
+          macro: '{$ESXI.LAT.HIGH}'
+          value: '30'
+          description: 'Disk write latency ms - Level 2 (temporary)'
+        -
+          macro: '{$ESXI.LAT.WARN}'
+          value: '15'
+          description: 'Disk write latency ms - Level 3 (temporary)'
+        -
+          macro: '{$ESXI.NETLAT.HIGH}'
+          value: '1'
+          description: 'vSAN network latency ms - Level 2'
+        -
+          macro: '{$ESXI.NETLAT.WARN}'
+          value: '0.5'
+          description: 'vSAN network latency ms - Level 3'
+        -
+          macro: '{$ESXI.RAM.HIGH}'
+          value: '90'
+          description: 'Memory % - Level 2'
+        -
+          macro: '{$ESXI.RAM.WARN}'
+          value: '80'
+          description: 'Memory % - Level 3'
+        -
+          macro: '{$ESXI.STALE}'
+          value: '900'
+          description: 'Seconds without vCenter data'
+        -
+          macro: '{$ESXI.VMKDROP.WARN}'
+          value: '0.1'
+          description: 'vSAN vmk drop % - Level 3'
+      dashboards:
+        -
+          uuid: 1b50d453e8d84013ad50404bd62e69d3
+          name: 'ESXi & vSAN Command Center'
+          pages:
+            -
+              name: Hosts
+              widgets:
+                -
+                  type: GRAPH_CLASSIC
+                  name: 'CPU & Memory Usage (Max / Avg)'
+                  'y': '3'
+                  width: '12'
+                  height: '5'
+                  fields:
+                    -
+                      type: GRAPH
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: 'Summary: CPU & Memory Usage (Max / Avg)'
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: 'CPU & Memory Usage Per Host'
+                  'y': '8'
+                  width: '24'
+                  height: '10'
+                  fields:
+                    -
+                      type: INTEGER
+                      name: columns
+                      value: '3'
+                    -
+                      type: INTEGER
+                      name: rows
+                      value: '2'
+                    -
+                      type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: '[{#CLUSTER} / {#HOST}] CPU & Memory Usage'
+                -
+                  type: ITEM
+                  name: 'CPU Max'
+                  x: '12'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.cpu.max
+                -
+                  type: ITEM
+                  name: Disconnected
+                  x: '3'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.hosts.disconnected
+                -
+                  type: ITEM
+                  name: 'ESXi Hosts'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.hosts
+                -
+                  type: ITEM
+                  name: 'Hardware Error'
+                  x: '6'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.hosts.hw_error
+                -
+                  type: ITEM
+                  name: 'In Maintenance'
+                  x: '9'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.hosts.maintenance
+                -
+                  type: ITEM
+                  name: 'Memory Max'
+                  x: '15'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.ram.max
+                -
+                  type: GRAPH_CLASSIC
+                  name: 'Problem Counts'
+                  x: '12'
+                  'y': '3'
+                  width: '12'
+                  height: '5'
+                  fields:
+                    -
+                      type: GRAPH
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: 'Summary: Problem Counts'
+                -
+                  type: ITEM
+                  name: 'Running VMs'
+                  x: '18'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.vms
+                -
+                  type: ITEM
+                  name: 'vCenter Collection'
+                  x: '21'
+                  width: '3'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.exporter.up
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: 'vSAN Latency Per Host'
+                  'y': '18'
+                  width: '24'
+                  height: '10'
+                  fields:
+                    -
+                      type: INTEGER
+                      name: columns
+                      value: '3'
+                    -
+                      type: INTEGER
+                      name: rows
+                      value: '2'
+                    -
+                      type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: '[{#CLUSTER} / {#HOST}] vSAN Latency'
+            -
+              name: vSAN
+              widgets:
+                -
+                  type: ITEM
+                  name: 'Degraded Disks'
+                  x: '4'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.disks.degraded
+                -
+                  type: ITEM
+                  name: 'Failed Disks'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.disks.failed
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: 'Healthy vSAN Disks Per Host'
+                  'y': '8'
+                  width: '24'
+                  height: '10'
+                  fields:
+                    -
+                      type: INTEGER
+                      name: columns
+                      value: '3'
+                    -
+                      type: INTEGER
+                      name: rows
+                      value: '2'
+                    -
+                      type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: '[{#CLUSTER} / {#HOST}] Healthy vSAN Disks'
+                -
+                  type: ITEM
+                  name: 'Lowest Healthy Disks'
+                  x: '8'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.disks.pct.min
+                -
+                  type: ITEM
+                  name: 'Network Latency Max'
+                  x: '16'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.netlat.max
+                -
+                  type: ITEM
+                  name: 'Resync Objects'
+                  x: '20'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.resync.objects
+                -
+                  type: GRAPH_CLASSIC
+                  name: 'vSAN Latency (Max)'
+                  'y': '3'
+                  width: '12'
+                  height: '5'
+                  fields:
+                    -
+                      type: GRAPH
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: 'Summary: vSAN Latency (Max)'
+                -
+                  type: GRAPH_CLASSIC
+                  name: 'vSAN Resync Objects'
+                  x: '12'
+                  'y': '3'
+                  width: '12'
+                  height: '5'
+                  fields:
+                    -
+                      type: GRAPH
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: 'Summary: vSAN Resync Objects'
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: 'vSAN Resync Per Cluster'
+                  'y': '18'
+                  width: '24'
+                  height: '5'
+                  fields:
+                    -
+                      type: INTEGER
+                      name: columns
+                      value: '2'
+                    -
+                      type: INTEGER
+                      name: rows
+                      value: '1'
+                    -
+                      type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: '[{#CLUSTER}] vSAN Resync'
+                -
+                  type: ITEM
+                  name: 'Write Latency Max'
+                  x: '12'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.lat.write.max
+            -
+              name: Network
+              widgets:
+                -
+                  type: ITEM
+                  name: 'Congestion Max'
+                  x: '12'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.congestion.max
+                -
+                  type: ITEM
+                  name: 'Total Received'
+                  x: '20'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.nic.rx
+                -
+                  type: ITEM
+                  name: 'Total Sent'
+                  x: '16'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.nic.tx
+                -
+                  type: GRAPH_CLASSIC
+                  name: 'Total vmnic Traffic'
+                  'y': '3'
+                  width: '24'
+                  height: '5'
+                  fields:
+                    -
+                      type: GRAPH
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: 'Summary: Total vmnic Traffic'
+                -
+                  type: ITEM
+                  name: 'vmnic Down'
+                  x: '4'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.nics.down
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: 'vmnic Traffic Per Host'
+                  'y': '8'
+                  width: '24'
+                  height: '15'
+                  fields:
+                    -
+                      type: INTEGER
+                      name: columns
+                      value: '3'
+                    -
+                      type: INTEGER
+                      name: rows
+                      value: '3'
+                    -
+                      type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        name: '[{#CLUSTER} / {#HOST}] {#NIC} Traffic'
+                -
+                  type: ITEM
+                  name: 'vmnic Uplinks'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.nics
+                -
+                  type: ITEM
+                  name: 'vSAN vmk Drop Max'
+                  x: '8'
+                  width: '4'
+                  height: '3'
+                  fields:
+                    -
+                      type: ITEM
+                      name: itemid
+                      value:
+                        host: 'ESXi Host Exporter by HTTP'
+                        key: esxi.summary.vmk.drop.max
+      valuemaps:
+        -
+          uuid: c0a32b82dff24cdcadad89c45301aeb2
+          name: 'Link Status'
+          mappings:
+            -
+              value: '0'
+              newvalue: Down
+            -
+              value: '1'
+              newvalue: Up
+        -
+          uuid: f4dafd2231594f11bdf623edb3afc754
+          name: 'vSAN Health'
+          mappings:
+            -
+              value: '0'
+              newvalue: Green
+            -
+              value: '1'
+              newvalue: Yellow
+            -
+              value: '2'
+              newvalue: Red
+            -
+              value: '3'
+              newvalue: Unknown
+        -
+          uuid: 58fcfdb4a456417590136df7a9abf659
+          name: 'Yes / No'
+          mappings:
+            -
+              value: '0'
+              newvalue: 'No'
+            -
+              value: '1'
+              newvalue: 'Yes'
+  graphs:
+    -
+      uuid: d07cf953e4c442b19310a4e27f17e1f4
+      name: 'Summary: CPU & Memory Usage (Max / Avg)'
+      ymin_type_1: FIXED
+      ymax_type_1: FIXED
+      graph_items:
+        -
+          color: 1E88E5
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.cpu.max
+        -
+          sortorder: '1'
+          color: 8E24AA
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.cpu.avg
+        -
+          sortorder: '2'
+          color: 43A047
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.ram.max
+        -
+          sortorder: '3'
+          color: 6D4C41
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.ram.avg
+    -
+      uuid: 7326e1f1a97945ee808947ef30c9a632
+      name: 'Summary: Problem Counts'
+      graph_items:
+        -
+          color: 1E88E5
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.hosts.disconnected
+        -
+          sortorder: '1'
+          color: 8E24AA
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.hosts.hw_error
+        -
+          sortorder: '2'
+          color: 43A047
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.disks.failed
+        -
+          sortorder: '3'
+          color: 6D4C41
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.nics.down
+    -
+      uuid: b786a77822cb49339a37df92150d4bd4
+      name: 'Summary: Total vmnic Traffic'
+      graph_items:
+        -
+          color: 1E88E5
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.nic.tx
+        -
+          sortorder: '1'
+          color: 8E24AA
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.nic.rx
+    -
+      uuid: ddc3afa71a534948b533139eb9d782f4
+      name: 'Summary: vSAN Latency (Max)'
+      graph_items:
+        -
+          color: 1E88E5
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.lat.write.max
+        -
+          sortorder: '1'
+          color: 8E24AA
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.netlat.max
+    -
+      uuid: 6ccec6d04c4f4bd28e1f640cdced07b9
+      name: 'Summary: vSAN Resync Objects'
+      graph_items:
+        -
+          drawtype: GRADIENT_LINE
+          color: 1E88E5
+          item:
+            host: 'ESXi Host Exporter by HTTP'
+            key: esxi.summary.resync.objects
