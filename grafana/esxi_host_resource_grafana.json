@@ -31,7 +31,7 @@
       },
       "id": 1,
       "panels": [],
-      "title": "Cluster $cluster -  Chi Tiết",
+      "title": "Cluster $cluster - Details",
       "type": "row"
     },
     {
@@ -95,7 +95,7 @@
           "refId": "A"
         }
       ],
-      "title": "Total host",
+      "title": "Total Hosts",
       "type": "stat"
     },
     {
@@ -227,7 +227,7 @@
           "refId": "A"
         }
       ],
-      "title": "Cảnh báo (WARN)",
+      "title": "Warning (WARN)",
       "type": "stat"
     },
     {
@@ -295,7 +295,7 @@
           "refId": "A"
         }
       ],
-      "title": "Lỗi (ERROR)",
+      "title": "Error (ERROR)",
       "type": "stat"
     },
     {
@@ -518,7 +518,7 @@
           "refId": "A"
         }
       ],
-      "title": "vSAN resync",
+      "title": "vSAN Resync",
       "type": "stat"
     },
     {
@@ -591,7 +591,7 @@
           "refId": "A"
         }
       ],
-      "title": "Dữ liệu cập nhật (exporter cũ nhất)",
+      "title": "Data Freshness (Oldest Exporter)",
       "type": "stat"
     },
     {
@@ -1149,7 +1149,7 @@
           "refId": "I"
         }
       ],
-      "title": "Host ESXi — cluster $cluster  (bấm tên host để xem chi tiết)",
+      "title": "ESXi Hosts - Cluster $cluster (Click Host Name For Details)",
       "transformations": [
         {
           "id": "merge",
@@ -1211,7 +1211,7 @@
       },
       "id": 9,
       "panels": [],
-      "title": "Network — vmnic & vmk vSAN (host: $host)",
+      "title": "Network - vmnic & vSAN vmk (Host: $host)",
       "type": "row"
     },
     {
@@ -1316,7 +1316,7 @@
           "refId": "A"
         }
       ],
-      "title": "vmnic — bandwidth TX (Mb/s) — top 10",
+      "title": "vmnic Bandwidth TX (Mb/s) - Top 10",
       "type": "timeseries"
     },
     {
@@ -1420,7 +1420,7 @@
           "refId": "A"
         }
       ],
-      "title": "vmnic — bandwidth RX (Mb/s) — top 10",
+      "title": "vmnic Bandwidth RX (Mb/s) - Top 10",
       "type": "timeseries"
     },
     {
@@ -1531,7 +1531,7 @@
           "refId": "A"
         }
       ],
-      "title": "vmk vSAN — Packet Drop/Discard rate (%)",
+      "title": "vSAN vmk Packet Drop / Discard Rate (%)",
       "type": "timeseries"
     },
     {
@@ -1544,7 +1544,7 @@
       },
       "id": 14,
       "panels": [],
-      "title": "Chi tiết host: $host",
+      "title": "Host Details: $host",
       "type": "row"
     },
     {
@@ -1653,7 +1653,7 @@
           "refId": "A"
         }
       ],
-      "title": "CPU (%) - top 10 host",
+      "title": "CPU (%) - Top 10 Hosts",
       "type": "timeseries"
     },
     {
@@ -1762,7 +1762,7 @@
           "refId": "A"
         }
       ],
-      "title": "RAM (%) - top 10 host",
+      "title": "RAM (%) - Top 10 Hosts",
       "type": "timeseries"
     },
     {
@@ -1866,7 +1866,7 @@
           "refId": "A"
         }
       ],
-      "title": "vSAN write latency - top 10 host (ms, mau 5 phut)",
+      "title": "vSAN Write Latency - Top 10 Hosts (ms, 5-Min Sample)",
       "type": "timeseries"
     },
     {
@@ -1970,7 +1970,7 @@
           "refId": "A"
         }
       ],
-      "title": "vSAN read latency - top 10 host (ms, mau 5 phut)",
+      "title": "vSAN Read Latency - Top 10 Hosts (ms, 5-Min Sample)",
       "type": "timeseries"
     },
     {
@@ -2077,7 +2077,7 @@
           "refId": "A"
         }
       ],
-      "title": "vSAN network latency (ms) - lon nhat trong cluster",
+      "title": "vSAN Network Latency (ms) - Cluster Max",
       "type": "timeseries",
       "description": "Network latency vSAN (ms) giua cac host, tu test 'Network latency check'. Vang > 0,5ms, do > 1ms. vCenter chi cho so tong cluster nen cac host co cung gia tri."
     },
@@ -2091,7 +2091,7 @@
       },
       "id": 19,
       "panels": [],
-      "title": "vSAN Disk Health — cluster $cluster",
+      "title": "vSAN Disk Health - Cluster $cluster",
       "type": "row"
     },
     {
@@ -2198,7 +2198,7 @@
           "refId": "A"
         }
       ],
-      "title": "Congestion — top 10 disk",
+      "title": "Congestion - Top 10 Disks",
       "type": "timeseries"
     },
     {
@@ -2278,7 +2278,7 @@
           "refId": "A"
         }
       ],
-      "title": "Dung lượng đã dùng — top 10 disk",
+      "title": "Used Capacity - Top 10 Disks",
       "type": "bargauge"
     }
   ],
@@ -2334,10 +2334,10 @@
           "value": "0"
         },
         "includeAll": false,
-        "label": "Trạng thái",
+        "label": "Status",
         "name": "status",
         "options": [],
-        "query": "Tất cả : 0,Cảnh báo + Lỗi : 1,Lỗi : 2",
+        "query": "All : 0,Warning + Error : 1,Error : 2",
         "type": "custom",
         "valuesFormat": "csv"
       },
@@ -2353,7 +2353,7 @@
         },
         "definition": "label_values(esxi_host_status{cluster=~\"$cluster\"}, host)",
         "includeAll": true,
-        "label": "Host (chi tiết)",
+        "label": "Host (Details)",
         "multi": true,
         "name": "host",
         "options": [],
