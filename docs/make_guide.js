@@ -273,8 +273,10 @@ children.push(...img("grafana-write.jpg", 624, 297, "Hình 4 — vSAN Write late
 children.push(...img("grafana-read.jpg", 624, 297, "Hình 5 — vSAN Read latency top 10 host."));
 children.push(...img("grafana-netlat.jpg", 624, 297, "Hình 6 — vSAN Network latency (Max của cluster)."));
 children.push(...img("grafana-network.jpg", 624, 297, "Hình 7 — vmnic Bandwidth TX top 10 host."));
-children.push(...img("grafana-vmkdrop.jpg", 624, 297, "Hình 8 — vSAN vmk Packet Drop / Discard (ngưỡng 0,1%)."));
-children.push(...img("grafana-usedcap.jpg", 624, 297, "Hình 9 — Dung lượng đã dùng — top 10 disk vSAN."));
+children.push(...img("grafana-networkrx.jpg", 624, 297, "Hình 8 — vmnic Bandwidth RX top 10 host."));
+children.push(...img("grafana-vmkdrop.jpg", 624, 297, "Hình 9 — vSAN vmk Packet Drop / Discard (ngưỡng 0,1%)."));
+children.push(...img("grafana-congestion.jpg", 624, 297, "Hình 10 — vSAN Congestion — top 10 disk (ngưỡng 60)."));
+children.push(...img("grafana-usedcap.jpg", 624, 297, "Hình 11 — Dung lượng đã dùng — top 10 disk vSAN."));
 
 // ============ Zabbix
 children.push(H1(N()+"Zabbix (tùy chọn — thay / cùng Prometheus)"));
