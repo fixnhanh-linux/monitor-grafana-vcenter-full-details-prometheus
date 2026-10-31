@@ -268,6 +268,8 @@ children.push(bullet("Chi tiết host (top 10 host): CPU, RAM, vSAN write / read
 children.push(bullet("vSAN Disk Health: congestion, dung lượng, health từng disk."));
 children.push(...img("grafana-overview.jpg", 624, 297, "Hình 1 — Tổng quan: 8 ô trạng thái + bảng host (Cluster POOL18-XD)."));
 children.push(...img("grafana-latency.jpg", 624, 297, "Hình 2 — Chi tiết latency (write / read / network) và vSAN Disk Health."));
+children.push(...img("grafana-network.jpg", 624, 297, "Hình 3 — vmnic Bandwidth TX top 10 host (phần Network)."));
+children.push(...img("grafana-cpu.jpg", 624, 297, "Hình 4 — CPU (%) top 10 host (đường ngưỡng 60% / 90%)."));
 
 // ============ Zabbix
 children.push(H1(N()+"Zabbix (tùy chọn — thay / cùng Prometheus)"));
