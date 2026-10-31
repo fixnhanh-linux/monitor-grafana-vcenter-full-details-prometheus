@@ -266,17 +266,17 @@ children.push(bullet("Bảng host: CPU% · RAM% · NIC UP (xanh) / NIC DOWN (đ�
 children.push(bullet("Network: bandwidth vmnic TX/RX top 10, drop/discard vmk vSAN."));
 children.push(bullet("Chi tiết host (top 10 host): CPU, RAM, vSAN write / read / network latency — mỗi loại một biểu đồ riêng."));
 children.push(bullet("vSAN Disk Health: congestion, dung lượng, health từng disk."));
-children.push(...img("grafana-overview.jpg", 624, 297, "Hình 1 — Tổng quan: 8 ô trạng thái + bảng host (Cluster POOL18-XD)."));
-children.push(...img("grafana-cpu.jpg", 624, 297, "Hình 2 — CPU (%) top 10 host (ngưỡng 60% / 90%)."));
-children.push(...img("grafana-ram.jpg", 624, 297, "Hình 3 — RAM (%) top 10 host (ngưỡng 60% / 90%)."));
-children.push(...img("grafana-write.jpg", 624, 297, "Hình 4 — vSAN Write latency top 10 host (ngưỡng 15ms)."));
-children.push(...img("grafana-read.jpg", 624, 297, "Hình 5 — vSAN Read latency top 10 host."));
-children.push(...img("grafana-netlat.jpg", 624, 297, "Hình 6 — vSAN Network latency (Max của cluster)."));
-children.push(...img("grafana-network.jpg", 624, 297, "Hình 7 — vmnic Bandwidth TX top 10 host."));
-children.push(...img("grafana-networkrx.jpg", 624, 297, "Hình 8 — vmnic Bandwidth RX top 10 host."));
-children.push(...img("grafana-vmkdrop.jpg", 624, 297, "Hình 9 — vSAN vmk Packet Drop / Discard (ngưỡng 0,1%)."));
-children.push(...img("grafana-congestion.jpg", 624, 297, "Hình 10 — vSAN Congestion — top 10 disk (ngưỡng 60)."));
-children.push(...img("grafana-usedcap.jpg", 624, 297, "Hình 11 — Dung lượng đã dùng — top 10 disk vSAN."));
+children.push(...img("grafana-overview.jpg", 624, 283, "Hình 1 — Tổng quan: 8 ô trạng thái + bảng host (Cluster POOL18-XD)."));
+children.push(...img("grafana-cpu.jpg", 624, 283, "Hình 2 — CPU (%) top 10 host (ngưỡng 60% / 90%)."));
+children.push(...img("grafana-ram.jpg", 624, 283, "Hình 3 — RAM (%) top 10 host (ngưỡng 60% / 90%)."));
+children.push(...img("grafana-write.jpg", 624, 283, "Hình 4 — vSAN Write latency top 10 host (ngưỡng 15ms)."));
+children.push(...img("grafana-read.jpg", 624, 283, "Hình 5 — vSAN Read latency top 10 host."));
+children.push(...img("grafana-netlat.jpg", 624, 283, "Hình 6 — vSAN Network latency (Max của cluster)."));
+children.push(...img("grafana-network.jpg", 624, 283, "Hình 7 — vmnic Bandwidth TX top 10 host."));
+children.push(...img("grafana-networkrx.jpg", 624, 283, "Hình 8 — vmnic Bandwidth RX top 10 host."));
+children.push(...img("grafana-vmkdrop.jpg", 624, 283, "Hình 9 — vSAN vmk Packet Drop / Discard (ngưỡng 0,1%)."));
+children.push(...img("grafana-congestion.jpg", 624, 283, "Hình 10 — vSAN Congestion — top 10 disk (ngưỡng 60)."));
+children.push(...img("grafana-usedcap.jpg", 624, 283, "Hình 11 — Dung lượng đã dùng — top 10 disk vSAN."));
 
 // ============ Zabbix
 children.push(H1(N()+"Zabbix (tùy chọn — thay / cùng Prometheus)"));
