@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # (C) 2026 FIX NHANH. Bat "tu dong kiem tra ban moi" (chi bao, khong tu cai).
 # Dung cho server DANG CHAY: chi can chay 1 lan.
-#   sudo bash deploy/setup-autocheck.sh          # bat
-#   sudo bash deploy/setup-autocheck.sh off      # tat
+#   sudo bash scripts/setup-autocheck.sh          # bat
+#   sudo bash scripts/setup-autocheck.sh off      # tat
 set -e
 [ "$(id -u)" -eq 0 ] || { echo "Can chay bang root: sudo bash setup-autocheck.sh"; exit 1; }
 APP=/opt/esxi-host-exporter

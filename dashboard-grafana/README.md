@@ -1,4 +1,4 @@
-# grafana/
+# dashboard-grafana/
 
 `esxi_host_resource_grafana.json` — dashboard **MONITOR RESOURCE HOST ESXi** (uid `esxi-host-resource`).
 

@@ -101,7 +101,7 @@ children.push(P("Dùng script install.sh. Chọn một trong hai cách lấy mã
 
 children.push(H2("A1. Cách 1 — gói zip (không cần internet, pyVmomi kèm sẵn)"));
 children.push(num("Trên máy có Python + pyVmomi, tạo gói:"));
-children.push(...code(["python deploy/build_zip.py        # -> esxi-host-exporter-linux.zip + .sha256"]));
+children.push(...code(["python scripts/build_zip.py        # -> esxi-host-exporter-linux.zip + .sha256"]));
 children.push(...img("cmd-buildzip.jpg",600,171,"Hình — Đóng gói: sinh file .zip và .sha256 để chép lên server (ảnh minh họa)."));
 children.push(num("Chép 2 file (.zip và .sha256) lên server, vào /home."));
 children.push(num("Trên server, kiểm tra và cài:"));
@@ -116,7 +116,7 @@ children.push(...code([
   "cd /root",
   "git clone https://github.com/fixnhanh-linux/monitor-grafana-vcenter-full-details-prometheus.git",
   "cd monitor-grafana-vcenter-full-details-prometheus",
-  "sudo bash deploy/install.sh"]));
+  "sudo bash scripts/install.sh"]));
 children.push(...img("cmd-gitclone.jpg",600,173,"Hình — Clone mã nguồn từ GitHub rồi chạy install.sh (server cần internet; ảnh minh họa)."));
 children.push(P("Thiếu pip: apt install python3-pip (Ubuntu/Debian) hoặc dnf install python3-pip (RHEL)."));
 
@@ -274,7 +274,7 @@ children.push(table(
 
 // ============ Grafana
 children.push(H1(N()+"Grafana"));
-children.push(P("Import dashboard: Dashboards → New → Import → Upload JSON → chọn file grafana/esxi_host_resource_grafana.json → chọn datasource Prometheus → Overwrite nếu đã có bản cũ. Chọn Cluster ở đầu trang."));
+children.push(P("Import dashboard: Dashboards → New → Import → Upload JSON → chọn file dashboard-grafana/esxi_host_resource_grafana.json → chọn datasource Prometheus → Overwrite nếu đã có bản cũ. Chọn Cluster ở đầu trang."));
 children.push(P("Ví dụ dashboard đang chạy:", {bold:true, after:40}));
 children.push(...code(["https://42.117.4.233:3000/d/esxi-host-resource/"]));
 children.push(bullet("Tổng quan (8 ô): Total Hosts · OK · Warning (WARN) · Error (ERROR) · Hosts In Maintenance · Network Latency Max · vSAN Resync · Data Freshness."));
@@ -297,7 +297,7 @@ children.push(...img("grafana-usedcap.jpg", 624, 283, "Hình 11 — Dung lượn
 // ============ Zabbix
 children.push(H1(N()+"Zabbix (tùy chọn — thay / cùng Prometheus)"));
 children.push(P("Zabbix lấy thẳng /metrics của exporter bằng HTTP agent rồi tự phát hiện cluster/host/disk/nic/vmk (LLD) và tạo item + trigger + graph."));
-children.push(num("Data collection → Templates → Import → chọn zabbix/esxi_vsan_command_center.yaml (Zabbix 6.2)."));
+children.push(num("Data collection → Templates → Import → chọn templates-zabbix/esxi_vsan_command_center.yaml (Zabbix 6.2)."));
 children.push(num("Tạo 1 host Zabbix cho mỗi instance exporter, gán template ESXi Host Exporter by HTTP."));
 children.push(num("Sửa macro trên host:"));
 children.push(table(

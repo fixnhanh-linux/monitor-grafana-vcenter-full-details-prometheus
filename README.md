@@ -7,8 +7,8 @@ cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **a
 
 ![Sơ đồ kiến trúc](docs/so-do-kien-truc.svg)
 
-**Các bước triển khai:** cài exporter (`deploy/`) → thêm target Prometheus (`prometheus/scrape-esxi-host-resource.yml`)
-→ chép alert rule (`prometheus/alert-rules-esxi.yml`) → import Grafana (`grafana/esxi_host_resource_grafana.json`)
+**Các bước triển khai:** cài exporter (`scripts/`) → thêm target Prometheus (`prometheus/scrape-esxi-host-resource.yml`)
+→ chép alert rule (`prometheus/alert-rules-esxi.yml`) → import Grafana (`dashboard-grafana/esxi_host_resource_grafana.json`)
 → về sau cập nhật bằng `sudo esxi-menu` (mục 13 = git pull, mục 6 = file zip).
 
 ## Cấu trúc thư mục — cần gì lấy nấy
@@ -16,10 +16,10 @@ cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **a
 | Thư mục | Dùng khi | Nội dung |
 |---|---|---|
 | [`exporter/`](exporter/) | Chạy exporter (server hoặc thử trên máy) | `esxi_host_exporter.py` (chính), `vsan_disk_health.py`, `esxi_dashboard.html`, `dashboard_template.html` |
-| [`deploy/`](deploy/) | Cài / gỡ / quản lý trên Linux, đóng gói offline | `install.sh`, `uninstall.sh`, `menu.sh` (lệnh `esxi-menu`), `esxi-host-exporter@.service`, `build_zip.py` |
-| [`grafana/`](grafana/) | Import vào Grafana | `esxi_host_resource_grafana.json` |
+| [`scripts/`](scripts/) | Cài / gỡ / quản lý trên Linux, đóng gói offline | `install.sh`, `uninstall.sh`, `menu.sh` (lệnh `esxi-menu`), `esxi-host-exporter@.service`, `build_zip.py` |
+| [`dashboard-grafana/`](dashboard-grafana/) | Import vào Grafana | `esxi_host_resource_grafana.json` |
 | [`prometheus/`](prometheus/) | Cấu hình Prometheus | `scrape-esxi-host-resource.yml` (mẫu scrape), `alert-rules-esxi.yml` (22 rule, Mức 2 / Mức 3) |
-| [`zabbix/`](zabbix/) | Dùng Zabbix thay / cùng Prometheus | `esxi_host_exporter_zbx60.yaml` (template Zabbix 6.0), `make_template.py` |
+| [`templates-zabbix/`](templates-zabbix/) | Dùng Zabbix thay / cùng Prometheus | `esxi_vsan_command_center.yaml` (template Zabbix 6.2 — ESXi & vSAN Command Center) |
 | [`docs/`](docs/) | Đọc / in / gửi | `Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx` (hướng dẫn A–Z), `so-do-kien-truc.svg` (sơ đồ) |
 
 ## 1. Chuẩn bị
@@ -37,7 +37,7 @@ cho **Prometheus**, kèm **dashboard web có sẵn**, **dashboard Grafana**, **a
 cd /root
 git clone https://github.com/fixnhanh-linux/monitor-grafana-vcenter-full-details-prometheus.git
 cd monitor-grafana-vcenter-full-details-prometheus
-sudo bash deploy/install.sh
+sudo bash scripts/install.sh
 ```
 
 Thiếu pip: `apt install python3-pip` hoặc `dnf install python3-pip`.
@@ -45,7 +45,7 @@ Thiếu pip: `apt install python3-pip` hoặc `dnf install python3-pip`.
 **Cách 2 — gói zip (server không có internet, `pyvmomi` kèm sẵn):**
 
 ```bash
-python deploy/build_zip.py          # tren may co Python + pyvmomi -> esxi-host-exporter-linux.zip + .sha256
+python scripts/build_zip.py          # tren may co Python + pyvmomi -> esxi-host-exporter-linux.zip + .sha256
 scp esxi-host-exporter-linux.zip esxi-host-exporter-linux.zip.sha256 root@<IP-server>:/home/
 # tren server:
 cd /home && sha256sum -c esxi-host-exporter-linux.zip.sha256      # phai la OK
@@ -109,7 +109,7 @@ Gửi sang Element: route `alertname=~"Esxi.*|Vsan.*"` trong Alertmanager tới 
 
 ## 5. Grafana
 
-Dashboards → New → Import → upload [`grafana/esxi_host_resource_grafana.json`](grafana/esxi_host_resource_grafana.json)
+Dashboards → New → Import → upload [`dashboard-grafana/esxi_host_resource_grafana.json`](dashboard-grafana/esxi_host_resource_grafana.json)
 → chọn Prometheus → chọn Cluster. Đã có bản cũ thì chọn **Overwrite**.
 
 - **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / Host maintenance / vSAN network latency max / vSAN resync / độ mới dữ liệu.
@@ -125,11 +125,11 @@ WARN khi maintenance · disk YELLOW · CPU > 40% · RAM > 80% · write latency >
 `ESXI_WARN_DISK_HEALTH_PCT` / `ESXI_ERR_DISK_HEALTH_PCT`, `ESXI_WARN_CONGESTION`, `ESXI_WARN_VMK_DROP_PCT`,
 `ESXI_NIC_MIN_MBPS` (mặc định chỉ theo dõi vmnic ≥ 10000 Mb/s). Đổi ngưỡng ở `.env` thì sửa luôn số trong `alert-rules-esxi.yml`.
 
-### Zabbix 6.0
+### Zabbix 6.2
 
-Import [`zabbix/esxi_host_exporter_zbx60.yaml`](zabbix/esxi_host_exporter_zbx60.yaml) → tạo host Zabbix trỏ IP máy exporter
+Import [`templates-zabbix/esxi_vsan_command_center.yaml`](templates-zabbix/esxi_vsan_command_center.yaml) → tạo host Zabbix trỏ IP máy exporter
 → gắn template **ESXi & vSAN Command Center** (port khác 9811 thì sửa macro `{$ESXI.EXPORTER.URL}`).
-Trigger giống bảng ở mục 4 (Mức 2 = High, Mức 3 = Warning), ngưỡng là macro. Chi tiết: [`zabbix/README.md`](zabbix/README.md).
+Trigger giống bảng ở mục 4 (Mức 2 = High, Mức 3 = Warning), ngưỡng là macro. Chi tiết: [`templates-zabbix/README.md`](templates-zabbix/README.md).
 
 ## 6. InfluxDB (tuỳ chọn)
 

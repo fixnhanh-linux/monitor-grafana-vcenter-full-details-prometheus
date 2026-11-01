@@ -2,7 +2,7 @@
 .vsan_pass
 *.env
 
-# Goi build (tao lai bang: python deploy/build_zip.py)
+# Goi build (tao lai bang: python scripts/build_zip.py)
 *.zip
 *.zip.sha256
 

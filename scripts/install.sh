@@ -2,7 +2,7 @@
 # Cai dat ESXi host + vSAN exporter (dashboard web + Prometheus) len Linux co systemd.
 #
 #   sudo ./install.sh                 # hoi tung thong tin (tu goi zip)
-#   sudo bash deploy/install.sh       # tu repo git clone (tu tai pyVmomi bang pip)
+#   sudo bash scripts/install.sh       # tu repo git clone (tu tai pyVmomi bang pip)
 #   sudo NAME=pool18 VC=<IP-vCenter> VC_USER=monitor@vsphere.local CLUSTER=POOL18-XD PORT=9811 ./install.sh
 #
 # Chay lai voi NAME khac de them vCenter/cluster khac (moi instance 1 port).
@@ -52,7 +52,7 @@ if [ -z "${VSAN_PASS:-}" ]; then
   fi
 fi
 
-# Chay duoc tu 2 noi: goi zip (install.sh + app/ + vendor/) hoac repo git clone (deploy/install.sh, code o exporter/)
+# Chay duoc tu 2 noi: goi zip (install.sh + app/ + vendor/) hoac repo git clone (scripts/install.sh, code o exporter/)
 if [ -f "$SRC/app/esxi_host_exporter.py" ]; then FILES="$SRC/app"; else FILES="$(cd "$SRC/../exporter" 2>/dev/null && pwd)"; fi
 [ -f "$FILES/esxi_host_exporter.py" ] || die "khong thay esxi_host_exporter.py (chay tu goi zip hoac repo git clone)"
 

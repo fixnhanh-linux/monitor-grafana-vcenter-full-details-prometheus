@@ -242,10 +242,10 @@ update_from_git() {
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   [ "$a" = y ] || return
   install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$APP/"
-  install -m 755 "$RP/deploy/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/deploy/uninstall.sh" "$APP/uninstall.sh"
+  install -m 755 "$RP/scripts/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/scripts/uninstall.sh" "$APP/uninstall.sh"
   rm -f "$APP/.update-available"                 # vua cap nhat -> xoa co bao
-  [ -f "$RP/deploy/setup-autocheck.sh" ] && [ -f /etc/systemd/system/esxi-update-check.timer ] \
-    && install -m 755 "$RP/deploy/esxi-update-check.sh" "$APP/esxi-update-check.sh" 2>/dev/null  # cap nhat script check neu da bat
+  [ -f "$RP/scripts/setup-autocheck.sh" ] && [ -f /etc/systemd/system/esxi-update-check.timer ] \
+    && install -m 755 "$RP/scripts/esxi-update-check.sh" "$APP/esxi-update-check.sh" 2>/dev/null  # cap nhat script check neu da bat
   for n in $(instances); do systemctl restart "$SVC@$n"; done
   sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done
 }
@@ -387,7 +387,7 @@ ${B}Lenh hay dung (thay pool18 bang ten instance)${N}
   Cau hinh        : $CONF/<instance>.env   (quyen 600, co mat khau)
   Kiem tra zip    : sha256sum -c esxi-host-exporter-linux.zip.sha256
   Them / doi pass : cd /home/esxi-host-exporter && bash install.sh
-  Tu GitHub       : git clone https://github.com/fixnhanh-linux/$REPO_NAME.git && sudo bash $REPO_NAME/deploy/install.sh
+  Tu GitHub       : git clone https://github.com/fixnhanh-linux/$REPO_NAME.git && sudo bash $REPO_NAME/scripts/install.sh
   Cap nhat GitHub : cd $REPO_NAME && git pull  (hoac menu muc 13)
   Go 1 instance   : $APP/uninstall.sh pool18
 EOF

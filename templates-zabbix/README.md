@@ -1,4 +1,4 @@
-# zabbix/
+# templates-zabbix/
 
 Template Zabbix **6.2** giam sat ESXi / vSAN qua **ESXi Host Exporter** (Zabbix lay thang `/metrics` cua exporter bang HTTP agent).
 

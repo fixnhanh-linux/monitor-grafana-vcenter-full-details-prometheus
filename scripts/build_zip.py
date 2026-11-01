@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dong goi esxi-host-exporter-linux.zip (+ .sha256) de cai len Linux.
 
-Chay tu thu muc du an:  python deploy/build_zip.py
+Chay tu thu muc du an:  python scripts/build_zip.py
 - File text chuyen sang LF, .sh co quyen 755 (giu khi giai nen bang unzip).
 - Kem thu vien pyVmomi -> server khong can internet:
     vendor/      pyVmomi dang cai tren may build (9.x, can Python >= 3.10 tren server)
@@ -27,17 +27,18 @@ PY38_PYVMOMI = "pyvmomi==8.0.3.0.1"
 PY38_CACHE = os.path.join(PROJ, ".build", "pyvmomi-8.0.3.0.1")
 
 ENTRIES = [
-    ("deploy/install.sh", "install.sh"), ("deploy/uninstall.sh", "uninstall.sh"), ("deploy/menu.sh", "menu.sh"),
-    ("deploy/esxi-host-exporter@.service", "esxi-host-exporter@.service"),
-    ("deploy/setup-autocheck.sh", "setup-autocheck.sh"), ("deploy/esxi-update-check.sh", "esxi-update-check.sh"),
-    ("deploy/esxi-update-check.service", "esxi-update-check.service"), ("deploy/esxi-update-check.timer", "esxi-update-check.timer"),
-    ("README.md", "README.md"), ("grafana/esxi_host_resource_grafana.json", "esxi_host_resource_grafana.json"),
+    ("scripts/install.sh", "install.sh"), ("scripts/uninstall.sh", "uninstall.sh"), ("scripts/menu.sh", "menu.sh"),
+    ("scripts/esxi-host-exporter@.service", "esxi-host-exporter@.service"),
+    ("scripts/setup-autocheck.sh", "setup-autocheck.sh"), ("scripts/esxi-update-check.sh", "esxi-update-check.sh"),
+    ("scripts/esxi-update-check.service", "esxi-update-check.service"), ("scripts/esxi-update-check.timer", "esxi-update-check.timer"),
+    ("README.md", "README.md"), ("dashboard-grafana/esxi_host_resource_grafana.json", "esxi_host_resource_grafana.json"),
     ("prometheus/alert-rules-esxi.yml", "alert-rules-esxi.yml"),
     ("prometheus/scrape-esxi-host-resource.yml", "scrape-esxi-host-resource.yml"),
-    ("zabbix/esxi_vsan_command_center.yaml", "zabbix/esxi_vsan_command_center.yaml"),
-    ("zabbix/README.md", "zabbix/README.md"),
-    ("docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
-    ("docs/Huong-Dan-Cai-Dat-ESXi-Exporter.docx", "Huong-Dan-Cai-Dat-ESXi-Exporter.docx"),
+    ("templates-zabbix/esxi_vsan_command_center.yaml", "templates-zabbix/esxi_vsan_command_center.yaml"),
+    ("templates-zabbix/README.md", "templates-zabbix/README.md"),
+    ("docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx", "docs/Huong-Dan-Monitor-Resource-Host-ESXi-vSAN.docx"),
+    ("docs/Huong-Dan-Cai-Dat-Tu-Dong.docx", "docs/Huong-Dan-Cai-Dat-Tu-Dong.docx"),
+    ("docs/Huong-Dan-Cai-Dat-Thu-Cong.docx", "docs/Huong-Dan-Cai-Dat-Thu-Cong.docx"),
     ("exporter/esxi_host_exporter.py", "app/esxi_host_exporter.py"), ("exporter/vsan_disk_health.py", "app/vsan_disk_health.py"),
     ("exporter/esxi_dashboard.html", "app/esxi_dashboard.html"), ("exporter/dashboard_template.html", "app/dashboard_template.html"),
 ]

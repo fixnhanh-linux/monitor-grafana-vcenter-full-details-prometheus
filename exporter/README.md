@@ -1,6 +1,6 @@
 # exporter/
 
-Code chạy trên server (được `deploy/install.sh` chép vào `/opt/esxi-host-exporter`).
+Code chạy trên server (được `scripts/install.sh` chép vào `/opt/esxi-host-exporter`).
 
 | File | Vai trò |
 |---|---|
