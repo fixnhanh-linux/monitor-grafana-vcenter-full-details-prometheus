@@ -99,12 +99,14 @@ children.push(P("Dùng script install.sh. Chọn một trong hai cách lấy mã
 children.push(H2("A1. Cách 1 — gói zip (không cần internet, pyVmomi kèm sẵn)"));
 children.push(num("Trên máy có Python + pyVmomi, tạo gói:"));
 children.push(...code(["python deploy/build_zip.py        # -> esxi-host-exporter-linux.zip + .sha256"]));
+children.push(...img("cmd-buildzip.jpg",600,171,"Hình — Đóng gói: sinh file .zip và .sha256 để chép lên server (ảnh minh họa)."));
 children.push(num("Chép 2 file (.zip và .sha256) lên server, vào /home."));
 children.push(num("Trên server, kiểm tra và cài:"));
 children.push(...code([
   "cd /home && sha256sum -c esxi-host-exporter-linux.zip.sha256   # phai la OK",
   "unzip -o esxi-host-exporter-linux.zip",
   "cd esxi-host-exporter && sudo bash install.sh"]));
+children.push(...img("cmd-install.jpg",600,233,"Hình — Kiểm tra sha256 (phải OK) rồi giải nén và chạy install.sh (ảnh minh họa)."));
 
 children.push(H2("A2. Cách 2 — git clone (server có internet, tự tải pyVmomi)"));
 children.push(...code([
@@ -112,6 +114,7 @@ children.push(...code([
   "git clone https://github.com/fixnhanh-linux/monitor-grafana-vcenter-full-details-prometheus.git",
   "cd monitor-grafana-vcenter-full-details-prometheus",
   "sudo bash deploy/install.sh"]));
+children.push(...img("cmd-gitclone.jpg",600,173,"Hình — Clone mã nguồn từ GitHub rồi chạy install.sh (server cần internet; ảnh minh họa)."));
 children.push(P("Thiếu pip: apt install python3-pip (Ubuntu/Debian) hoặc dnf install python3-pip (RHEL)."));
 
 children.push(H2("A3. Các thông tin install.sh sẽ hỏi"));
@@ -130,6 +133,7 @@ children.push(P("Sau khi cài: mật khẩu ở /etc/esxi-host-exporter/<instanc
 children.push(H2("A4. Quản lý bằng lệnh esxi-menu"));
 children.push(P("Quên lệnh thì gõ (cần root):"));
 children.push(...code(["sudo esxi-menu"]));
+children.push(...img("cmd-menu.jpg",430,342,"Hình — Bảng điều khiển esxi-menu (ảnh minh họa)."));
 children.push(table(
   [{t:"Mục",w:900},{t:"Chức năng",w:7900}],
   [["1","Trạng thái chi tiết tất cả instance (host OK/WARN/ERROR, disk, resync, phiên bản)"],
@@ -157,6 +161,7 @@ children.push(P("Dùng khi không chạy install.sh, hoặc muốn hiểu script
 
 children.push(H2("B1. Tạo user hệ thống"));
 children.push(...code(["useradd --system --no-create-home --shell /usr/sbin/nologin esxi-exporter"]));
+children.push(...img("cmd-useradd.jpg",600,110,"Hình — Tạo user hệ thống không đăng nhập được (ảnh minh họa)."));
 
 children.push(H2("B2. Chép mã nguồn và cài thư viện pyVmomi"));
 children.push(...code([
@@ -171,6 +176,7 @@ children.push(...code([
   "# (hoac chep san thu muc vendor/ tu goi zip neu khong co internet)",
   "",
   "chmod -R a+rX /opt/esxi-host-exporter"]));
+children.push(...img("cmd-copy-pip.jpg",600,151,"Hình — Chép mã nguồn và cài pyVmomi vào thư mục vendor/ (ảnh minh họa)."));
 children.push(P("Kiểm tra pyVmomi nạp được:"));
 children.push(...code(["PYTHONPATH=/opt/esxi-host-exporter/vendor python3 -c \\",
   "  'import pyVmomi, pyVim.connect; from pyVmomi import vim; vim.cluster.VsanVcClusterHealthSystem'"]));
@@ -193,6 +199,7 @@ children.push(...code([
   "#ESXI_NIC_MIN_MBPS=10000",
   "EOF",
   "chmod 600 /etc/esxi-host-exporter/pool18.env"]));
+children.push(...img("cmd-env.jpg",520,242,"Hình — File .env của instance: mật khẩu vCenter, quyền 600 (ảnh minh họa)."));
 
 children.push(H2("B4. Tạo systemd unit (dạng template)"));
 children.push(...code([
@@ -221,6 +228,7 @@ children.push(...code([
   "[Install]",
   "WantedBy=multi-user.target",
   "EOF"]));
+children.push(...img("cmd-systemd.jpg",580,311,"Hình — File systemd unit dạng template (@): lệnh chạy exporter và chống khóa tài khoản (ảnh minh họa)."));
 children.push(P("Ghi chú: %i là tên instance. RestartPreventExitStatus=3 nghĩa là khi sai mật khẩu (mã thoát 3) thì systemd không thử lại, tránh khóa tài khoản vCenter."));
 
 children.push(H2("B5. Khởi động và kiểm tra"));
@@ -230,6 +238,7 @@ children.push(...code([
   "systemctl status esxi-host-exporter@pool18    # phai Active: active (running)",
   "journalctl -u esxi-host-exporter@pool18 -f    # xem log, cho dong 'OK: N host'",
   "curl -s localhost:9811/metrics | head         # co metric la chay"]));
+children.push(...img("cmd-start.jpg",600,194,"Hình — Bật và kiểm tra service: Active: active (running) là đạt (ảnh minh họa)."));
 children.push(P("Thêm instance thứ hai: lặp lại B3 với file .env khác (tên + PORT khác) rồi enable --now instance đó. Chạy thử không cần service:"));
 children.push(...code(['VSAN_PASS=\'...\' python3 /opt/esxi-host-exporter/esxi_host_exporter.py 10.0.0.10 monitor@vsphere.local - 9811 60']));
 }
