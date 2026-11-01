@@ -18,15 +18,18 @@ function runs(arr){return new Paragraph({spacing:{after:90}, children:arr.map(x=
 function bullet(t){return new Paragraph({numbering:{reference:"bl",level:0}, spacing:{after:60}, children:[new TextRun(t)]});}
 function num(t){return new Paragraph({numbering:{reference:"nm",level:0}, spacing:{after:60}, children:[new TextRun(t)]});}
 function code(lines){
+  // Kieu terminal toi: nen den, chu sang, thanh xanh ben trai, co dem le
+  const DBG="0E2233", DFG="E8EEF5", DBAR="3F8FD0";
   return lines.map((ln,i)=>new Paragraph({
-    spacing:{after: i===lines.length-1?150:0, before:i===0?60:0, line:252},
-    shading:{type:ShadingType.CLEAR,fill:"EAF2FB"},
+    spacing:{after: i===lines.length-1?170:0, before:i===0?80:0, line:272},
+    indent:{left:170, right:120},
+    shading:{type:ShadingType.CLEAR,fill:DBG},
     border:{
-      left:{style:BorderStyle.SINGLE,size:24,color:"2F6FB3",space:10},
-      top:    i===0 ? {style:BorderStyle.SINGLE,size:6,color:"C9DDF2",space:3} : undefined,
-      bottom: i===lines.length-1 ? {style:BorderStyle.SINGLE,size:6,color:"C9DDF2",space:3} : undefined,
-      right:{style:BorderStyle.SINGLE,size:6,color:"C9DDF2",space:3}},
-    children:[new TextRun({text:ln||" ",font:MONO,size:19,color:"103D63"})]}));
+      left:{style:BorderStyle.SINGLE,size:26,color:DBAR,space:14},
+      top:    i===0 ? {style:BorderStyle.SINGLE,size:12,color:DBG,space:6} : undefined,
+      bottom: i===lines.length-1 ? {style:BorderStyle.SINGLE,size:12,color:DBG,space:6} : undefined,
+      right:{style:BorderStyle.SINGLE,size:12,color:DBG,space:6}},
+    children:[new TextRun({text:ln||" ",font:MONO,size:19,color:DFG})]}));
 }
 function cell(text,{w,bold,fill,mono,color}={}){
   return new TableCell({width:{size:w,type:WidthType.DXA}, shading:fill?{type:ShadingType.CLEAR,fill}:undefined,
