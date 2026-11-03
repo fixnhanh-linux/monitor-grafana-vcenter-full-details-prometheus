@@ -115,10 +115,11 @@ Dashboards → New → Import → upload [`dashboard-grafana/esxi_host_resource_
 
 - **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / Host maintenance / vSAN network latency max / vSAN resync / độ mới dữ liệu.
 - **Bảng host**: CPU% · RAM% · **NIC UP (xanh) / NIC DOWN (đỏ)** · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Lý do.
+- **vSAN Cluster Partition**: số partition từng cluster (1 = xanh, > 1 = đỏ) + bảng Host / Partition / Host UUID giống Skyline Health trên vCenter.
 - **Network**: bandwidth vmnic top 10, drop/discard vmk vSAN, vmnic DOWN.
 - **Chi tiết host** và **vSAN Disk Health**: từng disk, lịch sử trạng thái, exporter theo pool.
 
-**Status host** (khớp Mức 2 / Mức 3): ERROR khi host mất kết nối · phần cứng RED · vmnic ≥ 10Gb down · disk RED hoặc % disk healthy < 70%
+**Status host** (khớp Mức 2 / Mức 3): ERROR khi host mất kết nối · host bị tách vSAN partition (Partition > 1) · phần cứng RED · vmnic ≥ 10Gb down · disk RED hoặc % disk healthy < 70%
 · CPU > 60% · RAM > 90% · write latency > 30ms · network latency > 1ms · congestion > 60;
 WARN khi maintenance · disk YELLOW · CPU > 40% · RAM > 80% · write latency > 15ms · network latency > 0,5ms · drop vmk vSAN > 0,1%.
 Đổi ngưỡng trong file `.env` (WARN = Mức 3, ERR = Mức 2): `ESXI_WARN_CPU` / `ESXI_ERR_CPU`, `ESXI_WARN_RAM` / `ESXI_ERR_RAM`,
