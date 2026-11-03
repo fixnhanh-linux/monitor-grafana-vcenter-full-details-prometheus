@@ -253,6 +253,35 @@ update_from_git() {
   sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done
 }
 
+# ---- muc 16: chen panel moi vao dashboard Grafana dang chay qua API (giu ten row / panel da sua tay)
+GRAFANA_CONF="$CONF/grafana.conf"   # .conf (khong phai .env) de instances() khong tinh la 1 instance
+grafana_update() {
+  local RP; RP=$(find_src); RP=${RP%/scripts}; RP=${RP%/deploy}
+  if [ -z "$RP" ] || [ ! -d "$RP/.git" ]; then
+    read -r -p "Thu muc repo da git clone [/root/$REPO_NAME]: " RP; RP=${RP:-/root/$REPO_NAME}
+  fi
+  local S="$RP/dashboard-grafana/add_vsan_partition_panels.py"
+  [ -d "$RP/.git" ] && git -C "$RP" pull -q --ff-only || echo "${Y}git pull loi / chua clone - dung ban dang co${N}"
+  [ -f "$S" ] || { echo "${R}Khong thay $S - can repo moi (menu muc 13).${N}"; return; }
+  local GU="" GT="" u
+  [ -f "$GRAFANA_CONF" ] && { GU=$(grep -m1 '^GRAFANA_URL=' "$GRAFANA_CONF" | cut -d= -f2-); GT=$(grep -m1 '^GRAFANA_TOKEN=' "$GRAFANA_CONF" | cut -d= -f2-); }
+  read -r -p "Dia chi Grafana [${GU:-http://localhost:3000}]: " u; GU=${u:-${GU:-http://localhost:3000}}
+  if [ -n "$GT" ] && ask_yn "Dung token Grafana da luu"; then :; else
+    echo "Token: Grafana > Administration > Users and access > Service accounts > Add (Editor) > Add token"
+    read -r -s -p "Token Grafana (an khi go): " GT; echo
+    [ -n "$GT" ] || { echo "${R}Chua nhap token${N}"; return; }
+    if ask_yn "Luu token vao $GRAFANA_CONF (chi root doc duoc) de lan sau khoi nhap"; then
+      ( umask 077; printf 'GRAFANA_URL=%s\nGRAFANA_TOKEN=%s\n' "$GU" "$GT" > "$GRAFANA_CONF" )
+    fi
+  fi
+  local args=("$S" "$GU" --src "$RP/dashboard-grafana/esxi_host_resource_grafana.json" --backup-dir "$APP/grafana-backup")
+  echo; echo "${B}Xem truoc (chua ghi):${N}"
+  GRAFANA_TOKEN="$GT" python3 "${args[@]}" || return
+  grep -q '^GRAFANA_URL=' "$GRAFANA_CONF" 2>/dev/null && sed -i "s|^GRAFANA_URL=.*|GRAFANA_URL=$GU|" "$GRAFANA_CONF"
+  echo; ask_yn "Ghi vao dashboard dang chay (co backup, quay lai: Settings > Versions > Restore)" || return
+  GRAFANA_TOKEN="$GT" python3 "${args[@]}" --apply
+}
+
 influx_show() {
   pick || return
   echo "Cau hinh InfluxDB cua $PICK (token/password da an):"
@@ -477,6 +506,7 @@ draw_menu() {
   brow "H|B|TICH HOP"                  ""
   brow "I|B|14|Cau hinh Prometheus"    "H|D|TRO GIUP"
   brow "I|B|10|Cau hinh InfluxDB"      "I|D|12|Cac lenh hay dung"
+  brow "I|B|16|Cap nhat Grafana"       ""
   bline "+" "=" "+"
   bfree "${R}${W}  0)${N} Thoat        ${D}Ctrl+C khi xem log = quay lai menu${N}"
   bline "+" "-" "+"
@@ -487,7 +517,7 @@ draw_menu() {
 while true; do
   clear 2>/dev/null
   draw_menu
-  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-15):${N} " c
+  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-16):${N} " c
   echo
   case "$c" in
     1) status_all; pause ;;
@@ -521,6 +551,7 @@ while true; do
     13) update_from_git; pause ;;
     14) prom_config; pause ;;
     15) discover_clusters; pause ;;
+    16) grafana_update; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac

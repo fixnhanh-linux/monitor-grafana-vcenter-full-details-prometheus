@@ -111,7 +111,7 @@ Gửi sang Element: route `alertname=~"Esxi.*|Vsan.*"` trong Alertmanager tới 
 ## 5. Grafana
 
 Dashboards → New → Import → upload [`dashboard-grafana/esxi_host_resource_grafana.json`](dashboard-grafana/esxi_host_resource_grafana.json)
-→ chọn Prometheus → chọn Cluster. Đã có bản cũ thì chọn **Overwrite**.
+→ chọn Prometheus → chọn Cluster. Đã có bản cũ thì chọn **Overwrite** (đã sửa tay row/panel → dùng menu **mục 16** để chèn panel mới mà không mất phần đã sửa).
 
 - **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / Host maintenance / vSAN network latency max / vSAN resync / độ mới dữ liệu.
 - **Bảng host**: CPU% · RAM% · **NIC UP (xanh) / NIC DOWN (đỏ)** · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Lý do.
