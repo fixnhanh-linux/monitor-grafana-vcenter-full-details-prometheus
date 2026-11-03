@@ -97,6 +97,7 @@ Cảnh báo theo bảng "Chi tiết từng host trong cluster": **Mức 2 – Ca
 | | Disk YELLOW | `VsanDiskDegraded` | 3 | 0s |
 | Disk latency | write > 30ms / > 15ms (**tạm**, chờ chốt ngưỡng theo Disk Class) | `VsanDiskLatencyHigh` / `VsanDiskLatencyWarning` | 2 / 3 | 10m |
 | vSAN network latency | > 1ms / 0,5–1ms | `VsanNetworkLatencyHigh` / `VsanNetworkLatencyWarning` | 2 / 3 | 0s |
+| vSAN cluster partition | 1 host có Partition khác (> 1) | `VsanClusterPartition` | 2 | 0s |
 | vSAN congestion / Resync | congestion > 60 · resync > 0 | `VsanCongestion` · `VsanResyncInProgress` | 2 | 30s / 2m |
 | Host maintenance | Host vào chế độ bảo trì | `EsxiHostMaintenance` | 3 | 0s |
 | (khác) | Drop vmk vSAN > 0,1% | `VsanVmkPacketDrop` | 3 | 5m |
@@ -153,8 +154,8 @@ Không muốn sửa exporter: dùng Telegraf `[[inputs.prometheus]]` đọc `/me
 | Host | `esxi_host_status` (0 OK/1 WARN/2 ERROR), `esxi_host_info` (nics_up, nics_down, reason), `esxi_host_cpu_usage_percent`, `esxi_host_mem_usage_percent`, `esxi_host_uptime_seconds`, `esxi_host_vms_running`, `esxi_host_connected`, `esxi_host_maintenance`, `esxi_host_hardware_health` |
 | NIC (`nic`) | `esxi_host_nic_up`, `esxi_host_nic_speed_mbps`, `esxi_host_nic_transmit_mbps`, `esxi_host_nic_receive_mbps` |
 | vmk (`vmk`, `vsan`, `direction`) | `esxi_host_vmk_drop_percent`, `esxi_host_vmk_dropped_packets` |
-| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_network_latency_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_host_disk_health_percent`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion` |
-| Cluster | `esxi_cluster_status`, `esxi_cluster_vsan_health`, `esxi_cluster_drs_mode`, `esxi_cluster_hosts`, `esxi_cluster_vms_total`, `esxi_cluster_cpu_total_hz`, `esxi_cluster_mem_total_bytes`, `esxi_cluster_vsan_capacity_bytes`, `esxi_vsan_resync_bytes` |
+| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_network_latency_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_host_disk_health_percent`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion`, `esxi_vsan_host_partition` (host_uuid) |
+| Cluster | `esxi_cluster_status`, `esxi_cluster_vsan_health`, `esxi_cluster_drs_mode`, `esxi_cluster_hosts`, `esxi_cluster_vms_total`, `esxi_cluster_cpu_total_hz`, `esxi_cluster_mem_total_bytes`, `esxi_cluster_vsan_capacity_bytes`, `esxi_vsan_resync_bytes`, `esxi_vsan_cluster_partitions` |
 | Disk (`disk`) | `vsan_disk_health`, `vsan_disk_info` (reason), `vsan_disk_congestion_value`, `vsan_disk_used_ratio` |
 | Exporter | `esxi_exporter_build_info` (version), `vsan_disk_exporter_up`, `vsan_disk_exporter_last_success_timestamp_seconds` |
 

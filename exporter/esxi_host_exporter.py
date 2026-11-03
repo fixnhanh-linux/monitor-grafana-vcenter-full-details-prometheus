@@ -18,7 +18,7 @@ Metric xuat ra:
   esxi_host_*        CPU, RAM, uptime, VM, latency, trang thai tong hop (0=OK,1=WARN,2=ERROR)
   esxi_host_nic_*    tung vmnic uplink: link up/down, toc do, Mb/s TX/RX
   esxi_host_vmk_*    tung vmk: % drop/discard, danh dau vmk dung cho vSAN
-  esxi_vsan_*        health disk group, congestion, resync cua cluster
+  esxi_vsan_*        health disk group, congestion, resync, partition (vSAN cluster partition) cua cluster
   vsan_disk_*        health tung disk (giong vsan_disk_health.py)
 """
 import base64
@@ -40,7 +40,7 @@ from pyVmomi import SoapStubAdapter, vim, vmodl
 import vsan_disk_health as vdh
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
-VERSION = "2026.10.31-2"
+VERSION = "2026.11.03-1"
 
 WARN = {
     "cpu": float(os.environ.get("ESXI_WARN_CPU", 60)),
@@ -65,6 +65,7 @@ HOST_PROPS = [
     "name", "parent", "runtime.connectionState", "runtime.inMaintenanceMode",
     "summary.quickStats", "summary.hardware", "config.network",
     "config.virtualNicManagerInfo.netConfig", "config.vsanHostConfig.clusterInfo.nodeUuid",
+    "configManager.vsanSystem",
 ]
 
 # Phan nang (vSAN disk health ~35s, dem VM ~9s) chi lay moi SLOW_INTERVAL giay;
@@ -221,6 +222,37 @@ def cluster_stats(si, cl_props, hosts, cluster_filter, vsan_overall):
     return out
 
 
+def vsan_partitions(hosts, clusters, vsan_names):
+    """vSAN cluster partition cua tung host (giong Skyline Health > vSAN cluster partition tren vCenter).
+    Hoi truc tiep tung host (vsanSystem.QueryHostStatus, so lieu live, khong qua cache health):
+    host cung partition thay cung danh sach member. Partition 1 = nhom dong host nhat.
+    Tra ve {ten host: {"partition": so|None, "uuid": nodeUuid, "partitions": so partition cua cluster}}."""
+    groups, out = {}, {}
+    for o, p in hosts:
+        cl = clusters.get(p["parent"]._moId)
+        if cl not in vsan_names:
+            continue
+        info = out[p["name"]] = {"partition": None, "uuid": p.get("config.vsanHostConfig.clusterInfo.nodeUuid") or "",
+                                 "partitions": None}
+        vs = p.get("configManager.vsanSystem")
+        if p["runtime.connectionState"] != "connected" or vs is None:
+            continue  # host mat ket noi: partition khong ro (da bao loi "Host notResponding" rieng)
+        try:
+            st = vs.QueryHostStatus()
+        except Exception as e:
+            print("Khong lay duoc vSAN partition host %s: %s" % (p["name"], getattr(e, "msg", None) or e), flush=True)
+            continue
+        info["uuid"] = st.nodeUuid or info["uuid"]
+        members = frozenset(st.memberUuid or []) or frozenset([info["uuid"]])
+        groups.setdefault(cl, {}).setdefault(members, []).append(p["name"])
+    for cl, g in groups.items():
+        parts = sorted(g.values(), key=lambda names: (-len(names), min(names)))
+        for i, names in enumerate(parts, 1):
+            for n in names:
+                out[n].update(partition=i, partitions=len(parts))
+    return out
+
+
 def _bytes_to_sync(o):
     """Cong tat ca truong bytesToSync trong JSON resync cua vSAN (so hoac chuoi so)."""
     if isinstance(o, dict):
@@ -280,6 +312,7 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
         connected = [o for o, p in hosts if p["runtime.connectionState"] == "connected"]
         perf = query_perf(si, connected)
         vperf = vsan_perf(si, vc, ctx, vsan_cl)
+        vpart = vsan_partitions(hosts, clusters, {c.name for c in vsan_cl})
 
         resync = {}
         try:
@@ -330,6 +363,7 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
 
             vp = vperf.get(p.get("config.vsanHostConfig.clusterInfo.nodeUuid") or "-", {})
             lat = lambda k: vp[k] / 1000 if k in vp else None  # micro-giay -> ms
+            pt = vpart.get(p["name"], {})
             cname = clusters.get(p["parent"]._moId, "Standalone")
             out.append({
                 "cluster": cname,
@@ -344,6 +378,9 @@ def collect(vc, user, pwd, cluster_filter, fresh=False, cache=None):
                 "lat_read_ms": lat("latencyAvgRead"),
                 "lat_write_ms": lat("latencyAvgWrite"),
                 "vsan_congestion": vp.get("congestion"),
+                "vsan_partition": pt.get("partition"),
+                "vsan_partitions": pt.get("partitions"),
+                "vsan_uuid": pt.get("uuid", ""),
                 "nics": nics,
                 "vmks": vmk,
             })
@@ -360,6 +397,8 @@ def evaluate(h, host_disks):
     down = [n for n, v in sorted(h["nics"].items()) if not v["up"]]
     if down:
         err.append("NIC down: " + ", ".join(down))
+    if (h.get("vsan_partition") or 1) > 1:
+        err.append("vSAN partition %d (cluster bi chia %d partition)" % (h["vsan_partition"], h["vsan_partitions"]))
     bad = [d for d in host_disks if d["health"] != "green"]
     if bad:
         err.append("Disk Unhealthy: " + ", ".join("%s (%s)" % (d["disk"], d["reason"] or d["health"]) for d in bad))
@@ -388,7 +427,7 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
     def add(name, help_, labels, value):
         m.setdefault(name, (help_, []))[1].append("%s%s %s" % (name, vdh._lbl(**labels) if labels else "", value))
 
-    by_host = {}
+    by_host, parts = {}, {}
     for d in disks:
         if d["disk"]:
             by_host.setdefault((d["cluster"], d["host"]), []).append(d)
@@ -435,6 +474,10 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
                         round(v["drop_pct_" + dirn], 4))
                     add("esxi_host_vmk_dropped_packets", "So goi bi drop trong 20s gan nhat", dict(VL, direction=dirn),
                         v["drop_" + dirn])
+        if h.get("vsan_partition") is not None:
+            add("esxi_vsan_host_partition", "vSAN cluster partition cua host (1 = cung nhom voi da so host; >1 = bi tach)",
+                dict(L, host_uuid=h["vsan_uuid"]), h["vsan_partition"])
+            parts[h["cluster"]] = h["vsan_partitions"]
         if hd:
             add("esxi_vsan_host_disk_health", "Health xau nhat cac disk vSAN cua host (0=green,1=yellow,2=red,3=unknown)",
                 L, max(vdh._code(d["health"]) for d in hd))
@@ -447,6 +490,10 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
             for g, gd in groups.items():
                 add("esxi_vsan_diskgroup_health", "Health disk group (0=green,1=yellow,2=red,3=unknown)",
                     dict(L, diskgroup=g), max(vdh._code(d["health"]) for d in gd))
+
+    for c, n in parts.items():
+        add("esxi_vsan_cluster_partitions", "So vSAN partition cua cluster (1 = binh thuong, >1 = cluster bi chia)",
+            {"cluster": c}, n)
 
     for c, (objs, size, eta) in resync.items():
         add("esxi_vsan_resync_objects", "So object vSAN dang resync", {"cluster": c}, objs)

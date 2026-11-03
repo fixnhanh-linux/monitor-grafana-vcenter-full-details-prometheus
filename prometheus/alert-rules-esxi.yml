@@ -34,6 +34,14 @@ groups:
           summary: "DiskGroup vSAN Unhealthy tren host {{ $labels.host }} ({{ $labels.cluster }})"
           description: "Disk group {{ $labels.diskgroup }} co disk khong healthy (muc {{ $value }})."
 
+      - alert: VsanClusterPartition
+        expr: esxi_vsan_host_partition > 1
+        for: 0s
+        labels: { severity: critical }
+        annotations:
+          summary: "Host {{ $labels.host }} bi tach sang vSAN partition {{ $value }} ({{ $labels.cluster }})"
+          description: "Host co Partition khac cac host con lai -> cluster vSAN bi chia. Kiem tra vmk vSAN / uplink / switch cua host. Doi chieu: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition."
+
       - alert: EsxiHostDisconnected
         expr: esxi_host_connected == 0
         for: 30s

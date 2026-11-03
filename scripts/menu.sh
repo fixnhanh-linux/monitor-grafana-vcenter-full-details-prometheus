@@ -224,13 +224,15 @@ update_from_zip() {
 
 REPO_NAME=monitor-grafana-vcenter-full-details-prometheus
 find_src() {  # thu muc chua install.sh: goi zip da giai nen hoac repo git clone
-  for c in /home/esxi-host-exporter /root/$REPO_NAME/deploy /home/*/$REPO_NAME/deploy /opt/$REPO_NAME/deploy; do
+  # repo: scripts/ (ban moi) hoac deploy/ (clone cu chua git pull)
+  for c in /home/esxi-host-exporter /root/$REPO_NAME/{scripts,deploy} /home/*/$REPO_NAME/{scripts,deploy} \
+           /opt/$REPO_NAME/{scripts,deploy}; do
     [ -f "$c/install.sh" ] && { echo "$c"; return; }
   done
 }
 
 update_from_git() {
-  local RP; RP=$(find_src); RP=${RP%/deploy}
+  local RP; RP=$(find_src); RP=${RP%/scripts}; RP=${RP%/deploy}
   if [ -z "$RP" ] || [ ! -d "$RP/.git" ]; then
     read -r -p "Thu muc repo da git clone [/root/$REPO_NAME]: " RP; RP=${RP:-/root/$REPO_NAME}
   fi
@@ -242,10 +244,11 @@ update_from_git() {
   read -r -p "Cai ban nay va restart tat ca instance? (y/N): " a
   [ "$a" = y ] || return
   install -m 644 "$E/esxi_host_exporter.py" "$E/vsan_disk_health.py" "$E/esxi_dashboard.html" "$E/dashboard_template.html" "$APP/"
-  install -m 755 "$RP/scripts/menu.sh" "$APP/menu.sh"; install -m 755 "$RP/scripts/uninstall.sh" "$APP/uninstall.sh"
+  local D="$RP/scripts"; [ -d "$D" ] || D="$RP/deploy"  # repo doi deploy/ -> scripts/; nhan ca 2
+  install -m 755 "$D/menu.sh" "$APP/menu.sh"; install -m 755 "$D/uninstall.sh" "$APP/uninstall.sh"
   rm -f "$APP/.update-available"                 # vua cap nhat -> xoa co bao
-  [ -f "$RP/scripts/setup-autocheck.sh" ] && [ -f /etc/systemd/system/esxi-update-check.timer ] \
-    && install -m 755 "$RP/scripts/esxi-update-check.sh" "$APP/esxi-update-check.sh" 2>/dev/null  # cap nhat script check neu da bat
+  [ -f "$D/setup-autocheck.sh" ] && [ -f /etc/systemd/system/esxi-update-check.timer ] \
+    && install -m 755 "$D/esxi-update-check.sh" "$APP/esxi-update-check.sh" 2>/dev/null  # cap nhat script check neu da bat
   for n in $(instances); do systemctl restart "$SVC@$n"; done
   sleep 3; for n in $(instances); do p=$(port_of "$n"); echo "  $n ($p): ${G}$(version_of_port "$p")${N}"; done
 }
@@ -497,7 +500,7 @@ while true; do
        echo; echo "Ban trong $APP: ${B}$(installed_ver)${N}  (khac ban dang chay -> restart: muc 4)"; pause ;;
     6) update_from_zip; pause ;;
     7|8) D=$(find_src)
-       [ -n "$D" ] || read -r -p "Thu muc co install.sh (goi zip da giai nen hoac <repo>/deploy): " D
+       [ -n "$D" ] || read -r -p "Thu muc co install.sh (goi zip da giai nen hoac <repo>/scripts): " D
        if [ -f "$D/install.sh" ]; then
          echo "Bo cai dung: ${B}$D${N}  (phien ban $(cat "$D/VERSION" 2>/dev/null || grep -m1 '^VERSION' "$D/../exporter/esxi_host_exporter.py" 2>/dev/null | cut -d'"' -f2))"
          if [ -d "$D/vendor" ] && [ ! -d "$D/vendor-py38" ] && ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then

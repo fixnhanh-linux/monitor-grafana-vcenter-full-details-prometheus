@@ -31,11 +31,14 @@ Muc 2 = **High**, Muc 3 = **Warning**. Nguong chinh bang macro `{$ESXI.*}`:
 | Disk write latency | > `{$ESXI.LAT.HIGH}` (30ms) | > `{$ESXI.LAT.WARN}` (15ms) | `{$ESXI.LAT.HIGH}` `{$ESXI.LAT.WARN}` |
 | vSAN congestion | > `{$ESXI.CONG.HIGH}` (60) | — | `{$ESXI.CONG.HIGH}` |
 | vmk packet drop | — | > `{$ESXI.VMKDROP.WARN}` (0.1%) | `{$ESXI.VMKDROP.WARN}` |
+| vSAN cluster partition | host co Partition khac (> 1) hoac Partition thay doi | — | |
 | vSAN resync | dang resync | — | |
 | vmnic down | mat link | — | |
 | Host maintenance | — | maintenance = 1 | |
 | Exporter mat du lieu | — | > `{$ESXI.STALE}` (900s) | `{$ESXI.STALE}` |
 
 Doi nguong: sua macro tren host/template, khong can sua trigger.
+
+**Doi chieu vSAN cluster partition voi vCenter:** Cluster → **Monitor** → **vSAN** → **Skyline Health** → **vSAN cluster partition** (bang Host / Partition / Host UUID). Binh thuong moi host = 1; host co Partition khac la host bi tach (kiem tra vmk vSAN / uplink / switch).
 
 > Luu y: 2 item **Hardware Health** va **Healthy vSAN Disks (%)** can metric `esxi_host_hardware_health` / `esxi_vsan_host_disk_health_percent` — ban exporter hien tai chua xuat, nen 2 item do se trong (khong loi). Cac phan con lai chay binh thuong.

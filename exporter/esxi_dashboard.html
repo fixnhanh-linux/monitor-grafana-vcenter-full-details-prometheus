@@ -132,6 +132,7 @@ const COLS = [
   { k: "nic", t: "NIC", sort: h => Object.values(h.nics).filter(n => !n.up).length },
   { k: "dg", t: "Trạng thái DiskGroup vSAN", sort: h => h.disk_health ?? -1 },
   { k: "cong", t: "vSAN congestion", sort: h => h.congestion },
+  { k: "part", t: "vSAN partition", sort: h => h.vsan_partition ?? -1 },
   { k: "lat", t: "Write latency", sort: h => h.lat_write_ms ?? -1, cls: "hide-sm" },
   { k: "vms", t: "VMs", sort: h => h.vms, cls: "hide-sm" },
   { k: "up", t: "Uptime", sort: h => h.uptime_s, cls: "hide-sm" },
@@ -189,6 +190,8 @@ function cell(h, k) {
       `<span class="nic ${v.up ? "up" : "down"}">${esc(n)} <b>${v.up ? "▲" : "▼"}</b></span>`).join("") || '<span class="dim">N/A</span>'}</td>`;
     case "dg": return `<td class="${h.disk_health == null ? "dim" : "t" + h.disk_health}">${h.disk_health == null ? "–" : DG[h.disk_health]}</td>`;
     case "cong": { const c = h.congestion >= 150 ? 2 : h.congestion > W.congestion ? 1 : 0; return `<td class="num t${c}">${h.congestion}</td>`; }
+    case "part": return h.vsan_partition == null ? '<td class="num dim">–</td>'
+      : `<td class="num ${h.vsan_partition > 1 ? "t2" : "t0"}" title="Host UUID ${esc(h.vsan_uuid)}">${h.vsan_partition}</td>`;
     case "lat": { const v = h.lat_write_ms; return `<td class="num hide-sm ${v == null ? "dim" : v > 30 ? "t2" : v > W.latency ? "t1" : ""}">${v == null ? "–" : v.toFixed(1) + " ms"}</td>`; }
     case "vms": return `<td class="num hide-sm">${h.state === "connected" ? h.vms : "–"}</td>`;
     case "up": return `<td class="hide-sm">${h.state === "connected" ? fmtUp(h.uptime_s) : "–"}</td>`;

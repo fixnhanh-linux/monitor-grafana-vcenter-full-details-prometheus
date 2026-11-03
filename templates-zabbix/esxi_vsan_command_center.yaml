@@ -708,6 +708,29 @@ zabbix_export:
                   tag: component
                   value: vsan
             -
+              uuid: 3b7367f1282143d2b148d89ff801a79c
+              name: '[{#CLUSTER}] vSAN Partitions'
+              description: 'So vSAN partition cua cluster (1 = binh thuong, >1 = cluster bi chia). Doi chieu tren vCenter: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition (cot Partition).'
+              type: DEPENDENT
+              key: 'esxi.cluster.vsan.partitions["{#CLUSTER}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_cluster_partitions{cluster="{#CLUSTER}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+            -
               uuid: e8e5457be8d2405399620ad7d6bf89d3
               name: '[{#CLUSTER}] vSAN Resync Objects'
               type: DEPENDENT
@@ -898,6 +921,42 @@ zabbix_export:
                   uuid: 9d3e224b89c64ff49728beca13fe8c41
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.congestion["{#CLUSTER}","{#HOST}"])>{$ESXI.CONG.HIGH}'
                   name: 'vSAN Congestion On {#HOST} > {$ESXI.CONG.HIGH}'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: level
+                      value: '2'
+            -
+              uuid: 6f95b64349754ecaacd6272526df1d2d
+              name: '[{#CLUSTER} / {#HOST}] vSAN Cluster Partition'
+              description: 'Partition cua host trong cluster vSAN (1 = cung nhom voi da so host, >1 = bi tach). Doi chieu tren vCenter: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition (cot Partition).'
+              type: DEPENDENT
+              key: 'esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_host_partition{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - value
+                    - ''
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+              trigger_prototypes:
+                -
+                  uuid: 7fd9da14db064d6db2a36353faad938b
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"])>1 or change(/ESXi Host Exporter by HTTP/esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"])<>0'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"])=1 and change(/ESXi Host Exporter by HTTP/esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"])=0'
+                  name: 'vSAN Partition Changed On {#HOST} ({#CLUSTER}): Partition {ITEM.LASTVALUE1}'
+                  description: 'Host co Partition khac cac host con lai (cluster vSAN bi chia). Kiem tra vmk vSAN / uplink / switch cua host. Doi chieu tren vCenter: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition (cot Partition).'
                   priority: HIGH
                   tags:
                     -
