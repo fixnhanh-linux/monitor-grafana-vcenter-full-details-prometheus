@@ -51,6 +51,9 @@ zabbix_export:
                 -
                   tag: level
                   value: '3'
+                -
+                  tag: component
+                  value: exporter
             -
               uuid: dea7831a49764fafae3f5bc78dea8cb3
               expression: 'now()-last(/ESXi Host Exporter by HTTP/esxi.exporter.last_success)>{$ESXI.STALE}'
@@ -60,6 +63,9 @@ zabbix_export:
                 -
                   tag: level
                   value: '3'
+                -
+                  tag: component
+                  value: exporter
         -
           uuid: 33005b871527442d82bdc4110794ae08
           name: 'Exporter: Metrics'
@@ -110,6 +116,9 @@ zabbix_export:
                 -
                   tag: level
                   value: '3'
+                -
+                  tag: component
+                  value: exporter
             -
               uuid: fc4720abf4984b978ded44c7be954488
               expression: 'nodata(/ESXi Host Exporter by HTTP/esxi.exporter.up,5m)=1'
@@ -120,6 +129,9 @@ zabbix_export:
                 -
                   tag: level
                   value: '3'
+                -
+                  tag: component
+                  value: exporter
         -
           uuid: e851c7eaa7824c85a43abd584561eac6
           name: 'Exporter: Version'
@@ -707,6 +719,9 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
             -
               uuid: 3b7367f1282143d2b148d89ff801a79c
               name: '[{#CLUSTER}] vSAN Partitions'
@@ -730,6 +745,9 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
             -
               uuid: e8e5457be8d2405399620ad7d6bf89d3
               name: '[{#CLUSTER}] vSAN Resync Objects'
@@ -752,6 +770,9 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
               trigger_prototypes:
                 -
                   uuid: ef09cb1f030747629e1ab871f820441b
@@ -762,6 +783,12 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: component
+                      value: vsan
           graph_prototypes:
             -
               uuid: 5a247b96784d40ba8fbbe0d1572f44ca
@@ -837,6 +864,15 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan-disk
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: diskgroup
+                  value: '{#DISKGROUP}'
               trigger_prototypes:
                 -
                   uuid: 9ab0312494494a028c174489818b24e3
@@ -847,6 +883,18 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: diskgroup
+                      value: '{#DISKGROUP}'
+                    -
+                      tag: component
+                      value: vsan-disk
           master_item:
             key: esxi.exporter.metrics
           lld_macro_paths:
@@ -916,6 +964,12 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: 9d3e224b89c64ff49728beca13fe8c41
@@ -926,6 +980,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
             -
               uuid: 6f95b64349754ecaacd6272526df1d2d
               name: '[{#CLUSTER} / {#HOST}] vSAN Cluster Partition'
@@ -949,6 +1012,12 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: 7fd9da14db064d6db2a36353faad938b
@@ -962,6 +1031,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
             -
               uuid: 937e9e5e4c3247cd9abef73bd8dc661e
               name: '[{#CLUSTER} / {#HOST}] vCenter Connection'
@@ -986,6 +1064,12 @@ zabbix_export:
                 -
                   tag: component
                   value: host
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: c4e2d1323bea43eca3cc6c705497dc86
@@ -997,6 +1081,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: host
             -
               uuid: 29b4a2d1d81e477ba9cada1db925d777
               name: '[{#CLUSTER} / {#HOST}] CPU Usage'
@@ -1021,6 +1114,12 @@ zabbix_export:
                 -
                   tag: component
                   value: cpu
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: bd3907b0c01d4066832a4732a9ce6d1c
@@ -1031,6 +1130,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: cpu
                 -
                   uuid: c405aef4db9740e0a84b86ccb76b26a1
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.cpu["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.CPU.WARN}'
@@ -1044,6 +1152,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: cpu
             -
               uuid: 830dcddff1c9452c90646ec88d43bf91
               name: '[{#CLUSTER} / {#HOST}] Healthy vSAN Disks'
@@ -1068,6 +1185,12 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: c148f5297bb24061a0e0140cfe4eddbc
@@ -1078,6 +1201,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
                 -
                   uuid: be884781aadd4572969c1bfeffe261cb
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.disk.pct["{#CLUSTER}","{#HOST}"])<{$ESXI.DISKPCT.WARN}'
@@ -1091,6 +1223,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
             -
               uuid: c7b9a756d9c64d82be4ce6b61ea0e82a
               name: '[{#CLUSTER} / {#HOST}] Hardware Health'
@@ -1115,6 +1256,12 @@ zabbix_export:
                 -
                   tag: component
                   value: host
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: 0df6c149f4574de993ef5b1273423b4e
@@ -1126,6 +1273,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: host
             -
               uuid: 69aadf91b84146d390bfc2cd038ca6c1
               name: '[{#CLUSTER} / {#HOST}] vSAN Read Latency'
@@ -1150,6 +1306,12 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
             -
               uuid: c1ff1e86a3094749bd2a6f05eee73486
               name: '[{#CLUSTER} / {#HOST}] vSAN Write Latency'
@@ -1174,6 +1336,12 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: c0bdccb0da2b43cfa5bd1f10d06cc10b
@@ -1185,6 +1353,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
                 -
                   uuid: dba53ad6e5094644a25b1f0d19972e9f
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.lat.write["{#CLUSTER}","{#HOST}"],10m)>{$ESXI.LAT.WARN}'
@@ -1199,6 +1376,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
             -
               uuid: 97a00d4c271f47c8aa6f2eda8f3f8519
               name: '[{#CLUSTER} / {#HOST}] Maintenance Mode'
@@ -1223,6 +1409,12 @@ zabbix_export:
                 -
                   tag: component
                   value: host
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: 689b6bc4c1df40fbabab80050471f8f6
@@ -1234,6 +1426,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: host
             -
               uuid: c940915457f84f84870d8dfa82df4da9
               name: '[{#CLUSTER} / {#HOST}] vSAN Network Latency'
@@ -1259,6 +1460,12 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: d560a41a827141e1b90d378458c22e58
@@ -1269,6 +1476,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
                 -
                   uuid: 0da96b66e4ff4cff81b264535400e064
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.WARN}'
@@ -1282,6 +1498,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: vsan
             -
               uuid: c5d5b16a3c634e5f95123d01831f0fbb
               name: '[{#CLUSTER} / {#HOST}] Memory Usage'
@@ -1306,6 +1531,12 @@ zabbix_export:
                 -
                   tag: component
                   value: memory
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
               trigger_prototypes:
                 -
                   uuid: 7b0043b124e644f1a081c6ea2d4ac916
@@ -1316,6 +1547,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: memory
                 -
                   uuid: a5bf991de498464abe5571a7d7862150
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.host.ram["{#CLUSTER}","{#HOST}"],5m)>{$ESXI.RAM.WARN}'
@@ -1329,6 +1569,15 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: component
+                      value: memory
             -
               uuid: c275787448d64d27983c0dda8da61ed9
               name: '[{#CLUSTER} / {#HOST}] Uptime'
@@ -1352,6 +1601,12 @@ zabbix_export:
                 -
                   tag: component
                   value: host
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
             -
               uuid: 93e0858160a44aa69b1f1e2c6c7e794c
               name: '[{#CLUSTER} / {#HOST}] Running VMs'
@@ -1374,6 +1629,12 @@ zabbix_export:
                 -
                   tag: component
                   value: host
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
           graph_prototypes:
             -
               uuid: 7c40190b19f246748bb6291dab5a9df9
@@ -1497,6 +1758,15 @@ zabbix_export:
                 -
                   tag: component
                   value: network
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: nic
+                  value: '{#NIC}'
             -
               uuid: b0453c180cf94734915958602a269764
               name: '[{#CLUSTER} / {#HOST}] {#NIC} Link Speed'
@@ -1524,6 +1794,15 @@ zabbix_export:
                 -
                   tag: component
                   value: network
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: nic
+                  value: '{#NIC}'
             -
               uuid: 8480afd6c41644d186864925b311909e
               name: '[{#CLUSTER} / {#HOST}] {#NIC} Bits Sent'
@@ -1552,6 +1831,15 @@ zabbix_export:
                 -
                   tag: component
                   value: network
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: nic
+                  value: '{#NIC}'
             -
               uuid: 3ca5f7df338847b3a8a0d2b974a2a3aa
               name: '[{#CLUSTER} / {#HOST}] {#NIC} Link Status'
@@ -1576,6 +1864,15 @@ zabbix_export:
                 -
                   tag: component
                   value: network
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: nic
+                  value: '{#NIC}'
               trigger_prototypes:
                 -
                   uuid: 4b405ddce8264dd4aebe343e1b195504
@@ -1587,6 +1884,18 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: nic
+                      value: '{#NIC}'
+                    -
+                      tag: component
+                      value: network
           graph_prototypes:
             -
               uuid: 6d975f6c09c14d08926ad6146d366769
@@ -1674,6 +1983,18 @@ zabbix_export:
                 -
                   tag: component
                   value: network
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: vmk
+                  value: '{#VMK}'
+                -
+                  tag: direction
+                  value: '{#DIRECTION}'
               trigger_prototypes:
                 -
                   uuid: 578e2092b4004ab69c62ab86bc1a7f43
@@ -1685,6 +2006,21 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: vmk
+                      value: '{#VMK}'
+                    -
+                      tag: direction
+                      value: '{#DIRECTION}'
+                    -
+                      tag: component
+                      value: network
           master_item:
             key: esxi.exporter.metrics
           lld_macro_paths:
@@ -1757,6 +2093,15 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan-disk
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: disk
+                  value: '{#DISK}'
             -
               uuid: 731a7aa20c004344b5761ce7f5fa9e60
               name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Health'
@@ -1781,6 +2126,15 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan-disk
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: disk
+                  value: '{#DISK}'
               trigger_prototypes:
                 -
                   uuid: e2f318ff831d4100a2cb8902398cbd90
@@ -1795,6 +2149,18 @@ zabbix_export:
                     -
                       tag: level
                       value: '3'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: disk
+                      value: '{#DISK}'
+                    -
+                      tag: component
+                      value: vsan-disk
                 -
                   uuid: 2e46aefb02db446d978413206aa2b24b
                   expression: 'last(/ESXi Host Exporter by HTTP/vsan.disk.health["{#CLUSTER}","{#HOST}","{#DISK}"])=2'
@@ -1805,6 +2171,18 @@ zabbix_export:
                     -
                       tag: level
                       value: '2'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: host
+                      value: '{#HOST}'
+                    -
+                      tag: disk
+                      value: '{#DISK}'
+                    -
+                      tag: component
+                      value: vsan-disk
             -
               uuid: f1171b3ad5514bf5a1f75023dad96b22
               name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Status Reason'
@@ -1832,6 +2210,15 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan-disk
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: disk
+                  value: '{#DISK}'
             -
               uuid: 751dfbfa7a6347c6bf4375e185ffa433
               name: '[{#CLUSTER} / {#HOST}] Disk {#DISK} Used Capacity'
@@ -1860,6 +2247,15 @@ zabbix_export:
                 -
                   tag: component
                   value: vsan-disk
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
+                -
+                  tag: host
+                  value: '{#HOST}'
+                -
+                  tag: disk
+                  value: '{#DISK}'
           master_item:
             key: esxi.exporter.metrics
           lld_macro_paths:

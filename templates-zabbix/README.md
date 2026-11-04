@@ -21,6 +21,17 @@ Template Zabbix **6.2** giam sat ESXi / vSAN qua **ESXi Host Exporter** (Zabbix 
 4. Zabbix tu lay `/metrics`, phat hien cluster / host / disk / nic / vmk (LLD) va tao item + trigger + graph.
 5. Xem dashboard: **Monitoring > Dashboards** → **ESXi & vSAN Command Center** (3 trang: Hosts / vSAN / Network).
 
+## Tag (loc / gom su co)
+
+Moi item + trigger deu co tag day du de loc o **Monitoring > Problems** va **Latest data**:
+
+- `component` = loai thanh phan (`cpu`, `memory`, `vsan`, `vsan-disk`, `network`, `host`, `exporter`)
+- `cluster` = ten cluster (POOL), `host` = ten host ESXi
+- Tai nguyen cu the (khi co): `nic`, `disk`, `diskgroup`, `vmk`, `direction`
+- `level` = `2` (Muc 2/High) hoac `3` (Muc 3/Warning)
+
+Vd loc nhanh: `cluster = POOL18` + `level = 2` de xem su co nghiem trong cua 1 pool; hoac `component = vsan` cho rieng van de vSAN.
+
 ## Muc canh bao
 
 Muc 2 = **High**, Muc 3 = **Warning**. Nguong chinh bang macro `{$ESXI.*}`:
