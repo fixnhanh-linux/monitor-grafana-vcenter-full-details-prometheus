@@ -30,6 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 NEW_IDS = (40, 41, 42)          # row + stat + table trong file nguon
 ROW_TITLE = "vSAN Cluster Partition"
 ANCHOR_ID = 8                   # bang "ESXi Hosts": chen ngay ben duoi
+OVERVIEW_IDS = (2, 3, 4, 5, 30, 31, 6, 7, 50)   # cac o hang tong quan (stat, y=1)
 
 
 def arg(name, default):
@@ -98,6 +99,26 @@ def sync_host_table(dash, src):
     return changed
 
 
+def sync_overview(dash, src):
+    """Dong bo cac o 'hang tong quan' (stat, y=1) tu file nguon: them o moi (vd vSAN Partitions),
+    cap nhat query / nguong mau / vi tri (gridPos) cho khop. Chay lai khong doi gi neu da trung.
+    Tra ve True neu co thay doi."""
+    base = {p["id"]: p for p in src["panels"] if p.get("id") in OVERVIEW_IDS}
+    live = {p.get("id"): p for p in all_panels(dash["panels"])}
+    changed = False
+    for pid, bp in base.items():
+        lp = live.get(pid)
+        if lp is None:
+            dash["panels"].append(copy.deepcopy(bp))
+            changed = True
+            continue
+        for key in ("targets", "fieldConfig", "gridPos", "options", "description", "title", "type"):
+            if key in bp and lp.get(key) != bp[key]:
+                lp[key] = copy.deepcopy(bp[key])
+                changed = True
+    return changed
+
+
 def main():
     if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
         sys.exit(__doc__)
@@ -111,9 +132,12 @@ def main():
     cur = api(base, token, "/api/dashboards/uid/" + uid)
     dash, meta = cur["dashboard"], cur["meta"]
     print("Dashboard: %s (uid %s, version %s, folder %s)" % (dash["title"], uid, dash.get("version"), meta.get("folderTitle", "General")))
+    ovw = sync_overview(dash, src)
     tbl = sync_host_table(dash, src)
     height = merge(dash, new_panels)
     todo = []
+    if ovw:
+        todo.append("cap nhat hang tong quan (them o 'vSAN Partitions' + nguong Network Latency)")
     if height is not None:
         todo.append("them row '%s' + 2 panel (day panel ben duoi xuong %d dong)" % (ROW_TITLE, height))
     else:

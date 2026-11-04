@@ -372,7 +372,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Network latency lon nhat giua cac host vSAN (test Network latency check, mau 5 phut). Vang > 0,5ms (Muc 3), do > 1ms (Muc 2). N/A = vCenter khong co test nay.",
+      "description": "Network latency lon nhat giua cac host vSAN (test Network latency check, mau 5 phut). Vang > 4ms (Muc 3), do > 5ms (Muc 2). N/A = vCenter khong co test nay.",
       "fieldConfig": {
         "defaults": {
           "decimals": 2,
@@ -387,11 +387,11 @@
               },
               {
                 "color": "yellow",
-                "value": 0.5
+                "value": 4
               },
               {
                 "color": "red",
-                "value": 1
+                "value": 5
               }
             ]
           },
@@ -481,8 +481,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 18,
+        "w": 2,
+        "x": 20,
         "y": 1
       },
       "id": 6,
@@ -554,8 +554,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 21,
+        "w": 2,
+        "x": 22,
         "y": 1
       },
       "id": 7,
@@ -592,6 +592,77 @@
         }
       ],
       "title": "Data Freshness (Oldest Exporter)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Số partition của cluster vSAN. 1 = bình thường (xanh); >= 2 = cluster bị chia, có host bị tách (đỏ, Mức 2). Đối chiếu: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition.",
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "N/A",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 18,
+        "y": 1
+      },
+      "id": 50,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (cluster) (esxi_vsan_cluster_partitions{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "vSAN Partitions",
       "type": "stat"
     },
     {
@@ -2358,11 +2429,11 @@
               },
               {
                 "color": "yellow",
-                "value": 0.5
+                "value": 4
               },
               {
                 "color": "red",
-                "value": 1
+                "value": 5
               }
             ]
           },
