@@ -5,10 +5,17 @@ Exporter dung HTTP agent (Zabbix keo /metrics) nen host KHONG can interface: chi
 ten host + host group + gan template "ESXi Host Exporter by HTTP" + macro {$ESXI.EXPORTER.URL}.
 Script doc cac instance da cai tren server (/etc/esxi-host-exporter/*.env) va tao host tuong ung.
 
+Tach cluster: doc /metrics cua moi instance, dem so cluster (POOL). Neu 1 instance giam sat
+>= 2 cluster thi TACH ra thanh nhieu host (moi cluster 1 host), dat them macro
+{$ESXI.CLUSTER.MATCHES}=^<ten-cluster>$ de host do chi lay dung cluster cua minh.
+Instance chi co 1 cluster -> 1 host, dat ten theo instance nhu cu.
+
+Host da ton tai: MAC DINH BO QUA (khong dong vao). Them --update neu muon cap nhat host da co.
+
 Cach dung:
   export ZABBIX_TOKEN=xxxxx                                   (Linux)   |  set ZABBIX_TOKEN=xxxxx (Windows)
   python add_hosts.py https://zabbix.example/zabbix           # xem truoc, KHONG ghi
-  python add_hosts.py https://zabbix.example/zabbix --apply   # tao/cap nhat that
+  python add_hosts.py https://zabbix.example/zabbix --apply   # tao that (host da co: bo qua)
 
   Token: Zabbix > Users > API tokens (role co quyen tao host). Zabbix 6.x dung token o truong "auth".
   Tren server: menu muc 18 (Sinh / cai host Zabbix) chay script nay.
@@ -16,12 +23,12 @@ Cach dung:
 Tuy chon:
   --group "ESXi Host Exporter"             host group (tu tao neu chua co)
   --template "ESXi Host Exporter by HTTP"  ten ky thuat cua template (phai import truoc)
-  --prefix "Esxi-Exporter-"                tien to ten host (ten instance viet HOA)
+  --prefix "Esxi-Exporter-"                tien to ten host (ten instance/cluster viet HOA)
   --ip 10.16.16.38                         IP server exporter (mac dinh: tu dong phat hien)
   --conf /etc/esxi-host-exporter           thu muc .env cua instance
-
-An toan: host da co thi CAP NHAT (giu nguyen host group / template / macro khac da co, chi
-set lai {$ESXI.EXPORTER.URL}); chua co thi tao moi. Chay lai nhieu lan khong tao trung.
+  --update                                 host da co thi CAP NHAT (giu macro/group/template khac),
+                                           thay vi bo qua
+  --no-split                               khong tach cluster (1 instance = 1 host nhu ban cu)
 """
 import glob
 import json
@@ -49,6 +56,11 @@ def server_ip():
         return "127.0.0.1"
 
 
+def san(name):
+    """Ten cluster -> phan ten host an toan (chu HOA, chi giu chu/so/gach)."""
+    return re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-").upper() or "CLUSTER"
+
+
 def instances(conf):
     out = []
     for f in sorted(glob.glob(os.path.join(conf, "*.env"))):
@@ -62,6 +74,24 @@ def instances(conf):
         if port:
             out.append((name, port))
     return out
+
+
+def clusters_of(ip, port):
+    """Doc /metrics, tra ve danh sach cluster (tu nhan esxi_host_status{...cluster="X"}).
+    Tra None neu khong doc duoc /metrics (goi y: dung 1 host theo instance)."""
+    url = "http://%s:%s/metrics" % (ip, port)
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            data = r.read().decode("utf-8", "replace")
+    except (urllib.error.URLError, OSError):
+        return None
+    cls = set()
+    for line in data.splitlines():
+        if line.startswith("esxi_host_status{"):
+            m = re.search(r'cluster="([^"]*)"', line)
+            if m and m.group(1):
+                cls.add(m.group(1))
+    return sorted(cls)
 
 
 class Zbx:
@@ -103,6 +133,8 @@ def main():
     conf = arg("--conf", "/etc/esxi-host-exporter")
     ip = arg("--ip", server_ip())
     apply_ = "--apply" in sys.argv
+    update_existing = "--update" in sys.argv
+    no_split = "--no-split" in sys.argv
 
     insts = instances(conf)
     if not insts:
@@ -124,42 +156,77 @@ def main():
             gid = z.call("hostgroup.create", {"name": group})["groupids"][0]
 
     MURL = "{$ESXI.EXPORTER.URL}"
-    plan = []
+    MCL = "{$ESXI.CLUSTER.MATCHES}"
+
+    # 1 instance -> 1 hay nhieu "target" (host). Tach khi instance co >= 2 cluster.
+    targets = []
     for name, port in insts:
-        host = prefix + name.upper()
         url = "http://%s:%s/metrics" % (ip, port)
-        ex = z.call("host.get", {"filter": {"host": [host]}, "output": ["hostid"],
+        cls = None if no_split else clusters_of(ip, port)
+        if cls and len(cls) >= 2:
+            print("  %s: %d cluster -> tach ra (%s)" % (name, len(cls), ", ".join(cls)))
+            for c in cls:
+                targets.append({"host": prefix + san(c), "url": url, "cluster": c, "inst": name})
+        else:
+            targets.append({"host": prefix + name.upper(), "url": url, "cluster": None, "inst": name})
+
+    # tra trung ten host (phong khi 2 cluster cho ra cung ten)
+    seen = {}
+    for t in targets:
+        if t["host"] in seen:
+            t["host"] = "%s-%s" % (t["host"], t["inst"].upper())
+        seen[t["host"]] = True
+
+    # kiem tra host da co chua
+    for t in targets:
+        ex = z.call("host.get", {"filter": {"host": [t["host"]]}, "output": ["hostid"],
                                  "selectMacros": "extend", "selectParentTemplates": ["templateid"],
                                  "selectGroups": ["groupid"]})
-        plan.append(("cap nhat" if ex else "tao moi", host, url, ex[0] if ex else None))
+        t["cur"] = ex[0] if ex else None
 
-    print("\nSe xu ly %d host (group '%s', template '%s', IP %s):" % (len(plan), group, template, ip))
-    for action, host, url, _ in plan:
-        print("  [%s] %-26s %s" % (action, host, url))
+    print("\nSe xu ly %d host (group '%s', template '%s', IP %s):" % (len(targets), group, template, ip))
+    for t in targets:
+        if t["cur"]:
+            act = "cap nhat" if update_existing else "bo qua (da co)"
+        else:
+            act = "tao moi"
+        extra = ("  cluster=%s" % t["cluster"]) if t["cluster"] else ""
+        print("  [%-13s] %-30s %s%s" % (act, t["host"], t["url"], extra))
+
     if not apply_:
-        print("\nXem truoc (chua ghi). Chay lai voi --apply de tao/cap nhat that.")
+        print("\nXem truoc (chua ghi). Chay lai voi --apply de tao that.")
         return
 
-    for action, host, url, cur in plan:
+    n_new = n_upd = n_skip = 0
+    for t in targets:
+        host, url, cluster, cur = t["host"], t["url"], t["cluster"], t["cur"]
+        macros = [{"macro": MURL, "value": url}]
+        if cluster:
+            macros.append({"macro": MCL, "value": "^" + re.escape(cluster) + "$"})
         if cur is None:
             z.call("host.create", {"host": host, "groups": [{"groupid": gid}],
-                                   "templates": [{"templateid": tid}],
-                                   "macros": [{"macro": MURL, "value": url}]})
+                                   "templates": [{"templateid": tid}], "macros": macros})
             print("  tao %s" % host)
-        else:
-            macros = [{"macro": m["macro"], "value": m["value"]}
-                      for m in cur.get("macros", []) if m["macro"] != MURL]
-            macros.append({"macro": MURL, "value": url})
+            n_new += 1
+        elif update_existing:
+            drop = {MURL} | ({MCL} if cluster else set())
+            keep = [{"macro": m["macro"], "value": m["value"]}
+                    for m in cur.get("macros", []) if m["macro"] not in drop]
+            keep.extend(macros)
             gids = {g["groupid"] for g in cur.get("hostgroups", cur.get("groups", []))}
             gids.add(gid)
-            params = {"hostid": cur["hostid"], "macros": macros,
+            params = {"hostid": cur["hostid"], "macros": keep,
                       "groups": [{"groupid": g} for g in gids]}
-            tids = {t["templateid"] for t in cur.get("parentTemplates", [])}
+            tids = {tt["templateid"] for tt in cur.get("parentTemplates", [])}
             if tid not in tids:
-                params["templates"] = [{"templateid": t} for t in tids | {tid}]
+                params["templates"] = [{"templateid": x} for x in tids | {tid}]
             z.call("host.update", params)
             print("  cap nhat %s" % host)
-    print("Xong: %d host." % len(plan))
+            n_upd += 1
+        else:
+            print("  bo qua %s (da co)" % host)
+            n_skip += 1
+    print("Xong: tao %d, cap nhat %d, bo qua %d." % (n_new, n_upd, n_skip))
 
 
 if __name__ == "__main__":

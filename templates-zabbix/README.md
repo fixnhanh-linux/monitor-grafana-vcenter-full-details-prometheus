@@ -5,13 +5,15 @@ Template Zabbix **6.2** giam sat ESXi / vSAN qua **ESXi Host Exporter** (Zabbix 
 | File | Ghi chu |
 |---|---|
 | `esxi_vsan_command_center.yaml` | Template Zabbix 6.2 — ten: **ESXi & vSAN Command Center** (co san dashboard 3 trang) |
-| `add_hosts.py` | Script tao/cap nhat host Zabbix cho tung instance qua API (chay bang `esxi-menu` muc 18) |
+| `add_hosts.py` | Script tao host Zabbix qua API: 1 instance >= 2 cluster thi tach ra, host da co thi bo qua (chay bang `esxi-menu` muc 18) |
 
 ## Cai dat
 
 1. Zabbix: **Data collection > Templates > Import** → chon `esxi_vsan_command_center.yaml`.
 2. Tao **host Zabbix cho moi instance exporter** (moi vCenter/pool 1 port), gan template **ESXi Host Exporter by HTTP**.
-   - **Tu dong:** tren server exporter chay `sudo esxi-menu` → **18** (hoac `python add_hosts.py <url-zabbix>` voi `ZABBIX_TOKEN`): doc cac instance da cai → tao/cap nhat host (host group + template + macro URL), HTTP agent nen khong can interface; chay lai khong trung.
+   - **Tu dong:** tren server exporter chay `sudo esxi-menu` → **18** (hoac `python add_hosts.py <url-zabbix>` voi `ZABBIX_TOKEN`): doc cac instance da cai → tao host (host group + template + macro URL), HTTP agent nen khong can interface.
+     - **Tach cluster:** instance nao giam sat **>= 2 cluster (POOL)** se duoc tach thanh nhieu host, moi cluster 1 host, tu dat macro `{$ESXI.CLUSTER.MATCHES}=^<ten-cluster>$`. Instance 1 cluster → 1 host (ten theo instance).
+     - **Host da co:** mac dinh **bo qua** (khong dong vao). Them `--update` neu muon cap nhat host da co; `--no-split` neu khong muon tach cluster.
    - **Thu cong:** them host tay roi gan template.
 3. Sua macro tren host:
    - `{$ESXI.EXPORTER.URL}` = URL `/metrics` cua instance, vd `http://10.16.16.38:9811/metrics`
