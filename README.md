@@ -70,7 +70,8 @@ mật khẩu (gõ ẩn). Mỗi vCenter cài 1 instance với **tên và port kh�
  6) Cap nhat ban moi tu file zip     13) Cap nhat ban moi tu GitHub (git pull)
  7) Them vCenter / instance moi      14) Sinh / cai cau hinh Prometheus
 15) Phat hien cluster                16) Cap nhat dashboard Grafana
-17) Dieu chinh nguong canh bao        0) Thoat
+17) Dieu chinh nguong canh bao       18) Sinh / cai host Zabbix
+                                      0) Thoat
 ```
 
 Kiểm tra phiên bản đang chạy: `curl -s localhost:9811/metrics | grep build_info`.
@@ -133,6 +134,8 @@ WARN khi maintenance · disk YELLOW · CPU > 40% · RAM > 80% · write latency >
 Import [`templates-zabbix/esxi_vsan_command_center.yaml`](templates-zabbix/esxi_vsan_command_center.yaml) → tạo host Zabbix trỏ IP máy exporter
 → gắn template **ESXi & vSAN Command Center** (port khác 9811 thì sửa macro `{$ESXI.EXPORTER.URL}`).
 Trigger giống bảng ở mục 4 (Mức 2 = High, Mức 3 = Warning), ngưỡng là macro. Chi tiết: [`templates-zabbix/README.md`](templates-zabbix/README.md).
+
+**Tạo host tự động:** sau khi import template, trên server exporter chạy `sudo esxi-menu` → **18** (hoặc `python templates-zabbix/add_hosts.py <url-zabbix>`): đọc các instance đã cài rồi tạo/cập nhật host Zabbix cho từng cái (host group + gắn template + set `{$ESXI.EXPORTER.URL}`), dùng HTTP agent nên không cần interface. Cần URL Zabbix + API token. Chạy lại không tạo trùng (host đã có thì cập nhật, giữ nguyên macro/group khác).
 
 ## 6. InfluxDB (tuỳ chọn)
 

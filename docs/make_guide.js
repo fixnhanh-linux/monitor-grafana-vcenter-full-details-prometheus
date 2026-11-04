@@ -155,7 +155,8 @@ children.push(table(
    ["14","Sinh / cài cấu hình Prometheus từ các instance đã cài"],
    ["15","Phát hiện cluster — liệt kê cluster/vSAN/DRS, đánh dấu cluster chưa giám sát"],
    ["16","Cập nhật dashboard Grafana qua API — chèn mục vSAN Cluster Partition + đồng bộ cột bảng host / ô tổng quan, giữ tùy chỉnh"],
-   ["17","Điều chỉnh ngưỡng cảnh báo exporter (CPU / RAM / write latency / congestion / vmk drop / NIC) trong .env, áp 1 hoặc tất cả instance"]]));
+   ["17","Điều chỉnh ngưỡng cảnh báo exporter (CPU / RAM / write latency / congestion / vmk drop / NIC) trong .env, áp 1 hoặc tất cả instance"],
+   ["18","Sinh / cài host Zabbix qua API — tạo/cập nhật host cho từng instance (host group + template + macro URL), cần URL Zabbix + API token"]]));
 }
 
 // ============ B. THU CONG
@@ -300,7 +301,7 @@ children.push(...img("grafana-usedcap.jpg", 624, 283, "Hình 11 — Dung lượn
 children.push(H1(N()+"Zabbix (tùy chọn — thay / cùng Prometheus)"));
 children.push(P("Zabbix lấy thẳng /metrics của exporter bằng HTTP agent rồi tự phát hiện cluster/host/disk/nic/vmk (LLD) và tạo item + trigger + graph."));
 children.push(num("Data collection → Templates → Import → chọn templates-zabbix/esxi_vsan_command_center.yaml (Zabbix 6.2)."));
-children.push(num("Tạo 1 host Zabbix cho mỗi instance exporter, gán template ESXi Host Exporter by HTTP."));
+children.push(num("Tạo host Zabbix cho mỗi instance — tự động: esxi-menu → 18 (hoặc python templates-zabbix/add_hosts.py <url-zabbix>): đọc các instance đã cài rồi tạo/cập nhật host + host group + gán template + set {$ESXI.EXPORTER.URL} (HTTP agent, không cần interface; cần API token; chạy lại không trùng). Hoặc tạo tay rồi gán template ESXi Host Exporter by HTTP."));
 children.push(num("Sửa macro trên host:"));
 children.push(table(
   [{t:"Macro",w:3400,mono:true},{t:"Giá trị",w:5400,mono:true}],

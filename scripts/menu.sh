@@ -255,6 +255,7 @@ update_from_git() {
 
 # ---- muc 16: chen panel moi vao dashboard Grafana dang chay qua API (giu ten row / panel da sua tay)
 GRAFANA_CONF="$CONF/grafana.conf"   # .conf (khong phai .env) de instances() khong tinh la 1 instance
+ZABBIX_CONF="$CONF/zabbix.conf"
 grafana_update() {
   local RP; RP=$(find_src); RP=${RP%/scripts}; RP=${RP%/deploy}
   if [ -z "$RP" ] || [ ! -d "$RP/.git" ]; then
@@ -280,6 +281,35 @@ grafana_update() {
   grep -q '^GRAFANA_URL=' "$GRAFANA_CONF" 2>/dev/null && sed -i "s|^GRAFANA_URL=.*|GRAFANA_URL=$GU|" "$GRAFANA_CONF"
   echo; ask_yn "Ghi vao dashboard dang chay (co backup, quay lai: Settings > Versions > Restore)" || return
   GRAFANA_TOKEN="$GT" python3 "${args[@]}" --apply
+}
+
+# ---- muc 18: tao / cap nhat host Zabbix cho tung instance qua Zabbix API (HTTP agent, khong can interface)
+zabbix_hosts() {
+  local RP; RP=$(find_src); RP=${RP%/scripts}; RP=${RP%/deploy}
+  if [ -z "$RP" ] || [ ! -d "$RP/.git" ]; then
+    read -r -p "Thu muc repo da git clone [/root/$REPO_NAME]: " RP; RP=${RP:-/root/$REPO_NAME}
+  fi
+  local S="$RP/templates-zabbix/add_hosts.py"
+  [ -d "$RP/.git" ] && git -C "$RP" pull -q --ff-only || echo "${Y}git pull loi / chua clone - dung ban dang co${N}"
+  [ -f "$S" ] || { echo "${R}Khong thay $S - can repo moi (menu muc 13).${N}"; return; }
+  local ZU="" ZT="" u
+  [ -f "$ZABBIX_CONF" ] && { ZU=$(grep -m1 '^ZABBIX_URL=' "$ZABBIX_CONF" | cut -d= -f2-); ZT=$(grep -m1 '^ZABBIX_TOKEN=' "$ZABBIX_CONF" | cut -d= -f2-); }
+  read -r -p "Dia chi Zabbix (vd http://IP/zabbix) [${ZU:-http://localhost/zabbix}]: " u; ZU=${u:-${ZU:-http://localhost/zabbix}}
+  if [ -n "$ZT" ] && ask_yn "Dung token Zabbix da luu"; then :; else
+    echo "Token: Zabbix > Users > API tokens (role tao duoc host)"
+    read -r -s -p "Token Zabbix (an khi go): " ZT; echo
+    [ -n "$ZT" ] || { echo "${R}Chua nhap token${N}"; return; }
+    if ask_yn "Luu token vao $ZABBIX_CONF (chi root doc duoc) de lan sau khoi nhap"; then
+      ( umask 077; printf 'ZABBIX_URL=%s\nZABBIX_TOKEN=%s\n' "$ZU" "$ZT" > "$ZABBIX_CONF" )
+    fi
+  fi
+  local grp; read -r -p "Host group tren Zabbix [ESXi Host Exporter]: " grp; grp=${grp:-ESXi Host Exporter}
+  local args=("$S" "$ZU" --ip "$(my_ip)" --group "$grp" --conf "$CONF")
+  echo; echo "${B}Xem truoc (chua ghi):${N}"
+  ZABBIX_TOKEN="$ZT" python3 "${args[@]}" || return
+  grep -q '^ZABBIX_URL=' "$ZABBIX_CONF" 2>/dev/null && sed -i "s|^ZABBIX_URL=.*|ZABBIX_URL=$ZU|" "$ZABBIX_CONF"
+  echo; ask_yn "Tao / cap nhat host tren Zabbix" || return
+  ZABBIX_TOKEN="$ZT" python3 "${args[@]}" --apply
 }
 
 influx_show() {
@@ -507,7 +537,7 @@ draw_menu() {
   brow "H|B|TICH HOP"                  ""
   brow "I|B|14|Cau hinh Prometheus"    "H|D|TRO GIUP"
   brow "I|B|10|Cau hinh InfluxDB"      "I|D|12|Cac lenh hay dung"
-  brow "I|B|16|Cap nhat Grafana"       ""
+  brow "I|B|16|Cap nhat Grafana"       "I|B|18|Sinh host Zabbix"
   bline "+" "=" "+"
   bfree "${R}${W}  0)${N} Thoat        ${D}Ctrl+C khi xem log = quay lai menu${N}"
   bline "+" "-" "+"
@@ -561,7 +591,7 @@ edit_thresholds() {  # muc 17: dieu chinh nguong canh bao cua exporter (.env)
 while true; do
   clear 2>/dev/null
   draw_menu
-  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-17):${N} " c
+  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-18):${N} " c
   echo
   case "$c" in
     1) status_all; pause ;;
@@ -597,6 +627,7 @@ while true; do
     15) discover_clusters; pause ;;
     16) grafana_update; pause ;;
     17) edit_thresholds; pause ;;
+    18) zabbix_hosts; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac
