@@ -1935,12 +1935,12 @@ zabbix_export:
           description: 'Disk write latency ms - Muc 3 (tam)'
         -
           macro: '{$ESXI.NETLAT.HIGH}'
-          value: '1'
-          description: 'vSAN network latency ms - Muc 2 (High)'
+          value: '5'
+          description: 'vSAN network latency ms - Muc 2 (High), > 5ms'
         -
           macro: '{$ESXI.NETLAT.WARN}'
-          value: '0.5'
-          description: 'vSAN network latency ms - Muc 3 (Warning)'
+          value: '4'
+          description: 'vSAN network latency ms - Muc 3 (Warning), > 4ms'
         -
           macro: '{$ESXI.RAM.HIGH}'
           value: '90'

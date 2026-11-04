@@ -27,7 +27,7 @@ Muc 2 = **High**, Muc 3 = **Warning**. Nguong chinh bang macro `{$ESXI.*}`:
 | RAM | > `{$ESXI.RAM.HIGH}` (90) | > `{$ESXI.RAM.WARN}` (80) | `{$ESXI.RAM.HIGH}` `{$ESXI.RAM.WARN}` |
 | vSAN disk health | disk Red | disk Yellow | |
 | Disk group | Unhealthy | — | |
-| vSAN network latency | > `{$ESXI.NETLAT.HIGH}` (1ms) | > `{$ESXI.NETLAT.WARN}` (0.5ms) | `{$ESXI.NETLAT.HIGH}` `{$ESXI.NETLAT.WARN}` |
+| vSAN network latency | > `{$ESXI.NETLAT.HIGH}` (5ms) | > `{$ESXI.NETLAT.WARN}` (4ms) | `{$ESXI.NETLAT.HIGH}` `{$ESXI.NETLAT.WARN}` |
 | Disk write latency | > `{$ESXI.LAT.HIGH}` (30ms) | > `{$ESXI.LAT.WARN}` (15ms) | `{$ESXI.LAT.HIGH}` `{$ESXI.LAT.WARN}` |
 | vSAN congestion | > `{$ESXI.CONG.HIGH}` (60) | — | `{$ESXI.CONG.HIGH}` |
 | vmk packet drop | — | > `{$ESXI.VMKDROP.WARN}` (0.1%) | `{$ESXI.VMKDROP.WARN}` |

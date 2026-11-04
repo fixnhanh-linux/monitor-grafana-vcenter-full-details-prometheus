@@ -96,7 +96,7 @@ Cảnh báo theo bảng "Chi tiết từng host trong cluster": **Mức 2 – Ca
 | | % disk healthy < 70% / 70–80% | `VsanDiskHealthLow` / `VsanDiskHealthWarning` | 2 / 3 | 0s |
 | | Disk YELLOW | `VsanDiskDegraded` | 3 | 0s |
 | Disk latency | write > 30ms / > 15ms (**tạm**, chờ chốt ngưỡng theo Disk Class) | `VsanDiskLatencyHigh` / `VsanDiskLatencyWarning` | 2 / 3 | 10m |
-| vSAN network latency | > 1ms / 0,5–1ms | `VsanNetworkLatencyHigh` / `VsanNetworkLatencyWarning` | 2 / 3 | 0s |
+| vSAN network latency | > 5ms / 4–5ms | `VsanNetworkLatencyHigh` / `VsanNetworkLatencyWarning` | 2 / 3 | 0s |
 | vSAN cluster partition | 1 host có Partition khác (> 1) | `VsanClusterPartition` | 2 | 0s |
 | vSAN congestion / Resync | congestion > 60 · resync > 0 | `VsanCongestion` · `VsanResyncInProgress` | 2 | 30s / 2m |
 | Host maintenance | Host vào chế độ bảo trì | `EsxiHostMaintenance` | 3 | 0s |
@@ -120,8 +120,8 @@ Dashboards → New → Import → upload [`dashboard-grafana/esxi_host_resource_
 - **Chi tiết host** và **vSAN Disk Health**: từng disk, lịch sử trạng thái, exporter theo pool.
 
 **Status host** (khớp Mức 2 / Mức 3): ERROR khi host mất kết nối · host bị tách vSAN partition (Partition > 1) · phần cứng RED · vmnic ≥ 10Gb down · disk RED hoặc % disk healthy < 70%
-· CPU > 60% · RAM > 90% · write latency > 30ms · network latency > 1ms · congestion > 60;
-WARN khi maintenance · disk YELLOW · CPU > 40% · RAM > 80% · write latency > 15ms · network latency > 0,5ms · drop vmk vSAN > 0,1%.
+· CPU > 60% · RAM > 90% · write latency > 30ms · network latency > 5ms · congestion > 60;
+WARN khi maintenance · disk YELLOW · CPU > 40% · RAM > 80% · write latency > 15ms · network latency > 4ms · drop vmk vSAN > 0,1%.
 Đổi ngưỡng trong file `.env` (WARN = Mức 3, ERR = Mức 2): `ESXI_WARN_CPU` / `ESXI_ERR_CPU`, `ESXI_WARN_RAM` / `ESXI_ERR_RAM`,
 `ESXI_WARN_LATENCY_MS` / `ESXI_ERR_LATENCY_MS`, `ESXI_WARN_NET_LATENCY_MS` / `ESXI_ERR_NET_LATENCY_MS`,
 `ESXI_WARN_DISK_HEALTH_PCT` / `ESXI_ERR_DISK_HEALTH_PCT`, `ESXI_WARN_CONGESTION`, `ESXI_WARN_VMK_DROP_PCT`,
