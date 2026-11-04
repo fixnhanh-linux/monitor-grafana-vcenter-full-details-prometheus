@@ -69,7 +69,8 @@ mật khẩu (gõ ẩn). Mỗi vCenter cài 1 instance với **tên và port kh�
  5) Kiem tra phien ban dang chay     12) Cac lenh hay dung
  6) Cap nhat ban moi tu file zip     13) Cap nhat ban moi tu GitHub (git pull)
  7) Them vCenter / instance moi      14) Sinh / cai cau hinh Prometheus
-                                      0) Thoat
+15) Phat hien cluster                16) Cap nhat dashboard Grafana
+17) Dieu chinh nguong canh bao        0) Thoat
 ```
 
 Kiểm tra phiên bản đang chạy: `curl -s localhost:9811/metrics | grep build_info`.

@@ -153,7 +153,9 @@ children.push(table(
    ["12","Các lệnh hay dùng"],
    ["13","Cập nhật bản mới từ GitHub (git pull)"],
    ["14","Sinh / cài cấu hình Prometheus từ các instance đã cài"],
-   ["15","Phát hiện cluster — liệt kê cluster/vSAN/DRS, đánh dấu cluster chưa giám sát"]]));
+   ["15","Phát hiện cluster — liệt kê cluster/vSAN/DRS, đánh dấu cluster chưa giám sát"],
+   ["16","Cập nhật dashboard Grafana qua API — chèn mục vSAN Cluster Partition + đồng bộ cột bảng host / ô tổng quan, giữ tùy chỉnh"],
+   ["17","Điều chỉnh ngưỡng cảnh báo exporter (CPU / RAM / write latency / congestion / vmk drop / NIC) trong .env, áp 1 hoặc tất cả instance"]]));
 }
 
 // ============ B. THU CONG

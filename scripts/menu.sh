@@ -499,6 +499,7 @@ draw_menu() {
   brow "I|G|2|Xem log 1 instance"      "I|BL|8|Doi mat khau / cai lai"
   brow "I|G|5|Kiem tra phien ban"      "I|BL|9|Sua cau hinh .env"
   brow "I|G|15|Phat hien cluster"      "I|BL|11|Go 1 instance"
+  brow ""                              "I|BL|17|Dieu chinh nguong"
   brow "H|Y|DIEU KHIEN"                ""
   brow "I|Y|3|Restart 1 instance"      "H|M|CAP NHAT PHIEN BAN"
   brow "I|Y|4|Restart tat ca"          "I|M|6|Tu file zip (+ sha256)"
@@ -514,10 +515,53 @@ draw_menu() {
   bline "+" "=" "+"
 }
 
+set_env() {  # set_env <instance> <KEY> <value>: thay dong (ke ca dang comment) hoac them moi
+  local f="$CONF/$1.env" key="$2" val="$3"
+  [ -f "$f" ] || return 1
+  if grep -qE "^[[:space:]]*#?[[:space:]]*$key=" "$f"; then
+    sed -i -E "s|^[[:space:]]*#?[[:space:]]*$key=.*|$key=$val|" "$f"
+  else
+    printf '%s=%s\n' "$key" "$val" >>"$f"
+  fi
+}
+
+edit_thresholds() {  # muc 17: dieu chinh nguong canh bao cua exporter (.env)
+  pick || return
+  echo "${B}Dieu chinh nguong canh bao (exporter) - lay mau tu: ${W}$PICK${N}"
+  echo "${D}De trong = giu nguyen. Nguong nay quyet dinh Trang thai host OK/WARN (web + cot Status Grafana).${N}"
+  echo
+  declare -A NEW
+  _ask() {  # _ask KEY "mo ta" mac_dinh
+    local cur; cur=$(val_of "$PICK" "$1")
+    local v; read -r -p "  $2  [$1=${cur:-$3}]: " v
+    [ -n "$v" ] && NEW[$1]="$v"
+  }
+  _ask ESXI_WARN_CPU         "CPU %% (WARN)"                              60
+  _ask ESXI_WARN_RAM         "RAM %% (WARN)"                              90
+  _ask ESXI_WARN_LATENCY_MS  "vSAN write latency ms (WARN)"              15
+  _ask ESXI_WARN_CONGESTION  "vSAN congestion (WARN)"                    60
+  _ask ESXI_WARN_VMK_DROP_PCT "vmk drop %% (WARN)"                       0.1
+  _ask ESXI_NIC_MIN_MBPS     "Chi theo doi vmnic co toc do >= Mb/s (0=tat ca)" 10000
+  if [ ${#NEW[@]} -eq 0 ]; then echo "${D}Khong thay doi gi.${N}"; return; fi
+  echo
+  local scope="$PICK"
+  read -r -p "Ap dung cho: [1] rieng $PICK  [2] tat ca instance ? (1/2): " s
+  [ "$s" = 2 ] && scope="$(instances)"
+  for n in $scope; do
+    for k in "${!NEW[@]}"; do set_env "$n" "$k" "${NEW[$k]}"; done
+    systemctl restart "$SVC@$n" && echo "${G}Da cap nhat nguong + restart $n${N}"
+  done
+  echo
+  echo "${Y}Luu y - cac nguong KHONG nam o day:${N}"
+  echo "  - Network latency / Disk health / Partition: ${W}Zabbix${N} sua macro {\$ESXI.*} tren template/host"
+  echo "    (vd {\$ESXI.NETLAT.HIGH}=5 cho Muc 2, {\$ESXI.NETLAT.WARN}=4 cho Muc 3)."
+  echo "  - ${W}Grafana${N}: nguong nam trong tung panel (hoac dong bo lai bang menu 16)."
+}
+
 while true; do
   clear 2>/dev/null
   draw_menu
-  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-16):${N} " c
+  printf '%s' "$PADS"; read -r -p "${W}${Y}Chon so (0-17):${N} " c
   echo
   case "$c" in
     1) status_all; pause ;;
@@ -552,6 +596,7 @@ while true; do
     14) prom_config; pause ;;
     15) discover_clusters; pause ;;
     16) grafana_update; pause ;;
+    17) edit_thresholds; pause ;;
     0|q|Q) exit 0 ;;
     *) ;;
   esac
