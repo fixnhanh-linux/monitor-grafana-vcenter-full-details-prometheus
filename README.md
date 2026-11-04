@@ -114,7 +114,7 @@ Dashboards → New → Import → upload [`dashboard-grafana/esxi_host_resource_
 → chọn Prometheus → chọn Cluster. Đã có bản cũ thì chọn **Overwrite** (đã sửa tay row/panel → dùng menu **mục 16** để chèn panel mới mà không mất phần đã sửa).
 
 - **Tổng quan**: Total host / OK / Cảnh báo / Lỗi / Host maintenance / vSAN network latency max / vSAN resync / độ mới dữ liệu.
-- **Bảng host**: CPU% · RAM% · **NIC UP (xanh) / NIC DOWN (đỏ)** · DiskGroup vSAN · congestion · write latency · VMs · Uptime · Status · Lý do.
+- **Bảng host**: CPU% · RAM% · **NIC UP (xanh) / NIC DOWN (đỏ)** · DiskGroup vSAN · congestion · write latency · read latency · network latency · partition · VMs · Uptime · Status · Lý do.
 - **vSAN Cluster Partition**: số partition từng cluster (1 = xanh, > 1 = đỏ) + bảng Host / Partition / Host UUID giống Skyline Health trên vCenter.
 - **Network**: bandwidth vmnic top 10, drop/discard vmk vSAN, vmnic DOWN.
 - **Chi tiết host** và **vSAN Disk Health**: từng disk, lịch sử trạng thái, exporter theo pool.

@@ -1018,6 +1018,70 @@
                 "value": true
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Read latency"
+            },
+            "properties": [
+              { "id": "unit", "value": "ms" },
+              { "id": "decimals", "value": 1 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": 0 },
+                    { "color": "orange", "value": 15 },
+                    { "color": "red", "value": 30 }
+                  ]
+                }
+              },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Network latency"
+            },
+            "properties": [
+              { "id": "unit", "value": "ms" },
+              { "id": "decimals", "value": 2 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": 0 },
+                    { "color": "orange", "value": 4 },
+                    { "color": "red", "value": 5 }
+                  ]
+                }
+              },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Partition"
+            },
+            "properties": [
+              { "id": "decimals", "value": 0 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": 0 },
+                    { "color": "red", "value": 2 }
+                  ]
+                }
+              },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+            ]
           }
         ]
       },
@@ -1129,6 +1193,42 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "expr": "max by (cluster, host) (esxi_vsan_read_latency_ms{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "J"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_vsan_network_latency_ms{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "K"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster, host) (esxi_vsan_host_partition{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "L"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
           "expr": "max by (cluster, host) (esxi_host_vms_running{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
           "format": "table",
           "instant": true,
@@ -1169,18 +1269,21 @@
             },
             "includeByName": {},
             "indexByName": {
-              "Value #A": 10,
+              "Value #A": 13,
               "Value #B": 1,
               "Value #C": 2,
               "Value #E": 5,
               "Value #F": 6,
               "Value #G": 7,
-              "Value #H": 8,
-              "Value #I": 9,
+              "Value #J": 8,
+              "Value #K": 9,
+              "Value #L": 10,
+              "Value #H": 11,
+              "Value #I": 12,
               "host": 0,
               "nics_down": 4,
               "nics_up": 3,
-              "reason": 11
+              "reason": 14
             },
             "renameByName": {
               "Value #A": "Status",
@@ -1189,6 +1292,9 @@
               "Value #E": "DiskGroup vSAN",
               "Value #F": "vSAN congestion",
               "Value #G": "Write latency",
+              "Value #J": "Read latency",
+              "Value #K": "Network latency",
+              "Value #L": "Partition",
               "Value #H": "VMs",
               "Value #I": "Uptime",
               "host": "Host",

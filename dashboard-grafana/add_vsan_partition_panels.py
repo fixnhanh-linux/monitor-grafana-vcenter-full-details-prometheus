@@ -82,6 +82,22 @@ def merge(dash, new_panels):
     return height
 
 
+def sync_host_table(dash, src):
+    """Dong bo cot bang 'ESXi Hosts' (panel id %d) tu file nguon: targets (them cot Read / Network latency /
+    Partition) + transformations (thu tu / ten cot) + fieldConfig (don vi, mau). Giu nguyen title, gridPos,
+    options cua panel dang chay. Chay lai khong doi gi neu da trung. Tra ve True neu co thay doi.""" % ANCHOR_ID
+    live = next((p for p in all_panels(dash["panels"]) if p.get("id") == ANCHOR_ID), None)
+    base = next((p for p in src["panels"] if p.get("id") == ANCHOR_ID), None)
+    if not live or not base:
+        return False
+    changed = False
+    for key in ("targets", "transformations", "fieldConfig"):
+        if key in base and live.get(key) != base[key]:
+            live[key] = copy.deepcopy(base[key])
+            changed = True
+    return changed
+
+
 def main():
     if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
         sys.exit(__doc__)
@@ -95,11 +111,19 @@ def main():
     cur = api(base, token, "/api/dashboards/uid/" + uid)
     dash, meta = cur["dashboard"], cur["meta"]
     print("Dashboard: %s (uid %s, version %s, folder %s)" % (dash["title"], uid, dash.get("version"), meta.get("folderTitle", "General")))
+    tbl = sync_host_table(dash, src)
     height = merge(dash, new_panels)
-    if height is None:
-        print("Da co muc '%s' -> khong lam gi." % ROW_TITLE)
+    todo = []
+    if height is not None:
+        todo.append("them row '%s' + 2 panel (day panel ben duoi xuong %d dong)" % (ROW_TITLE, height))
+    else:
+        print("Da co muc '%s' -> khong them lai." % ROW_TITLE)
+    if tbl:
+        todo.append("cap nhat cot bang 'ESXi Hosts' (them Read latency / Network latency / Partition)")
+    if not todo:
+        print("Khong co gi de cap nhat (partition + cot bang host da co san).")
         sys.exit(3)
-    print("Se them row '%s' + 2 panel, day cac panel ben duoi xuong %d dong. Ten row / panel cu giu nguyen." % (ROW_TITLE, height))
+    print("Se: " + "; ".join(todo) + ". Ten row / panel da sua giu nguyen.")
     if "--apply" not in sys.argv:
         print("Chua ghi (xem truoc). Chay lai voi --apply de ghi.")
         return
@@ -111,7 +135,7 @@ def main():
         json.dump(cur, f, ensure_ascii=False, indent=2)
     print("Da luu backup: %s" % bk)
     r = api(base, token, "/api/dashboards/db", {"dashboard": dash, "folderUid": meta.get("folderUid", ""),
-                                                "overwrite": False, "message": "Them muc vSAN Cluster Partition (script)"})
+                                                "overwrite": False, "message": "vSAN partition + cot bang ESXi Hosts (script)"})
     print("Xong: version %s -> %s. Tai lai trang dashboard (F5)." % (dash.get("version"), r.get("version")))
 
 
