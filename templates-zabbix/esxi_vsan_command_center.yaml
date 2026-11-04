@@ -795,7 +795,7 @@ zabbix_export:
                   value: '{#CLUSTER}'
               trigger_prototypes:
                 -
-                  uuid: d4b6e8f0a2c3546798b0d1e3f5071921
+                  uuid: a02ba9ccbecd4ce28373c222bd260241
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"],5m)>{$ESXI.NETLAT.HIGH}'
                   name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
                   priority: HIGH
@@ -811,7 +811,7 @@ zabbix_export:
                       tag: component
                       value: vsan
                 -
-                  uuid: e5c7f9a1b3d4657809c1e2f406182a32
+                  uuid: 8b98b82796344ed1bae2753bda8d51dd
                   expression: 'min(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"],5m)>{$ESXI.NETLAT.WARN}'
                   name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.WARN}ms'
                   priority: WARNING
