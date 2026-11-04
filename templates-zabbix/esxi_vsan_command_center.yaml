@@ -748,6 +748,23 @@ zabbix_export:
                 -
                   tag: cluster
                   value: '{#CLUSTER}'
+              trigger_prototypes:
+                -
+                  uuid: b2c4e6f80a1c4d3e9f5a7b8c0d1e2f30
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.vsan.partitions["{#CLUSTER}"])>1'
+                  name: 'vSAN Cluster {#CLUSTER} Split Into {ITEM.LASTVALUE1} Partitions'
+                  priority: DISASTER
+                  description: 'Cluster vSAN bi chia tach nhieu partition (>1). Co the mat quorum, object inaccessible, anh huong dich vu. Doi chieu tren vCenter: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition.'
+                  tags:
+                    -
+                      tag: level
+                      value: '1'
+                    -
+                      tag: cluster
+                      value: '{#CLUSTER}'
+                    -
+                      tag: component
+                      value: vsan
             -
               uuid: e8e5457be8d2405399620ad7d6bf89d3
               name: '[{#CLUSTER}] vSAN Resync Objects'
@@ -1025,12 +1042,12 @@ zabbix_export:
                   recovery_mode: RECOVERY_EXPRESSION
                   recovery_expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"])=1 and change(/ESXi Host Exporter by HTTP/esxi.host.vsan.partition["{#CLUSTER}","{#HOST}"])=0'
                   name: 'vSAN Partition Changed On {#HOST} ({#CLUSTER}): Partition {ITEM.LASTVALUE1}'
-                  description: 'Host co Partition khac cac host con lai (cluster vSAN bi chia). Kiem tra vmk vSAN / uplink / switch cua host. Doi chieu tren vCenter: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition (cot Partition).'
-                  priority: HIGH
+                  description: 'Host co Partition khac cac host con lai (cluster vSAN bi chia tach). Co the mat quorum / object inaccessible, anh huong dich vu. Kiem tra vmk vSAN / uplink / switch cua host. Doi chieu tren vCenter: Cluster > Monitor > vSAN > Skyline Health > vSAN cluster partition (cot Partition).'
+                  priority: DISASTER
                   tags:
                     -
                       tag: level
-                      value: '2'
+                      value: '1'
                     -
                       tag: cluster
                       value: '{#CLUSTER}'

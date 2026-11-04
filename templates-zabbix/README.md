@@ -34,7 +34,11 @@ Vd loc nhanh: `cluster = POOL18` + `level = 2` de xem su co nghiem trong cua 1 p
 
 ## Muc canh bao
 
-Muc 2 = **High**, Muc 3 = **Warning**. Nguong chinh bang macro `{$ESXI.*}`:
+Muc 1 = **Disaster** (cao nhat, mat dich vu), Muc 2 = **High**, Muc 3 = **Warning**.
+
+**Muc 1 (Disaster):** **vSAN cluster partition** — cluster bi chia > 1 partition, hoac host co Partition khac / thay doi (mat quorum, object inaccessible, anh huong dich vu).
+
+Cac nguong Muc 2 / Muc 3 chinh bang macro `{$ESXI.*}`:
 
 | Chi so | Muc 2 (High) | Muc 3 (Warning) | Macro |
 |---|---|---|---|
@@ -47,7 +51,6 @@ Muc 2 = **High**, Muc 3 = **Warning**. Nguong chinh bang macro `{$ESXI.*}`:
 | Disk write latency | > `{$ESXI.LAT.HIGH}` (30ms) | > `{$ESXI.LAT.WARN}` (15ms) | `{$ESXI.LAT.HIGH}` `{$ESXI.LAT.WARN}` |
 | vSAN congestion | > `{$ESXI.CONG.HIGH}` (60) | — | `{$ESXI.CONG.HIGH}` |
 | vmk packet drop | — | > `{$ESXI.VMKDROP.WARN}` (0.1%) | `{$ESXI.VMKDROP.WARN}` |
-| vSAN cluster partition | host co Partition khac (> 1) hoac Partition thay doi | — | |
 | vSAN resync | dang resync | — | |
 | vmnic down | mat link | — | |
 | Host maintenance | — | maintenance = 1 | |
