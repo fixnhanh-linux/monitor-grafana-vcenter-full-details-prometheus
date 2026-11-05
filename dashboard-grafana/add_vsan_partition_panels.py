@@ -121,14 +121,15 @@ def sync_overview(dash, src):
 
 
 def sync_netlat_ts(dash, src):
-    """Dong bo do thi Network Latency (timeseries, id %d) tu file nguon: query + mo ta + title + mau.
-    Giu nguyen gridPos / options cua ban dang chay. Tra ve True neu co thay doi.""" % NETLAT_TS_ID
+    """Dong bo do thi Network Latency (timeseries, id %d) tu file nguon: CHI doi query + title + mo ta.
+    GIU NGUYEN nguong / mau / gridPos / options (fieldConfig) cua ban dang chay de khong de len
+    thiet lap da chinh tay. Tra ve True neu co thay doi.""" % NETLAT_TS_ID
     live = next((p for p in all_panels(dash["panels"]) if p.get("id") == NETLAT_TS_ID), None)
     base = next((p for p in src["panels"] if p.get("id") == NETLAT_TS_ID), None)
     if not live or not base:
         return False
     changed = False
-    for key in ("targets", "fieldConfig", "description", "title"):
+    for key in ("targets", "title", "description"):   # KHONG dong vao fieldConfig (nguong/mau)
         if key in base and live.get(key) != base[key]:
             live[key] = copy.deepcopy(base[key])
             changed = True
