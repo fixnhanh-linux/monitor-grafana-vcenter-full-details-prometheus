@@ -796,10 +796,10 @@ zabbix_export:
               trigger_prototypes:
                 -
                   uuid: a02ba9ccbecd4ce28373c222bd260241
-                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"],5m)>{$ESXI.NETLAT.HIGH}'
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"])>{$ESXI.NETLAT.HIGH}'
                   name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
                   priority: HIGH
-                  description: 'Network latency vSAN toan cluster vuot nguong keo dai 5 phut. 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
+                  description: 'Network latency vSAN toan cluster vuot nguong (gia tri hien tai, bao ngay). 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
                   tags:
                     -
                       tag: level
@@ -812,14 +812,14 @@ zabbix_export:
                       value: vsan
                 -
                   uuid: 8b98b82796344ed1bae2753bda8d51dd
-                  expression: 'min(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"],5m)>{$ESXI.NETLAT.WARN}'
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"])>{$ESXI.NETLAT.WARN}'
                   name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.WARN}ms'
                   priority: WARNING
-                  description: 'Network latency vSAN toan cluster vuot nguong keo dai 5 phut. 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
+                  description: 'Network latency vSAN toan cluster vuot nguong (gia tri hien tai, bao ngay). 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
                   dependencies:
                     -
                       name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
-                      expression: 'min(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"],5m)>{$ESXI.NETLAT.HIGH}'
+                      expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"])>{$ESXI.NETLAT.HIGH}'
                   tags:
                     -
                       tag: level
