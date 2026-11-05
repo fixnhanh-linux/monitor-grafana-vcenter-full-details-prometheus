@@ -1510,7 +1510,7 @@ zabbix_export:
                       value: host
             -
               uuid: c940915457f84f84870d8dfa82df4da9
-              name: '[{#CLUSTER} / {#HOST}] vSAN Network Latency'
+              name: '[{#CLUSTER} / {#HOST}] vSAN Network Latency (Average)'
               type: DEPENDENT
               key: 'esxi.host.netlat["{#CLUSTER}","{#HOST}"]'
               delay: '0'
@@ -1518,12 +1518,12 @@ zabbix_export:
               trends: 90d
               value_type: FLOAT
               units: ms
-              description: 'Network latency vSAN cao nhat tu host nay toi host khac (ms), tu test ''Network latency check'' cua vSAN health (mau 5 phut). Canh bao rieng tung host.'
+              description: 'Network latency vSAN trung binh (Average) cua host nay toi host khac (ms), tu test ''Network latency check'' cua vSAN health (mau 5 phut). Canh bao rieng tung host theo Average.'
               preprocessing:
                 -
                   type: PROMETHEUS_PATTERN
                   parameters:
-                    - 'esxi_vsan_network_latency_ms{cluster="{#CLUSTER}",host="{#HOST}"}'
+                    - 'esxi_vsan_network_latency_avg_ms{cluster="{#CLUSTER}",host="{#HOST}"}'
                     - value
                     - ''
                   error_handler: DISCARD_VALUE
@@ -1543,7 +1543,7 @@ zabbix_export:
                 -
                   uuid: 560eb82711b048f6aed78aeab10fcee2
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.HIGH}'
-                  name: 'vSAN Network Latency {#HOST} ({#CLUSTER}) > {$ESXI.NETLAT.HIGH}ms'
+                  name: 'vSAN Network Latency (Average) {#HOST} ({#CLUSTER}) > {$ESXI.NETLAT.HIGH}ms'
                   priority: HIGH
                   description: 'Network latency vSAN cua host {#HOST} ({#CLUSTER}) vuot nguong (gia tri hien tai). Canh bao RIENG tung host - thay ngay host nao bi tre.'
                   tags:
@@ -1562,12 +1562,12 @@ zabbix_export:
                 -
                   uuid: 520f9042f98d4c2488b325e188223ca6
                   expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.WARN}'
-                  name: 'vSAN Network Latency {#HOST} ({#CLUSTER}) > {$ESXI.NETLAT.WARN}ms'
+                  name: 'vSAN Network Latency (Average) {#HOST} ({#CLUSTER}) > {$ESXI.NETLAT.WARN}ms'
                   priority: WARNING
                   description: 'Network latency vSAN cua host {#HOST} ({#CLUSTER}) vuot nguong (gia tri hien tai). Canh bao RIENG tung host - thay ngay host nao bi tre.'
                   dependencies:
                     -
-                      name: 'vSAN Network Latency {#HOST} ({#CLUSTER}) > {$ESXI.NETLAT.HIGH}ms'
+                      name: 'vSAN Network Latency (Average) {#HOST} ({#CLUSTER}) > {$ESXI.NETLAT.HIGH}ms'
                       expression: 'last(/ESXi Host Exporter by HTTP/esxi.host.netlat["{#CLUSTER}","{#HOST}"])>{$ESXI.NETLAT.HIGH}'
                   tags:
                     -
