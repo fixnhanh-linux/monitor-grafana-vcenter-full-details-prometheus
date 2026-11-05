@@ -47,7 +47,7 @@ Cac nguong Muc 2 / Muc 3 chinh bang macro `{$ESXI.*}`:
 | RAM | > `{$ESXI.RAM.HIGH}` (90) | > `{$ESXI.RAM.WARN}` (80) | `{$ESXI.RAM.HIGH}` `{$ESXI.RAM.WARN}` |
 | vSAN disk health | disk Red | disk Yellow | |
 | Disk group | Unhealthy | — | |
-| vSAN network latency - **Average** (1 canh bao / pool, gia tri hien tai) | > `{$ESXI.NETLAT.HIGH}` (5ms) | > `{$ESXI.NETLAT.WARN}` (4ms) | `{$ESXI.NETLAT.HIGH}` `{$ESXI.NETLAT.WARN}` |
+| vSAN network latency - **tung host** (canh bao rieng moi host, gia tri hien tai) | > `{$ESXI.NETLAT.HIGH}` (5ms) | > `{$ESXI.NETLAT.WARN}` (4ms) | `{$ESXI.NETLAT.HIGH}` `{$ESXI.NETLAT.WARN}` |
 | Disk write latency | > `{$ESXI.LAT.HIGH}` (30ms) | > `{$ESXI.LAT.WARN}` (15ms) | `{$ESXI.LAT.HIGH}` `{$ESXI.LAT.WARN}` |
 | vSAN congestion | > `{$ESXI.CONG.HIGH}` (60) | — | `{$ESXI.CONG.HIGH}` |
 | vmk packet drop | — | > `{$ESXI.VMKDROP.WARN}` (0.1%) | `{$ESXI.VMKDROP.WARN}` |
@@ -58,7 +58,7 @@ Cac nguong Muc 2 / Muc 3 chinh bang macro `{$ESXI.*}`:
 
 Doi nguong: sua macro tren host/template, khong can sua trigger.
 
-> vSAN network latency: canh bao theo **Average Latency** (latency trung binh giua cac host, metric `esxi_vsan_network_latency_avg_ms`). Metric Max (`esxi_vsan_network_latency_ms`) van xuat de xem/do thi nhung **khong canh bao**. Nguon: vCenter Skyline Health > Network latency check (cot Average / Max).
+> vSAN network latency: canh bao **RIENG TUNG HOST** (trigger tren `esxi.host.netlat`, co {#HOST} trong ten) de thay ngay host nao bi tre - KHONG gop thanh 1 canh bao / pool. Dung metric Max per-host `esxi_vsan_network_latency_ms` (cao nhat tu host do toi host khac). Cac item cluster `esxi.cluster.netlat.avg` / `.max` + metric `esxi_vsan_network_latency_avg_ms` van giu de xem/do thi nhung **khong canh bao**. Nguon: vCenter Skyline Health > Network latency check (tab Failed network latency checks: From Host / To Host / Network latency / Threshold).
 
 **Doi chieu vSAN cluster partition voi vCenter:** Cluster → **Monitor** → **vSAN** → **Skyline Health** → **vSAN cluster partition** (bang Host / Partition / Host UUID). Binh thuong moi host = 1; host co Partition khac la host bi tach (kiem tra vmk vSAN / uplink / switch).
 
