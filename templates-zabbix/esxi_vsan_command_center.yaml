@@ -768,7 +768,7 @@ zabbix_export:
             -
               uuid: c3a5d7e9f1b2435687a9c0d2e4f60810
               name: '[{#CLUSTER}] vSAN Network Latency Max'
-              description: 'Network latency vSAN cao nhat trong cluster (ms). Chi so chung toan cluster nen gom 1 canh bao / pool.'
+              description: 'Network latency vSAN cao nhat (Max) trong cluster (ms). Chi de theo doi / do thi - KHONG canh bao (canh bao dung Average).'
               type: DEPENDENT
               key: 'esxi.cluster.netlat.max["{#CLUSTER}"]'
               delay: '0'
@@ -793,13 +793,41 @@ zabbix_export:
                 -
                   tag: cluster
                   value: '{#CLUSTER}'
+            -
+              uuid: 87053e10eafa4a048bd82dfbf4c1eaf5
+              name: '[{#CLUSTER}] vSAN Network Latency Average'
+              description: 'Network latency vSAN trung binh (Average) trong cluster (ms). Chi so chung toan cluster nen gom 1 canh bao / pool. Dung de CANH BAO.'
+              type: DEPENDENT
+              key: 'esxi.cluster.netlat.avg["{#CLUSTER}"]'
+              delay: '0'
+              history: 7d
+              trends: 90d
+              value_type: FLOAT
+              units: ms
+              preprocessing:
+                -
+                  type: PROMETHEUS_PATTERN
+                  parameters:
+                    - 'esxi_vsan_network_latency_avg_ms{cluster="{#CLUSTER}"}'
+                    - function
+                    - max
+                  error_handler: DISCARD_VALUE
+              master_item:
+                key: esxi.exporter.metrics
+              tags:
+                -
+                  tag: component
+                  value: vsan
+                -
+                  tag: cluster
+                  value: '{#CLUSTER}'
               trigger_prototypes:
                 -
-                  uuid: a02ba9ccbecd4ce28373c222bd260241
-                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"])>{$ESXI.NETLAT.HIGH}'
-                  name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
+                  uuid: 1be5ff5b968d4e388b109f7d40b1e626
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.avg["{#CLUSTER}"])>{$ESXI.NETLAT.HIGH}'
+                  name: 'vSAN Network Latency (Average) In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
                   priority: HIGH
-                  description: 'Network latency vSAN toan cluster vuot nguong (gia tri hien tai, bao ngay). 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
+                  description: 'Network latency vSAN trung binh (Average) toan cluster vuot nguong (gia tri hien tai, bao ngay). 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
                   tags:
                     -
                       tag: level
@@ -811,15 +839,15 @@ zabbix_export:
                       tag: component
                       value: vsan
                 -
-                  uuid: 8b98b82796344ed1bae2753bda8d51dd
-                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"])>{$ESXI.NETLAT.WARN}'
-                  name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.WARN}ms'
+                  uuid: 37768ed0b10b47709a66e6e891514187
+                  expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.avg["{#CLUSTER}"])>{$ESXI.NETLAT.WARN}'
+                  name: 'vSAN Network Latency (Average) In {#CLUSTER} > {$ESXI.NETLAT.WARN}ms'
                   priority: WARNING
-                  description: 'Network latency vSAN toan cluster vuot nguong (gia tri hien tai, bao ngay). 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
+                  description: 'Network latency vSAN trung binh (Average) toan cluster vuot nguong (gia tri hien tai, bao ngay). 1 canh bao / pool (ten pool o ten trigger va tag cluster).'
                   dependencies:
                     -
-                      name: 'vSAN Network Latency In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
-                      expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.max["{#CLUSTER}"])>{$ESXI.NETLAT.HIGH}'
+                      name: 'vSAN Network Latency (Average) In {#CLUSTER} > {$ESXI.NETLAT.HIGH}ms'
+                      expression: 'last(/ESXi Host Exporter by HTTP/esxi.cluster.netlat.avg["{#CLUSTER}"])>{$ESXI.NETLAT.HIGH}'
                   tags:
                     -
                       tag: level

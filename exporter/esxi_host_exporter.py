@@ -447,9 +447,14 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
             dict(L, nics=nic_txt, nics_up=nics_up, nics_down=nics_down, reason=reason, connection=h["state"]), 1)
         add("esxi_host_connected", "Host connected voi vCenter (1/0)", L, int(h["state"] == "connected"))
         add("esxi_host_maintenance", "Host dang maintenance mode (1/0)", L, int(h["maintenance"]))
-        if h.get("net_lat_ms") is not None:
-            add("esxi_vsan_network_latency_ms", "vSAN network latency lon nhat toi cac host khac (ms, vSAN health)",
-                L, round(h["net_lat_ms"], 3))
+        nl = h.get("net_lat_ms")
+        if isinstance(nl, dict):
+            if nl.get("max") is not None:
+                add("esxi_vsan_network_latency_ms", "vSAN network latency lon nhat (Max) toi cac host khac (ms, vSAN health)",
+                    L, round(nl["max"], 3))
+            if nl.get("avg") is not None:
+                add("esxi_vsan_network_latency_avg_ms", "vSAN network latency trung binh (Average) toi cac host khac (ms, vSAN health)",
+                    L, round(nl["avg"], 3))
         if h["state"] == "connected":
             add("esxi_host_cpu_usage_percent", "CPU dang dung (%)", L, round(h["cpu_pct"], 2))
             add("esxi_host_mem_usage_percent", "RAM dang dung (%)", L, round(h["ram_pct"], 2))

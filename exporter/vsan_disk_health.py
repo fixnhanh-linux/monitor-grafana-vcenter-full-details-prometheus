@@ -129,58 +129,72 @@ def _host_name(v, names):
     return names.get(m.group(1)) if m else str(v or "").strip()
 
 
-def _lat_col(cols):
-    """Chon cot latency: uu tien 'max latency', roi 'latency ... (ms)', roi bat ky '(ms)'."""
+def _lat_cols(cols):
+    """Tra ve (avg_i, max_i): chi so cot 'Average Latency' va 'Max Latency' trong bang
+    'Network latency check'. Thieu cot nao thi fallback cot latency (ms) con lai."""
+    avg_i = max_i = any_i = None
     for i, c in enumerate(cols):
-        if "max" in c and "latency" in c:
-            return i
-    for i, c in enumerate(cols):
-        if "latency" in c and "(ms)" in c:
-            return i
-    for i, c in enumerate(cols):
-        if "(ms)" in c:
-            return i
-    return None
+        if "latency" in c and ("avg" in c or "average" in c) and avg_i is None:
+            avg_i = i
+        if "latency" in c and "max" in c and max_i is None:
+            max_i = i
+        if "(ms)" in c and any_i is None:
+            any_i = i
+    if avg_i is None:
+        avg_i = any_i
+    if max_i is None:
+        max_i = any_i
+    return avg_i, max_i
 
 
-def _walk_lat(rows, li, parent_host, hostset, names, per_host, summary):
+def _merge_lat(d, av, mx):
+    """Gom vao d = {'avg':..,'max':..}, lay gia tri lon nhat (host/peer xau nhat)."""
+    if av is not None:
+        d["avg"] = av if d.get("avg") is None else max(d["avg"], av)
+    if mx is not None:
+        d["max"] = mx if d.get("max") is None else max(d["max"], mx)
+
+
+def _walk_lat(rows, cols_idx, parent_host, hostset, names, per_host, summary):
+    avg_i, max_i = cols_idx
     for r in rows or []:
         vals = list(r.values or [])
         who = parent_host or (_host_name(vals[0], names) if vals else None)
-        ms = _num(vals[li]) if len(vals) > li else None
-        if ms is not None:
+        av = _num(vals[avg_i]) if (avg_i is not None and len(vals) > avg_i) else None
+        mx = _num(vals[max_i]) if (max_i is not None and len(vals) > max_i) else None
+        if av is not None or mx is not None:
             if who in hostset:                       # dong cua 1 host cu the
-                per_host[who] = max(per_host.get(who, 0.0), ms)
+                _merge_lat(per_host.setdefault(who, {}), av, mx)
             else:                                    # dong tong, vd 'All Peers'
-                summary[0] = ms if summary[0] is None else max(summary[0], ms)
-        _walk_lat(getattr(r, "nestedRows", None) or [], li,
+                _merge_lat(summary, av, mx)
+        _walk_lat(getattr(r, "nestedRows", None) or [], cols_idx,
                   who if who in hostset else None, hostset, names, per_host, summary)
 
 
 def network_latency(groups, names):
-    """vSAN network latency (ms) lon nhat moi host, tu test "Network latency check" (hostlatencycheck).
-    names = {moId: ten host}. Ho tro ca bang per-host lan bang tong 'All Peers': khi vCenter chi cho
-    so tong (per-host rong) thi gan Max Latency do cho tat ca host. Rong neu khong co test nay."""
+    """vSAN network latency moi host, tu test "Network latency check" (hostlatencycheck).
+    Tra ve {ten host: {'avg': ms, 'max': ms}}. Ho tro ca bang per-host lan bang tong 'All Peers':
+    khi vCenter chi cho so tong (per-host rong) thi gan so do cho tat ca host. Rong neu khong co test."""
     hostset = set(names.values())
-    per_host, summary = {}, [None]
+    per_host, summary = {}, {}
     for g in groups or []:
         for t in g.groupTests or []:
             if "latency" not in (t.testId or "").lower():
                 continue
             for tab in t.testDetails or []:
                 cols = [(c.label or "").lower() for c in getattr(tab, "columns", None) or []]
-                li = _lat_col(cols)
-                if li is not None:
-                    _walk_lat(getattr(tab, "rows", None) or [], li, None, hostset, names, per_host, summary)
-    if not per_host and summary[0] is not None:
-        per_host = {h: summary[0] for h in names.values()}
+                cols_idx = _lat_cols(cols)
+                if cols_idx[0] is not None or cols_idx[1] is not None:
+                    _walk_lat(getattr(tab, "rows", None) or [], cols_idx, None, hostset, names, per_host, summary)
+    if not per_host and summary:
+        per_host = {h: dict(summary) for h in names.values()}
     return per_host
 
 
 def collect_si(si, host, ctx, cluster_filter, fresh=False, overall=None, netlat=None):
     """Lay health tung disk vSAN tren mot session vCenter co san.
     overall (dict, tuy chon): ghi them health tong cua tung cluster vSAN {ten cluster: green/yellow/red}.
-    netlat (dict, tuy chon): ghi them vSAN network latency {(cluster, host): ms}."""
+    netlat (dict, tuy chon): ghi them vSAN network latency {(cluster, host): {'avg':ms,'max':ms}}."""
     hs = vsan_health_system(si, host, ctx)
     clusters = vsan_clusters(si, cluster_filter)
     out = []
@@ -191,8 +205,8 @@ def collect_si(si, host, ctx, cluster_filter, fresh=False, overall=None, netlat=
             overall[cluster.name] = summary.overallHealth
         if netlat is not None:
             names = {h._moId: h.name for h in cluster.host}
-            for hn, ms in network_latency(summary.groups, names).items():
-                netlat[(cluster.name, hn)] = ms
+            for hn, d in network_latency(summary.groups, names).items():
+                netlat[(cluster.name, hn)] = d
         reported = set()
         for h in summary.physicalDisksHealth or []:
             reported.add(h.hostname)
