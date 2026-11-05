@@ -2446,47 +2446,17 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
+      "description": "Network latency vSAN tung host: Avg + Max (ms). Mau vang > 4ms, do > 5ms. vCenter: Skyline Health > Network latency check.",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 5,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
             },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
+            "inspect": false
           },
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2507,7 +2477,44 @@
           "unit": "ms",
           "decimals": 2
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Host"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cluster"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 9,
@@ -2517,20 +2524,17 @@
       },
       "id": 32,
       "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "sortBy": [
+          {
+            "displayName": "Max (ms)",
+            "desc": true
+          }
+        ]
       },
       "pluginVersion": "13.2.0",
       "targets": [
@@ -2539,9 +2543,10 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max by (cluster) (esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\"})",
-          "format": "time_series",
-          "legendFormat": "Avg {{cluster}}",
+          "expr": "max by (cluster, host) (esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\",host=~\"$host\"})",
+          "format": "table",
+          "instant": true,
+          "range": false,
           "refId": "A"
         },
         {
@@ -2549,15 +2554,44 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max by (cluster) (esxi_vsan_network_latency_max_ms{cluster=~\"$cluster\"})",
-          "format": "time_series",
-          "legendFormat": "Max {{cluster}}",
+          "expr": "max by (cluster, host) (esxi_vsan_network_latency_max_ms{cluster=~\"$cluster\",host=~\"$host\"})",
+          "format": "table",
+          "instant": true,
+          "range": false,
           "refId": "B"
         }
       ],
-      "title": "vSAN Network Latency (ms) - Avg & Max",
-      "type": "timeseries",
-      "description": "Network latency vSAN trung binh (Average, ms) giua cac host, tu test 'Network latency check'. Vang > 4ms (Muc 3), do > 5ms (Muc 2). vCenter chi cho so tong cluster nen cac host co cung gia tri."
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {
+              "cluster": 0,
+              "host": 1,
+              "Value #A": 2,
+              "Value #B": 3
+            },
+            "renameByName": {
+              "cluster": "Cluster",
+              "host": "Host",
+              "Value #A": "Avg (ms)",
+              "Value #B": "Max (ms)"
+            }
+          }
+        }
+      ],
+      "title": "vSAN Network Latency per Host (Avg / Max)",
+      "type": "table"
     },
     {
       "collapsed": false,
