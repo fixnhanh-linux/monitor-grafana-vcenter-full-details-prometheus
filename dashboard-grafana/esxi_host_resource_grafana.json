@@ -2539,9 +2539,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "max by (cluster) (esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\"})",
           "format": "time_series",
-          "legendFormat": "Avg {{host}}",
+          "legendFormat": "Avg {{cluster}}",
           "refId": "A"
         },
         {
@@ -2549,9 +2549,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_network_latency_max_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "max by (cluster) (esxi_vsan_network_latency_max_ms{cluster=~\"$cluster\"})",
           "format": "time_series",
-          "legendFormat": "Max {{host}}",
+          "legendFormat": "Max {{cluster}}",
           "refId": "B"
         }
       ],
