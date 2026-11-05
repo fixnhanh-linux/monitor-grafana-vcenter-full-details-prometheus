@@ -372,7 +372,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Network latency trung binh (Average) giua cac host vSAN (test Network latency check, mau 5 phut). Vang > 4ms (Muc 3), do > 5ms (Muc 2). N/A = vCenter khong co test nay.",
+      "description": "Network latency lon nhat giua cac host vSAN (test Network latency check, mau 5 phut). Vang > 4ms (Muc 3), do > 5ms (Muc 2). N/A = vCenter khong co test nay.",
       "fieldConfig": {
         "defaults": {
           "decimals": 2,
@@ -431,7 +431,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max(esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\"})",
+          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "legendFormat": "",
@@ -439,7 +439,7 @@
           "refId": "A"
         }
       ],
-      "title": "Network Latency Average",
+      "title": "Network Latency Max",
       "type": "stat"
     },
     {
@@ -1276,7 +1276,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max by (cluster, host) (esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
+          "expr": "max by (cluster, host) (esxi_vsan_network_latency_ms{cluster=~\"$cluster\"} and on(cluster, host) (esxi_host_status{cluster=~\"$cluster\"} >= $status))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2472,15 +2472,15 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_network_latency_avg_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
           "format": "time_series",
           "legendFormat": "Network {{host}}",
           "refId": "A"
         }
       ],
-      "title": "vSAN Network Latency (ms) - Cluster Average",
+      "title": "vSAN Network Latency (ms) - Cluster Max",
       "type": "timeseries",
-      "description": "Network latency vSAN trung binh (Average, ms) giua cac host, tu test 'Network latency check'. Vang > 4ms (Muc 3), do > 5ms (Muc 2). vCenter chi cho so tong cluster nen cac host co cung gia tri."
+      "description": "Network latency vSAN (ms) giua cac host, tu test 'Network latency check'. Vang > 0,5ms, do > 1ms. vCenter chi cho so tong cluster nen cac host co cung gia tri."
     },
     {
       "collapsed": false,

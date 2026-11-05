@@ -31,7 +31,6 @@ NEW_IDS = (40, 41, 42)          # row + stat + table trong file nguon
 ROW_TITLE = "vSAN Cluster Partition"
 ANCHOR_ID = 8                   # bang "ESXi Hosts": chen ngay ben duoi
 OVERVIEW_IDS = (2, 3, 4, 5, 30, 31, 6, 7, 50)   # cac o hang tong quan (stat, y=1)
-NETLAT_TS_ID = 32               # do thi "vSAN Network Latency - Cluster Average" (timeseries)
 
 
 def arg(name, default):
@@ -120,22 +119,6 @@ def sync_overview(dash, src):
     return changed
 
 
-def sync_netlat_ts(dash, src):
-    """Dong bo do thi Network Latency (timeseries, id %d) tu file nguon: CHI doi query + title + mo ta.
-    GIU NGUYEN nguong / mau / gridPos / options (fieldConfig) cua ban dang chay de khong de len
-    thiet lap da chinh tay. Tra ve True neu co thay doi.""" % NETLAT_TS_ID
-    live = next((p for p in all_panels(dash["panels"]) if p.get("id") == NETLAT_TS_ID), None)
-    base = next((p for p in src["panels"] if p.get("id") == NETLAT_TS_ID), None)
-    if not live or not base:
-        return False
-    changed = False
-    for key in ("targets", "title", "description"):   # KHONG dong vao fieldConfig (nguong/mau)
-        if key in base and live.get(key) != base[key]:
-            live[key] = copy.deepcopy(base[key])
-            changed = True
-    return changed
-
-
 def main():
     if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
         sys.exit(__doc__)
@@ -151,7 +134,6 @@ def main():
     print("Dashboard: %s (uid %s, version %s, folder %s)" % (dash["title"], uid, dash.get("version"), meta.get("folderTitle", "General")))
     ovw = sync_overview(dash, src)
     tbl = sync_host_table(dash, src)
-    nlt = sync_netlat_ts(dash, src)
     height = merge(dash, new_panels)
     todo = []
     if ovw:
@@ -162,8 +144,6 @@ def main():
         print("Da co muc '%s' -> khong them lai." % ROW_TITLE)
     if tbl:
         todo.append("cap nhat cot bang 'ESXi Hosts' (them Read latency / Network latency / Partition)")
-    if nlt:
-        todo.append("cap nhat do thi 'vSAN Network Latency' (chuyen sang Average)")
     if not todo:
         print("Khong co gi de cap nhat (partition + cot bang host da co san).")
         sys.exit(3)
