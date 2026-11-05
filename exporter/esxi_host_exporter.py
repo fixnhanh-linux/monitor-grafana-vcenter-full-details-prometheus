@@ -40,7 +40,7 @@ from pyVmomi import SoapStubAdapter, vim, vmodl
 import vsan_disk_health as vdh
 
 # Tang moi lan phat hanh goi zip; kiem tra ban dang chay: curl -s localhost:9811/metrics | grep build_info
-VERSION = "2026.11.05-1"
+VERSION = "2026.11.05-2"
 
 WARN = {
     "cpu": float(os.environ.get("ESXI_WARN_CPU", 60)),
@@ -450,7 +450,7 @@ def prometheus_text(hosts, disks, resync, state, cl=None):
         nl = h.get("net_lat_ms")
         if isinstance(nl, dict):
             if nl.get("max") is not None:
-                add("esxi_vsan_network_latency_ms", "vSAN network latency lon nhat (Max) toi cac host khac (ms, vSAN health)",
+                add("esxi_vsan_network_latency_max_ms", "vSAN network latency lon nhat (Max) toi cac host khac (ms, vSAN health)",
                     L, round(nl["max"], 3))
             if nl.get("avg") is not None:
                 add("esxi_vsan_network_latency_avg_ms", "vSAN network latency trung binh (Average) toi cac host khac (ms, vSAN health)",

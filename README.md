@@ -105,7 +105,7 @@ Cảnh báo theo bảng "Chi tiết từng host trong cluster": **Mức 2 – Ca
 | (khác) | Drop vmk vSAN > 0,1% | `VsanVmkPacketDrop` | 3 | 5m |
 | (khác) | Exporter mất dữ liệu | `EsxiExporterStale` / `EsxiExporterDown` | 3 | 15m / 2m |
 
-`esxi_vsan_network_latency_ms` lấy từ test "Network latency check" của vSAN health (cache vSAN health, lấy mỗi 5 phút);
+`esxi_vsan_network_latency_max_ms` lấy từ test "Network latency check" của vSAN health (cache vSAN health, lấy mỗi 5 phút);
 vCenter không có test này thì metric không xuất hiện và 2 rule network latency không bao giờ bắn.
 
 Gửi sang Element: route `alertname=~"Esxi.*|Vsan.*"` trong Alertmanager tới receiver Element đang dùng.
@@ -159,7 +159,7 @@ Không muốn sửa exporter: dùng Telegraf `[[inputs.prometheus]]` đọc `/me
 | Host | `esxi_host_status` (0 OK/1 WARN/2 ERROR), `esxi_host_info` (nics_up, nics_down, reason), `esxi_host_cpu_usage_percent`, `esxi_host_mem_usage_percent`, `esxi_host_uptime_seconds`, `esxi_host_vms_running`, `esxi_host_connected`, `esxi_host_maintenance`, `esxi_host_hardware_health` |
 | NIC (`nic`) | `esxi_host_nic_up`, `esxi_host_nic_speed_mbps`, `esxi_host_nic_transmit_mbps`, `esxi_host_nic_receive_mbps` |
 | vmk (`vmk`, `vsan`, `direction`) | `esxi_host_vmk_drop_percent`, `esxi_host_vmk_dropped_packets` |
-| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_network_latency_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_host_disk_health_percent`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion`, `esxi_vsan_host_partition` (host_uuid) |
+| vSAN host | `esxi_vsan_write_latency_ms`, `esxi_vsan_read_latency_ms`, `esxi_vsan_network_latency_max_ms`, `esxi_vsan_host_disk_health`, `esxi_vsan_host_disk_health_percent`, `esxi_vsan_diskgroup_health`, `esxi_vsan_host_congestion`, `esxi_vsan_host_partition` (host_uuid) |
 | Cluster | `esxi_cluster_status`, `esxi_cluster_vsan_health`, `esxi_cluster_drs_mode`, `esxi_cluster_hosts`, `esxi_cluster_vms_total`, `esxi_cluster_cpu_total_hz`, `esxi_cluster_mem_total_bytes`, `esxi_cluster_vsan_capacity_bytes`, `esxi_vsan_resync_bytes`, `esxi_vsan_cluster_partitions` |
 | Disk (`disk`) | `vsan_disk_health`, `vsan_disk_info` (reason), `vsan_disk_congestion_value`, `vsan_disk_used_ratio` |
 | Exporter | `esxi_exporter_build_info` (version), `vsan_disk_exporter_up`, `vsan_disk_exporter_last_success_timestamp_seconds` |

@@ -437,7 +437,7 @@ zabbix_export:
             -
               type: PROMETHEUS_PATTERN
               parameters:
-                - 'esxi_vsan_network_latency_ms{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
+                - 'esxi_vsan_network_latency_max_ms{cluster=~"{$ESXI.CLUSTER.MATCHES}",cluster!~"{$ESXI.CLUSTER.NOT_MATCHES}",host=~"{$ESXI.HOST.MATCHES}",host!~"{$ESXI.HOST.NOT_MATCHES}"}'
                 - function
                 - max
               error_handler: DISCARD_VALUE
@@ -780,7 +780,7 @@ zabbix_export:
                 -
                   type: PROMETHEUS_PATTERN
                   parameters:
-                    - 'esxi_vsan_network_latency_ms{cluster="{#CLUSTER}"}'
+                    - 'esxi_vsan_network_latency_max_ms{cluster="{#CLUSTER}"}'
                     - function
                     - max
                   error_handler: DISCARD_VALUE

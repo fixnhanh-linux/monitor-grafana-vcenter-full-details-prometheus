@@ -444,7 +444,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max(esxi_vsan_network_latency_ms{cluster=~\"$cluster\"})",
+          "expr": "max(esxi_vsan_network_latency_max_ms{cluster=~\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "legendFormat": "Max",
@@ -2549,7 +2549,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "esxi_vsan_network_latency_ms{cluster=~\"$cluster\",host=~\"$host\"}",
+          "expr": "esxi_vsan_network_latency_max_ms{cluster=~\"$cluster\",host=~\"$host\"}",
           "format": "time_series",
           "legendFormat": "Max {{host}}",
           "refId": "B"
